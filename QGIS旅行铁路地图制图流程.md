@@ -283,7 +283,7 @@ PowerShell 示例：
   'F:\Desktop\Railway\制图工具\scripts\pre_university\build_map.py'
 ```
 
-K158 计划行程图依次构建路线、地图并校验；第一步需要本地全国铁路 OSM GeoPackage：
+K158 路线图依次构建路线、地图并校验；第一步需要本地全国铁路 OSM GeoPackage：
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `

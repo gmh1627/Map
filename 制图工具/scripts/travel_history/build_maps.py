@@ -194,7 +194,8 @@ def build_station_layer(project: QgsProject, matches: dict, records: list) -> Qg
     )
     memory.updateFields()
     features = []
-    for name, value in matches.items():
+    for name in counts:
+        value = matches[name]
         feature = QgsFeature(memory.fields())
         feature.setGeometry(
             __import__("qgis.core", fromlist=["QgsGeometry"]).QgsGeometry.fromPointXY(
@@ -751,7 +752,7 @@ def main() -> int:
             project,
             "铁路路线",
             "坐火车走过的地方",
-            "132 段乘车记录｜普铁 43 次 · 高铁/动车 89 次｜总里程 52,035 km\n其中普铁 19,015 km，高铁/动车 33,020 km｜抵达 67 个城市的 129 座车站",
+            "133 段乘车记录｜普铁 44 次 · 高铁/动车 89 次｜总里程 54,760 km\n其中普铁 21,740 km，高铁/动车 33,020 km｜抵达 65 个城市的 129 座车站",
             rail_layers,
             RAIL_IMAGE,
             rail_legend=True,
@@ -774,7 +775,6 @@ def main() -> int:
         return 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":
