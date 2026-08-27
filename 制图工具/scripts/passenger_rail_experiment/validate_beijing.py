@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from qgis.PyQt.QtGui import QColor, QImage
-from qgis.core import QgsApplication, QgsLayoutItemMap, QgsProject
+from qgis.core import QgsApplication, QgsCoordinateTransform, QgsLayoutItemMap, QgsProject
 
 
 ROOT = Path(r"F:\Desktop\Railway")
@@ -81,6 +81,32 @@ def main() -> int:
                     errors.append("主图缺少客运底图或原有行迹")
                 elif names.index("铁路行程轨迹") > names.index("其他客运铁路"):
                     errors.append("原有行迹没有绘制在客运底图上方")
+                to_passenger_crs = QgsCoordinateTransform(
+                    project.crs(),
+                    passenger_layers[0].crs(),
+                    project.transformContext(),
+                )
+                visible_extent = to_passenger_crs.transformBoundingBox(maps[0].extent())
+                through_corridors = {
+                    "京九线", "京包客专线", "京包线", "京原线",
+                    "京哈线", "京哈高速线", "京唐城际线", "京广线",
+                    "京广高速线", "京承线", "京沪线", "京沪高铁",
+                    "京津城际线", "京通线", "京雄城际线",
+                }
+                premature = []
+                for feature in passenger_layers[0].getFeatures():
+                    name = str(feature["name"])
+                    if name not in through_corridors:
+                        continue
+                    points = feature.geometry().asPolyline()
+                    if (
+                        points
+                        and visible_extent.contains(points[0])
+                        and visible_extent.contains(points[-1])
+                    ):
+                        premature.append(name)
+                if premature:
+                    errors.append("跨区域干线在图框内提前结束：" + "、".join(premature))
 
         image = QImage(str(IMAGE_PATH))
         ratio = 0.0 if image.isNull() else nonwhite_ratio(image)

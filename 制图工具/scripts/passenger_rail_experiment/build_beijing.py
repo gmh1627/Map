@@ -16,6 +16,8 @@ from qgis.core import (
     Qgis,
     QgsApplication,
     QgsCategorizedSymbolRenderer,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsFeature,
     QgsFeatureRequest,
     QgsField,
@@ -50,8 +52,6 @@ OUTPUT_PROJECT = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.qg
 OUTPUT_IMAGE = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.png"
 SOURCE_LAYOUT = "北京及周边铁路行迹"
 OUTPUT_LAYOUT = "北京及周边铁路行迹_客运铁路底图"
-EXTENT = QgsRectangle(115.20, 39.28, 117.75, 41.22)
-
 # Conventional corridors and connecting lines with current passenger use.
 VERIFIED_PASSENGER_NAMES = {
     "京沪线",
@@ -140,8 +140,12 @@ def rail_class(name: str, tags: dict[str, str]) -> str:
     return "conventional"
 
 
-def source_features(source: QgsVectorLayer) -> list[tuple[QgsFeature, str, dict[str, str]]]:
-    request = QgsFeatureRequest().setFilterRect(EXTENT).setFilterExpression('"railway" = \'rail\'')
+def source_features(
+    source: QgsVectorLayer, extraction_extent: QgsRectangle
+) -> list[tuple[QgsFeature, str, dict[str, str]]]:
+    request = QgsFeatureRequest().setFilterRect(extraction_extent).setFilterExpression(
+        '"railway" = \'rail\''
+    )
     result = []
     for feature in source.getFeatures(request):
         name = str(feature["name"] or "")
@@ -279,13 +283,15 @@ def build_corridor_paths(
     return output
 
 
-def build_passenger_layer(project: QgsProject) -> QgsVectorLayer:
+def build_passenger_layer(
+    project: QgsProject, extraction_extent: QgsRectangle
+) -> QgsVectorLayer:
     source = QgsVectorLayer(
         f"{OSM_GPKG}|layername=china_railwayosm__lines", "OSM铁路源数据", "ogr"
     )
     if not source.isValid():
         raise RuntimeError(f"无法打开铁路源数据：{OSM_GPKG}")
-    candidates = source_features(source)
+    candidates = source_features(source, extraction_extent)
     corridors = build_corridor_paths(candidates)
 
     memory = QgsVectorLayer("LineString?crs=EPSG:4326", "其他客运铁路", "memory")
@@ -416,7 +422,16 @@ def main() -> int:
         project.addMapLayer(current_routes)
         map_layers[route_index] = current_routes
 
-        passenger = build_passenger_layer(project)
+        to_wgs84 = QgsCoordinateTransform(
+            project.crs(),
+            QgsCoordinateReferenceSystem("EPSG:4326"),
+            project.transformContext(),
+        )
+        extraction_extent = to_wgs84.transformBoundingBox(map_item.extent())
+        extraction_extent.grow(
+            max(extraction_extent.width(), extraction_extent.height()) * 0.20
+        )
+        passenger = build_passenger_layer(project, extraction_extent)
         style_passenger_layer(passenger)
         map_layers.insert(route_index + 1, passenger)
         map_item.setLayers(map_layers)
