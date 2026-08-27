@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import re
 import sys
+from collections import Counter, defaultdict
 from pathlib import Path
 
+import networkx as nx
+import numpy as np
+from scipy.spatial import cKDTree
 from qgis.PyQt.QtCore import QPointF, Qt, QVariant
 from qgis.PyQt.QtGui import QColor, QFont, QImage, QPolygonF
 from qgis.core import (
@@ -15,6 +19,7 @@ from qgis.core import (
     QgsFeature,
     QgsFeatureRequest,
     QgsField,
+    QgsGeometry,
     QgsLayoutExporter,
     QgsLayoutItemLabel,
     QgsLayoutItemMap,
@@ -24,6 +29,7 @@ from qgis.core import (
     QgsLineSymbol,
     QgsPrintLayout,
     QgsProject,
+    QgsPointXY,
     QgsRectangle,
     QgsRendererCategory,
     QgsSimpleLineSymbolLayer,
@@ -82,6 +88,8 @@ VERIFIED_PASSENGER_NAMES = {
     "京包客专京通联络线",
     "京包京通联络线",
     "丰双丰沙联络线",
+    "沙城-沙城西线",
+    "通乔线",
 }
 KNOWN_FREIGHT_NAMES = {
     "大秦线",
@@ -115,19 +123,13 @@ def is_excluded(name: str, tags: dict[str, str]) -> bool:
     return (
         tags.get("service") in EXCLUDED_SERVICES
         or tags.get("usage") in {"industrial", "military"}
-        or tags.get("railway:traffic_mode") == "freight"
+        or (
+            tags.get("railway:traffic_mode") == "freight"
+            and name not in VERIFIED_PASSENGER_NAMES
+        )
         or name in KNOWN_FREIGHT_NAMES
         or any(key in tags for key in ("disused", "abandoned", "proposed", "construction"))
     )
-
-
-def explicit_passenger(tags: dict[str, str]) -> bool:
-    if tags.get("railway:traffic_mode") == "passenger":
-        return True
-    try:
-        return int(tags.get("passenger_lines", "0")) > 0
-    except ValueError:
-        return False
 
 
 def rail_class(name: str, tags: dict[str, str]) -> str:
@@ -136,10 +138,6 @@ def rail_class(name: str, tags: dict[str, str]) -> str:
     ):
         return "highspeed"
     return "conventional"
-
-
-def is_unnamed_or_structure(name: str) -> bool:
-    return not name or name.endswith(("桥", "大桥", "隧道"))
 
 
 def source_features(source: QgsVectorLayer) -> list[tuple[QgsFeature, str, dict[str, str]]]:
@@ -153,6 +151,134 @@ def source_features(source: QgsVectorLayer) -> list[tuple[QgsFeature, str, dict[
     return result
 
 
+def feature_points(feature: QgsFeature) -> list[QgsPointXY]:
+    geometry = feature.geometry()
+    if geometry.isMultipart():
+        parts = [part for part in geometry.asMultiPolyline() if len(part) >= 2]
+        return list(max(parts, key=len)) if parts else []
+    return list(geometry.asPolyline())
+
+
+def node_key(point: QgsPointXY) -> tuple[float, float]:
+    return (round(point.x(), 6), round(point.y(), 6))
+
+
+def edge_length(first: tuple[float, float], second: tuple[float, float]) -> float:
+    latitude = (first[1] + second[1]) / 2.0
+    x_scale = max(0.1, np.cos(np.radians(latitude)))
+    return float(np.hypot((first[0] - second[0]) * x_scale, first[1] - second[1]))
+
+
+def build_corridor_paths(
+    candidates: list[tuple[QgsFeature, str, dict[str, str]]]
+) -> list[tuple[str, str, str, QgsGeometry]]:
+    graph = nx.Graph()
+    seed_nodes: dict[str, set[tuple[float, float]]] = defaultdict(set)
+    refs: dict[str, Counter[str]] = defaultdict(Counter)
+    classes: dict[str, str] = {}
+
+    for feature, name, tags in candidates:
+        points = feature_points(feature)
+        if len(points) < 2:
+            continue
+        keys = [node_key(point) for point in points]
+        if name in VERIFIED_PASSENGER_NAMES:
+            seed_nodes[name].update(keys)
+            if tags.get("ref"):
+                refs[name][tags["ref"]] += 1
+            if rail_class(name, tags) == "highspeed":
+                classes[name] = "highspeed"
+            else:
+                classes.setdefault(name, "conventional")
+        for start, end in zip(keys, keys[1:]):
+            if start == end:
+                continue
+            length = edge_length(start, end)
+            current = graph.get_edge_data(start, end)
+            new_rank = 0 if name in VERIFIED_PASSENGER_NAMES else 1 if not name else 2
+            current_rank = current.get("rank", 99) if current else 99
+            if current is None or new_rank < current_rank:
+                graph.add_edge(
+                    start,
+                    end,
+                    length=max(length, 1e-9),
+                    name=name,
+                    rank=new_rank,
+                    connector=False,
+                )
+
+    # OSM often maps parallel tracks and station throats as separate ways whose
+    # endpoints miss by a few metres. High-cost local connectors keep corridor
+    # paths continuous without making those artificial links visually dominant.
+    nodes = list(graph.nodes)
+    coordinates = np.asarray(nodes, dtype=float)
+    if len(nodes) > 1:
+        tree = cKDTree(coordinates)
+        distances, neighbors = tree.query(
+            coordinates, k=4, distance_upper_bound=0.00025, workers=-1
+        )
+        for start_index, (row_distances, row_neighbors) in enumerate(
+            zip(distances, neighbors)
+        ):
+            for distance, end_index in zip(row_distances[1:], row_neighbors[1:]):
+                end_index = int(end_index)
+                if end_index >= len(nodes) or not np.isfinite(distance):
+                    continue
+                start = nodes[start_index]
+                end = nodes[end_index]
+                if start_index >= end_index or graph.has_edge(start, end):
+                    continue
+                graph.add_edge(
+                    start,
+                    end,
+                    length=max(edge_length(start, end), 1e-9),
+                    name="",
+                    rank=3,
+                    connector=True,
+                )
+
+    component_by_node: dict[tuple[float, float], int] = {}
+    for index, component in enumerate(nx.connected_components(graph)):
+        for node in component:
+            component_by_node[node] = index
+
+    output = []
+    for name in sorted(seed_nodes):
+        grouped: dict[int, list[tuple[float, float]]] = defaultdict(list)
+        for node in seed_nodes[name]:
+            if node in component_by_node:
+                grouped[component_by_node[node]].append(node)
+        if not grouped:
+            continue
+        seeds = max(grouped.values(), key=len)
+        center = np.mean(np.asarray(seeds), axis=0)
+        first = max(seeds, key=lambda node: float(np.sum((np.asarray(node) - center) ** 2)))
+        second = max(
+            seeds,
+            key=lambda node: (node[0] - first[0]) ** 2 + (node[1] - first[1]) ** 2,
+        )
+
+        def weight(_start, _end, data):
+            edge_name = str(data.get("name", ""))
+            if edge_name == name:
+                factor = 0.04
+            elif data.get("connector"):
+                factor = 25.0
+            elif not edge_name:
+                factor = 1.0
+            elif edge_name in VERIFIED_PASSENGER_NAMES:
+                factor = 3.0
+            else:
+                factor = 12.0
+            return float(data["length"]) * factor
+
+        path = nx.shortest_path(graph, first, second, weight=weight)
+        geometry = QgsGeometry.fromPolylineXY([QgsPointXY(*node) for node in path])
+        reference = refs[name].most_common(1)[0][0] if refs[name] else ""
+        output.append((name, reference, classes.get(name, "conventional"), geometry))
+    return output
+
+
 def build_passenger_layer(project: QgsProject) -> QgsVectorLayer:
     source = QgsVectorLayer(
         f"{OSM_GPKG}|layername=china_railwayosm__lines", "OSM铁路源数据", "ogr"
@@ -160,15 +286,7 @@ def build_passenger_layer(project: QgsProject) -> QgsVectorLayer:
     if not source.isValid():
         raise RuntimeError(f"无法打开铁路源数据：{OSM_GPKG}")
     candidates = source_features(source)
-    accepted_refs = {
-        tags["ref"]
-        for _, name, tags in candidates
-        if tags.get("ref")
-        and (
-            name in VERIFIED_PASSENGER_NAMES
-            or (is_unnamed_or_structure(name) and explicit_passenger(tags))
-        )
-    }
+    corridors = build_corridor_paths(candidates)
 
     memory = QgsVectorLayer("LineString?crs=EPSG:4326", "其他客运铁路", "memory")
     memory.dataProvider().addAttributes(
@@ -181,26 +299,10 @@ def build_passenger_layer(project: QgsProject) -> QgsVectorLayer:
     )
     memory.updateFields()
     output = []
-    for source_feature, name, tags in candidates:
-        named = name in VERIFIED_PASSENGER_NAMES
-        tagged = is_unnamed_or_structure(name) and explicit_passenger(tags)
-        linked = bool(
-            is_unnamed_or_structure(name)
-            and tags.get("ref")
-            and tags["ref"] in accepted_refs
-        )
-        if not (named or tagged or linked):
-            continue
+    for name, reference, line_class, geometry in corridors:
         feature = QgsFeature(memory.fields())
-        feature.setGeometry(source_feature.geometry())
-        feature.setAttributes(
-            [
-                name,
-                tags.get("ref", ""),
-                rail_class(name, tags),
-                "verified_name" if named else "osm_passenger" if tagged else "shared_ref",
-            ]
-        )
+        feature.setGeometry(geometry)
+        feature.setAttributes([name, reference, line_class, "network_corridor"])
         output.append(feature)
     memory.dataProvider().addFeatures(output)
     memory.updateExtents()
@@ -340,7 +442,7 @@ def main() -> int:
             raise RuntimeError(f"无法导出图片：{result}")
         image = QImage(str(OUTPUT_IMAGE))
         counts = {"conventional": 0, "highspeed": 0}
-        basis = {"verified_name": 0, "osm_passenger": 0, "shared_ref": 0}
+        basis = {"network_corridor": 0}
         for feature in passenger.getFeatures():
             counts[str(feature["rail_class"])] += 1
             basis[str(feature["basis"])] += 1

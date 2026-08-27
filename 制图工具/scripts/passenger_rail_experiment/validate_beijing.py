@@ -42,9 +42,19 @@ def main() -> int:
             errors.append("无效图层：" + "、".join(invalid))
         passenger_layers = project.mapLayersByName("其他客运铁路")
         feature_count = passenger_layers[0].featureCount() if passenger_layers else 0
-        if not 500 <= feature_count <= 8000:
+        if feature_count != 36:
             errors.append(f"客运铁路要素数异常：{feature_count}")
         if passenger_layers:
+            invalid_geometries = [
+                str(feature["name"])
+                for feature in passenger_layers[0].getFeatures()
+                if feature.geometry().isNull()
+                or feature.geometry().isEmpty()
+                or feature.geometry().isMultipart()
+                or feature.geometry().length() <= 0
+            ]
+            if invalid_geometries:
+                errors.append("客运走廊不是单一连续线：" + "、".join(invalid_geometries))
             forbidden = {
                 str(feature["name"])
                 for feature in passenger_layers[0].getFeatures()
