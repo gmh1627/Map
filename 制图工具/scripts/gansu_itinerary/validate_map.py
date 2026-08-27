@@ -46,6 +46,14 @@ def main() -> int:
         layouts = project.layoutManager().printLayouts()
         if len(layouts) != 1 or layouts[0].name() != "甘肃行旅":
             errors.append("甘肃行旅布局缺失")
+        for boundary_name in ("周边省界", "甘肃省界"):
+            matches = project.mapLayersByName(boundary_name)
+            if len(matches) != 1:
+                errors.append(f"图层 {boundary_name} 数量异常: {len(matches)}")
+                continue
+            width = matches[0].renderer().symbol().symbolLayer(0).width()
+            if abs(width - 0.32) > 0.01:
+                errors.append(f"{boundary_name} 线宽 {width}，预期 0.32")
         image_bytes = IMAGE.stat().st_size if IMAGE.exists() else 0
         if image_bytes == 0:
             errors.append("PNG 缺失或为空")
@@ -64,7 +72,6 @@ def main() -> int:
         return 1 if errors else 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":

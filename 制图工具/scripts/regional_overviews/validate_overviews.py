@@ -18,6 +18,13 @@ from qgis.core import (
 
 
 DEFAULT_OUTPUT_ROOT = Path(r"F:\Desktop\Railway\地图输出\区域线路图")
+NO_CITY_CONTEXT_KEYS = {
+    "home1",
+    "home2_full",
+    "home3",
+    "qingming",
+    "luoyang_zhengzhou",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,10 +58,15 @@ def main() -> int:
                 "实际铁路行程",
                 "行程车站",
                 "去过的城市",
+                "省级行政区边界",
+            }
+            city_context = {
                 "城市名称",
                 "未到达城市名称",
                 "地级行政区内部边界",
             }
+            if key not in NO_CITY_CONTEXT_KEYS:
+                required |= city_context
             names = {layer.name() for layer in project.mapLayers().values()}
             forbidden = sorted({"背景铁路", "背景铁路复线", "OSM 淡色底图"} & names)
             if forbidden:
@@ -62,6 +74,18 @@ def main() -> int:
             missing = sorted(required - names)
             if missing:
                 item_errors.append("missing layers: " + ", ".join(missing))
+            unexpected_context = sorted(city_context & names) if key in NO_CITY_CONTEXT_KEYS else []
+            if unexpected_context:
+                item_errors.append("city context should be absent: " + ", ".join(unexpected_context))
+            province_layers = project.mapLayersByName("省级行政区边界")
+            if province_layers:
+                symbol_layer = province_layers[0].renderer().symbol().symbolLayer(0)
+                expected_width = 0.15 if key in NO_CITY_CONTEXT_KEYS else 0.32
+                actual_width = symbol_layer.width()
+                if abs(actual_width - expected_width) > 0.01:
+                    item_errors.append(
+                        f"province boundary width {actual_width}, expected {expected_width}"
+                    )
             context_labels = project.mapLayersByName("未到达城市名称")
             if context_labels:
                 if not context_labels[0].labelsEnabled():
@@ -125,7 +149,6 @@ def main() -> int:
         return 1 if errors else 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":

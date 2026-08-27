@@ -84,6 +84,18 @@ def main() -> int:
                 errors.append(f"Missing layer: {name}")
             elif name == "未到达城市名称" and not layers[0].labelsEnabled():
                 errors.append("Unvisited city labels are disabled")
+        tianjin_layers = project.mapLayersByName("天津")
+        if not tianjin_layers or tianjin_layers[0].featureCount() != 1:
+            errors.append("Missing Tianjin polygon")
+        elif not tianjin_layers[0].labelsEnabled():
+            errors.append("Tianjin label is disabled")
+        province_layers = project.mapLayersByName("省界")
+        if province_layers:
+            width = province_layers[0].renderer().symbol().symbolLayer(0).width()
+            if abs(width - 0.32) > 0.01:
+                errors.append(f"Province boundary width {width}, expected 0.32")
+        else:
+            errors.append("Missing province boundary layer")
 
         layouts = project.layoutManager().printLayouts()
         if len(layouts) != 1:
@@ -146,7 +158,6 @@ def main() -> int:
         return 1 if errors else 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":

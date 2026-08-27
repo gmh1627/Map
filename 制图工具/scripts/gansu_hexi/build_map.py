@@ -82,11 +82,11 @@ STATION_LABELS = {
     "兰州站": (104.23, 36.10),
     "定西北站": (104.10, 35.45),
     "定西站": (104.95, 35.75),
-    "陇西": (104.50, 34.84),
-    "武山": (104.86, 34.56),
-    "甘谷": (105.25, 34.94),
-    "天水": (105.98, 34.72),
-    "合肥": (117.03, 31.72),
+    "陇西站": (104.50, 34.84),
+    "武山站": (104.86, 34.56),
+    "甘谷站": (105.25, 34.94),
+    "天水站": (105.98, 34.72),
+    "合肥站": (117.03, 31.72),
 }
 CITY_LABELS = {
     "合肥": (117.30, 31.70),
@@ -362,17 +362,6 @@ def main() -> int:
         provinces = ov.build_province_boundaries_from_cities(
             cities, OUTPUT_GPKG, EXTENT
         )
-        internal_admin = ov.build_internal_admin_boundaries(
-            project, cities, OUTPUT_GPKG, EXTENT
-        )
-        unvisited_city_labels = ov.build_unvisited_city_labels(
-            project,
-            cities,
-            OUTPUT_GPKG,
-            EXTENT,
-            set(VISITED_CITIES) | {"合肥市"},
-        )
-
         station_source = ov.add_layer(project, ov.MAP_DATA_GPKG, "车站源数据", "记录车站", subset=f'"name" IN ({sql_strings(STATIONS)})')
         stations = ov.write_layer(station_source, OUTPUT_GPKG, "stations")
         stations.setName("行程车站")
@@ -389,7 +378,21 @@ def main() -> int:
         flights, arrows, airports = build_flights(project)
         airport_labels = build_points(project, AIRPORT_LABELS, "机场名", "airport_labels")
         style_labels(airport_labels, 5.8, "#285E79", "华文楷体", 0)
-        layers = [station_labels, county_labels, airport_labels, stations, airports, unvisited_city_labels, arrows, flights, routes, counties, hefei, internal_admin, provinces, visited, cities]
+        layers = [
+            station_labels,
+            county_labels,
+            airport_labels,
+            stations,
+            airports,
+            arrows,
+            flights,
+            routes,
+            counties,
+            hefei,
+            provinces,
+            visited,
+            cities,
+        ]
         layout = build_layout(project, layers, services)
         project.layerTreeRoot().findLayer(arrows.id()).setItemVisibilityChecked(False)
         project.setTitle("走河西")
@@ -413,7 +416,6 @@ def main() -> int:
         return 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":

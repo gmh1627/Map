@@ -495,6 +495,14 @@ SPECS = (
     ),
 )
 
+NO_CITY_CONTEXT_KEYS = {
+    "home1",
+    "home2_full",
+    "home3",
+    "qingming",
+    "luoyang_zhengzhou",
+}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -1324,9 +1332,17 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     style_trip_routes(route)
     services = {str(feature["service"]) for feature in route.getFeatures()}
     project.removeMapLayer(route_source.id())
-    provinces = build_province_boundaries_from_cities(cities, gpkg, spec.extent)
-    internal_admin = build_internal_admin_boundaries(
-        project, cities, gpkg, spec.extent
+    show_city_context = spec.key not in NO_CITY_CONTEXT_KEYS
+    provinces = build_province_boundaries_from_cities(
+        cities,
+        gpkg,
+        spec.extent,
+        line_width=0.32 if show_city_context else 0.15,
+    )
+    internal_admin = (
+        build_internal_admin_boundaries(project, cities, gpkg, spec.extent)
+        if show_city_context
+        else None
     )
 
     station_source = add_layer(
@@ -1340,13 +1356,23 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     project.removeMapLayer(station_source.id())
     station_labels = build_station_labels(project, spec, gpkg)
 
-    city_labels = build_city_labels(project, spec, gpkg, first=False)
-    unvisited_city_labels = build_unvisited_city_labels(
-        project,
-        cities,
-        gpkg,
-        spec.extent,
-        set(spec.visited_cities) | ({spec.start_city} if spec.start_city else set()) | ({spec.end_city} if spec.end_city else set()),
+    city_labels = (
+        build_city_labels(project, spec, gpkg, first=False)
+        if show_city_context
+        else None
+    )
+    unvisited_city_labels = (
+        build_unvisited_city_labels(
+            project,
+            cities,
+            gpkg,
+            spec.extent,
+            set(spec.visited_cities)
+            | ({spec.start_city} if spec.start_city else set())
+            | ({spec.end_city} if spec.end_city else set()),
+        )
+        if show_city_context
+        else None
     )
     roads, arrows = None, None
     places = build_place_labels(project, spec, gpkg)
@@ -1369,8 +1395,10 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         map_layers.append(area_labels)
     if places:
         map_layers.append(places)
-    map_layers.append(city_labels)
-    map_layers.append(unvisited_city_labels)
+    if city_labels:
+        map_layers.append(city_labels)
+    if unvisited_city_labels:
+        map_layers.append(unvisited_city_labels)
     if roads:
         map_layers.append(roads)
     map_layers.extend([route, *focus_layers])
@@ -1378,9 +1406,9 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         map_layers.append(start)
     if end:
         map_layers.append(end)
-    map_layers.extend(
-        [internal_admin, provinces, visited, cities]
-    )
+    if internal_admin:
+        map_layers.append(internal_admin)
+    map_layers.extend([provinces, visited, cities])
     effective_extent = QgsRectangle(*spec.extent)
     if not spec.strict_extent:
         effective_extent.combineExtentWith(visited.extent())
@@ -1446,7 +1474,6 @@ def main() -> int:
         return 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":

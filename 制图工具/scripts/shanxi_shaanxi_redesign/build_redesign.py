@@ -333,6 +333,22 @@ def style_beijing(layer: QgsVectorLayer) -> None:
     )
 
 
+def style_tianjin(layer: QgsVectorLayer) -> None:
+    layer.setRenderer(
+        QgsSingleSymbolRenderer(fill_symbol("#EEF3F6", "255,255,255,0", 0.0, 36))
+    )
+    add_labels(
+        layer,
+        "'天津'",
+        7.2,
+        "#8A9390",
+        "华文新魏",
+        QgsPalLayerSettings.Horizontal,
+        5,
+        display_all=True,
+    )
+
+
 def style_focus_counties(layer: QgsVectorLayer, move_kelan: bool = False) -> None:
     symbol = fill_symbol("#70A390", "#2F6257", 0.0, 155)
     symbol.symbolLayer(0).setStrokeStyle(Qt.NoPen)
@@ -367,7 +383,7 @@ def style_province_outline(layer: QgsVectorLayer) -> None:
             QgsLineSymbol.createSimple(
                 {
                     "line_color": "#9AA8B0",
-                    "line_width": "0.16",
+                    "line_width": "0.32",
                     "line_width_unit": "MM",
                     "joinstyle": "round",
                     "capstyle": "round",
@@ -942,6 +958,9 @@ def main() -> int:
         project.setCrs(QgsCoordinateReferenceSystem("EPSG:3857"))
 
         beijing = load_vector(project, BEIJING, "北京")
+        tianjin = load_vector(
+            project, PROVINCES, "天津", subset='"name" = \'天津市\''
+        )
         hebei = load_vector(project, HEBEI, "河北地级市")
         shanxi = load_vector(project, SHANXI, "山西地级市")
         shaanxi = load_vector(project, SHAANXI, "陕西地级市")
@@ -970,7 +989,7 @@ def main() -> int:
             project, inner_mongolia_memory, "内蒙古地级市"
         )
         province_outline = build_province_outline_from_prefectures(
-            project, (beijing, hebei, shanxi, shaanxi, inner_mongolia)
+            project, (beijing, tianjin, hebei, shanxi, shaanxi, inner_mongolia)
         )
         project.removeMapLayer(national_cities.id())
         trip_route = build_trip_route_layer(project, trip_route_source)
@@ -979,6 +998,7 @@ def main() -> int:
         datong_south_label = build_datong_south_label(project)
 
         style_beijing(beijing)
+        style_tianjin(tianjin)
         style_prefectures(hebei, set(), "#FFFFFF", 24)
         style_prefectures(shanxi, VISITED_SHANXI)
         style_prefectures(shaanxi, VISITED_SHAANXI)
@@ -1018,6 +1038,7 @@ def main() -> int:
             xinzhou,
             yulin,
             beijing,
+            tianjin,
             hebei,
             shanxi,
             shaanxi,
@@ -1047,7 +1068,6 @@ def main() -> int:
         return 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":

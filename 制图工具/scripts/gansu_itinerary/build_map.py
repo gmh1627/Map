@@ -479,7 +479,7 @@ def main() -> int:
             display_name="周边省界",
             exclude_province_codes={620000},
             line_color="#A9B1B2",
-            line_width=0.15,
+            line_width=0.32,
         )
         province = ov.build_province_boundaries_from_cities(
             cities,
@@ -489,7 +489,7 @@ def main() -> int:
             display_name="甘肃省界",
             include_province_codes={620000},
             line_color="#A9B1B2",
-            line_width=0.15,
+            line_width=0.32,
         )
         context_internal = ov.build_internal_admin_boundaries(
             project,
@@ -563,7 +563,6 @@ def main() -> int:
         return 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":
