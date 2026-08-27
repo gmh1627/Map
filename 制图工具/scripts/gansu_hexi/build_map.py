@@ -362,6 +362,9 @@ def main() -> int:
         provinces = ov.build_province_boundaries_from_cities(
             cities, OUTPUT_GPKG, EXTENT
         )
+        highlighted_city_boundaries = ov.build_highlighted_city_boundaries(
+            cities, OUTPUT_GPKG, set(VISITED_CITIES) | {"合肥市"}
+        )
         station_source = ov.add_layer(project, ov.MAP_DATA_GPKG, "车站源数据", "记录车站", subset=f'"name" IN ({sql_strings(STATIONS)})')
         stations = ov.write_layer(station_source, OUTPUT_GPKG, "stations")
         stations.setName("行程车站")
@@ -387,6 +390,7 @@ def main() -> int:
             arrows,
             flights,
             routes,
+            highlighted_city_boundaries,
             counties,
             hefei,
             provinces,

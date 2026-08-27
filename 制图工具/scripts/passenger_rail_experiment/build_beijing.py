@@ -29,16 +29,20 @@ from qgis.core import (
     QgsLayoutPoint,
     QgsLayoutSize,
     QgsLineSymbol,
+    QgsMarkerSymbol,
+    QgsPalLayerSettings,
     QgsPrintLayout,
     QgsProject,
     QgsPointXY,
     QgsRectangle,
     QgsRendererCategory,
     QgsSimpleLineSymbolLayer,
+    QgsSingleSymbolRenderer,
     QgsTextFormat,
     QgsUnitTypes,
     QgsVectorFileWriter,
     QgsVectorLayer,
+    QgsVectorLayerSimpleLabeling,
 )
 
 
@@ -113,6 +117,21 @@ KNOWN_FREIGHT_NAMES = {
     "廊涿城际线",
 }
 EXCLUDED_SERVICES = {"siding", "spur", "yard", "crossover"}
+CORRIDOR_CONNECTIONS = (
+    ("崇礼线", "京包客专线"),
+    ("沙城-沙城西线", "丰沙线"),
+    ("延庆线", "京包线"),
+    ("康延线", "京包线"),
+    ("怀联线", "京承线"),
+    ("通乔线", "京哈线"),
+)
+CORRIDOR_TERMINALS = {
+    "崇礼线": (("崇礼站", (115.3110046, 41.0058806)),),
+    "津蓟线": (
+        ("天津北站", (117.2030494, 39.1656713)),
+        ("蓟州北站", (117.3913352, 40.0253968)),
+    ),
+}
 
 
 def parse_tags(value: object) -> dict[str, str]:
@@ -246,7 +265,7 @@ def build_corridor_paths(
         for node in component:
             component_by_node[node] = index
 
-    output = []
+    corridor_paths: dict[str, list[tuple[float, float]]] = {}
     for name in sorted(seed_nodes):
         grouped: dict[int, list[tuple[float, float]]] = defaultdict(list)
         for node in seed_nodes[name]:
@@ -277,6 +296,82 @@ def build_corridor_paths(
             return float(data["length"]) * factor
 
         path = nx.shortest_path(graph, first, second, weight=weight)
+        corridor_paths[name] = path
+
+    def connection_weight_for(names: set[str]):
+        def weight(_start, _end, data):
+            edge_name = str(data.get("name", ""))
+            if edge_name in names:
+                factor = 0.04
+            elif data.get("connector"):
+                factor = 25.0
+            elif not edge_name:
+                factor = 1.0
+            elif edge_name in VERIFIED_PASSENGER_NAMES:
+                factor = 3.0
+            else:
+                factor = 12.0
+            return float(data["length"]) * factor
+
+        return weight
+
+    if len(nodes) < 2:
+        raise RuntimeError("Rail network has too few nodes")
+    node_tree = cKDTree(np.asarray(nodes, dtype=float))
+    for source_name, terminals in CORRIDOR_TERMINALS.items():
+        source_path = corridor_paths.get(source_name)
+        if not source_path:
+            raise RuntimeError(f"Missing corridor for terminal: {source_name}")
+        for _, terminal_coordinate in terminals:
+            _, target_index = node_tree.query(np.asarray(terminal_coordinate), k=1)
+            target = nodes[int(target_index)]
+            endpoint_index = min(
+                (0, -1),
+                key=lambda index: edge_length(source_path[index], terminal_coordinate),
+            )
+            endpoint = source_path[endpoint_index]
+            connection = nx.shortest_path(
+                graph,
+                endpoint,
+                target,
+                weight=connection_weight_for({source_name}),
+            )
+            if endpoint_index == 0:
+                source_path = list(reversed(connection))[:-1] + source_path
+            else:
+                source_path = source_path + connection[1:]
+        corridor_paths[source_name] = source_path
+
+    for source_name, target_name in CORRIDOR_CONNECTIONS:
+        source_path = corridor_paths.get(source_name)
+        target_path = corridor_paths.get(target_name)
+        if not source_path or not target_path:
+            raise RuntimeError(
+                f"Missing corridor for connection: {source_name} -> {target_name}"
+            )
+        pairs = []
+        for endpoint_index in (0, -1):
+            endpoint = source_path[endpoint_index]
+            target = min(
+                target_path,
+                key=lambda node: edge_length(endpoint, node),
+            )
+            pairs.append((edge_length(endpoint, target), endpoint_index, endpoint, target))
+        _, endpoint_index, endpoint, target = min(pairs, key=lambda item: item[0])
+
+        connection = nx.shortest_path(
+            graph,
+            endpoint,
+            target,
+            weight=connection_weight_for({source_name, target_name}),
+        )
+        if endpoint_index == 0:
+            corridor_paths[source_name] = list(reversed(connection))[:-1] + source_path
+        else:
+            corridor_paths[source_name] = source_path + connection[1:]
+
+    output = []
+    for name, path in sorted(corridor_paths.items()):
         geometry = QgsGeometry.fromPolylineXY([QgsPointXY(*node) for node in path])
         reference = refs[name].most_common(1)[0][0] if refs[name] else ""
         output.append((name, reference, classes.get(name, "conventional"), geometry))
@@ -353,6 +448,64 @@ def style_passenger_layer(layer: QgsVectorLayer) -> None:
             ],
         )
     )
+
+
+def build_terminal_layer(project: QgsProject) -> QgsVectorLayer:
+    memory = QgsVectorLayer("Point?crs=EPSG:4326", "其他客运铁路终点", "memory")
+    memory.dataProvider().addAttributes([QgsField("name", QVariant.String)])
+    memory.updateFields()
+    features = []
+    for terminals in CORRIDOR_TERMINALS.values():
+        for name, coordinate in terminals:
+            feature = QgsFeature(memory.fields())
+            feature.setAttribute("name", name)
+            feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*coordinate)))
+            features.append(feature)
+    memory.dataProvider().addFeatures(features)
+    memory.updateExtents()
+    options = QgsVectorFileWriter.SaveVectorOptions()
+    options.driverName = "GPKG"
+    options.layerName = "其他客运铁路终点"
+    options.fileEncoding = "UTF-8"
+    options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
+    error, message, _, _ = QgsVectorFileWriter.writeAsVectorFormatV3(
+        memory, str(OUTPUT_GPKG), project.transformContext(), options
+    )
+    if error != QgsVectorFileWriter.NoError:
+        raise RuntimeError(f"无法写出客运铁路终点图层：{message}")
+    layer = QgsVectorLayer(
+        f"{OUTPUT_GPKG}|layername=其他客运铁路终点", "其他客运铁路终点", "ogr"
+    )
+    if not layer.isValid():
+        raise RuntimeError("写出的客运铁路终点图层无效")
+    project.addMapLayer(layer)
+    layer.setRenderer(
+        QgsSingleSymbolRenderer(
+            QgsMarkerSymbol.createSimple(
+                {
+                    "name": "circle",
+                    "color": "#EEF2F0",
+                    "outline_color": "#9BA9A4",
+                    "outline_width": "0.18",
+                    "outline_width_unit": "MM",
+                    "size": "1.25",
+                    "size_unit": "MM",
+                }
+            )
+        )
+    )
+    settings = QgsPalLayerSettings()
+    settings.enabled = True
+    settings.fieldName = "name"
+    settings.placement = Qgis.LabelPlacement.OrderedPositionsAroundPoint
+    settings.dist = 0.6
+    settings.distUnits = Qgis.RenderUnit.Millimeters
+    settings.priority = 3
+    settings.obstacle = False
+    settings.setFormat(text_format(7.0, "#76817D"))
+    layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
+    layer.setLabelsEnabled(True)
+    return layer
 
 
 def text_format(size: float, color: str) -> QgsTextFormat:
@@ -434,6 +587,8 @@ def main() -> int:
         passenger = build_passenger_layer(project, extraction_extent)
         style_passenger_layer(passenger)
         map_layers.insert(route_index + 1, passenger)
+        terminals = build_terminal_layer(project)
+        map_layers.insert(route_index + 1, terminals)
         map_item.setLayers(map_layers)
         map_item.setKeepLayerSet(True)
         add_background_legend(layout)
@@ -464,6 +619,7 @@ def main() -> int:
         print(
             {
                 "features": passenger.featureCount(),
+                "background_terminals": terminals.featureCount(),
                 "classes": counts,
                 "basis": basis,
                 "image": [image.width(), image.height(), OUTPUT_IMAGE.stat().st_size],

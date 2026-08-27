@@ -18,6 +18,7 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsFeature,
+    QgsFeatureRequest,
     QgsField,
     QgsFillSymbol,
     QgsGeometry,
@@ -763,6 +764,56 @@ def build_internal_admin_boundaries(
     return layer
 
 
+def build_highlighted_city_boundaries(
+    cities: QgsVectorLayer,
+    gpkg: Path,
+    city_names: set[str],
+    *,
+    layer_name: str = "highlighted_city_boundaries",
+    display_name: str = "高亮城市边界",
+) -> QgsVectorLayer:
+    boundaries = []
+    for feature in cities.getFeatures(
+        QgsFeatureRequest().setFilterExpression(
+            f'"name" IN ({sql_strings(sorted(city_names))})'
+        )
+    ):
+        boundary = feature.geometry().convertToType(QgsWkbTypes.LineGeometry, True)
+        if not boundary.isNull() and not boundary.isEmpty():
+            boundaries.append(boundary)
+    if not boundaries:
+        raise RuntimeError("No highlighted city boundaries found")
+    geometry = QgsGeometry.unaryUnion(boundaries)
+    geometry.convertToMultiType()
+    memory = QgsVectorLayer(
+        f"MultiLineString?crs={cities.crs().authid()}", display_name, "memory"
+    )
+    memory.dataProvider().addAttributes([QgsField("name", QVariant.String)])
+    memory.updateFields()
+    feature = QgsFeature(memory.fields())
+    feature.setAttribute("name", display_name)
+    feature.setGeometry(geometry)
+    memory.dataProvider().addFeature(feature)
+    memory.updateExtents()
+    layer = write_layer(memory, gpkg, layer_name)
+    layer.setName(display_name)
+    layer.setRenderer(
+        QgsSingleSymbolRenderer(
+            QgsLineSymbol.createSimple(
+                {
+                    "line_color": "#71817C",
+                    "line_width": "0.22",
+                    "line_width_unit": "MM",
+                    "joinstyle": "round",
+                    "capstyle": "round",
+                }
+            )
+        )
+    )
+    layer.setLabelsEnabled(False)
+    return layer
+
+
 def trip_route_symbol(highspeed: bool) -> QgsLineSymbol:
     symbol = QgsLineSymbol()
     if highspeed:
@@ -1344,6 +1395,17 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         if show_city_context
         else None
     )
+    highlighted_city_boundaries = (
+        build_highlighted_city_boundaries(
+            cities,
+            gpkg,
+            set(spec.visited_cities)
+            | ({spec.start_city} if spec.start_city else set())
+            | ({spec.end_city} if spec.end_city else set()),
+        )
+        if not show_city_context
+        else None
+    )
 
     station_source = add_layer(
         project, MAP_DATA_GPKG, "车站源数据", "记录车站",
@@ -1402,6 +1464,8 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     if roads:
         map_layers.append(roads)
     map_layers.extend([route, *focus_layers])
+    if highlighted_city_boundaries:
+        map_layers.append(highlighted_city_boundaries)
     if start:
         map_layers.append(start)
     if end:

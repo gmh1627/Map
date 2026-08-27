@@ -40,9 +40,20 @@ def main() -> int:
             width = province_layers[0].renderer().symbol().symbolLayer(0).width()
             if abs(width - 0.15) > 0.01:
                 errors.append(f"省界线宽 {width}，预期 0.15")
-        for required in ("实际铁路行程", "行程车站", "返程航线", "重点县市"):
+        for required in (
+            "实际铁路行程",
+            "行程车站",
+            "返程航线",
+            "重点县市",
+            "高亮城市边界",
+        ):
             if required not in names:
                 errors.append("缺少图层：" + required)
+        highlighted = project.mapLayersByName("高亮城市边界")
+        if highlighted:
+            width = highlighted[0].renderer().symbol().symbolLayer(0).width()
+            if abs(width - 0.22) > 0.01:
+                errors.append(f"高亮城市边界线宽 {width}，预期 0.22")
         image = QImage(str(IMAGE))
         if image.isNull() or image.width() < 2500 or image.height() < 1800:
             errors.append("PNG缺失或分辨率过低")

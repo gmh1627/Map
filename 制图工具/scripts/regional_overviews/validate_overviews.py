@@ -67,6 +67,8 @@ def main() -> int:
             }
             if key not in NO_CITY_CONTEXT_KEYS:
                 required |= city_context
+            else:
+                required.add("高亮城市边界")
             names = {layer.name() for layer in project.mapLayers().values()}
             forbidden = sorted({"背景铁路", "背景铁路复线", "OSM 淡色底图"} & names)
             if forbidden:
@@ -85,6 +87,13 @@ def main() -> int:
                 if abs(actual_width - expected_width) > 0.01:
                     item_errors.append(
                         f"province boundary width {actual_width}, expected {expected_width}"
+                    )
+            highlighted_boundaries = project.mapLayersByName("高亮城市边界")
+            if key in NO_CITY_CONTEXT_KEYS and highlighted_boundaries:
+                width = highlighted_boundaries[0].renderer().symbol().symbolLayer(0).width()
+                if abs(width - 0.22) > 0.01:
+                    item_errors.append(
+                        f"highlighted city boundary width {width}, expected 0.22"
                     )
             context_labels = project.mapLayersByName("未到达城市名称")
             if context_labels:

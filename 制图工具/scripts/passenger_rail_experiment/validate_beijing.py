@@ -15,6 +15,14 @@ PROJECT_PATH = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.qgz"
 IMAGE_PATH = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.png"
 ORIGINAL_PROJECT = OUTPUT_DIR / "铁路枢纽局部图.qgz"
 ORIGINAL_IMAGE = OUTPUT_DIR / "北京及周边铁路行迹.png"
+CORRIDOR_CONNECTIONS = (
+    ("崇礼线", "京包客专线"),
+    ("沙城-沙城西线", "丰沙线"),
+    ("延庆线", "京包线"),
+    ("康延线", "京包线"),
+    ("怀联线", "京承线"),
+    ("通乔线", "京哈线"),
+)
 
 
 def nonwhite_ratio(image: QImage) -> float:
@@ -63,10 +71,50 @@ def main() -> int:
             }
             if forbidden:
                 errors.append("混入货运或未运营线路：" + "、".join(sorted(forbidden)))
+            corridors = {
+                str(feature["name"]): feature.geometry()
+                for feature in passenger_layers[0].getFeatures()
+            }
+            disconnected = [
+                f"{source}->{target}"
+                for source, target in CORRIDOR_CONNECTIONS
+                if source not in corridors
+                or target not in corridors
+                or corridors[source].distance(corridors[target]) > 1e-8
+            ]
+            if disconnected:
+                errors.append("客运走廊未接入枢纽：" + "、".join(disconnected))
         route_layers = project.mapLayersByName("铁路行程轨迹")
         route_count = route_layers[0].featureCount() if route_layers else 0
         if route_count != 133:
             errors.append(f"当前行迹数量应为133，实际为：{route_count}")
+        terminal_layers = project.mapLayersByName("其他客运铁路终点")
+        terminal_count = terminal_layers[0].featureCount() if terminal_layers else 0
+        if terminal_count != 3:
+            errors.append(f"背景客运终点数量应为3，实际为：{terminal_count}")
+        elif not terminal_layers[0].labelsEnabled():
+            errors.append("背景客运终点标签未启用")
+        elif passenger_layers:
+            corridors = {
+                str(feature["name"]): feature.geometry()
+                for feature in passenger_layers[0].getFeatures()
+            }
+            terminal_corridors = {
+                "崇礼站": "崇礼线",
+                "天津北站": "津蓟线",
+                "蓟州北站": "津蓟线",
+            }
+            detached_terminals = [
+                str(feature["name"])
+                for feature in terminal_layers[0].getFeatures()
+                if str(feature["name"]) not in terminal_corridors
+                or corridors[terminal_corridors[str(feature["name"])]].distance(
+                    feature.geometry()
+                )
+                > 0.01
+            ]
+            if detached_terminals:
+                errors.append("背景终点未落在客运走廊：" + "、".join(detached_terminals))
 
         layouts = project.layoutManager().printLayouts()
         if len(layouts) != 1 or layouts[0].name() != "北京及周边铁路行迹_客运铁路底图":
@@ -77,7 +125,11 @@ def main() -> int:
                 errors.append(f"主图地图框数量异常：{len(maps)}")
             elif passenger_layers:
                 names = [layer.name() for layer in maps[0].layers()]
-                if "其他客运铁路" not in names or "铁路行程轨迹" not in names:
+                if (
+                    "其他客运铁路" not in names
+                    or "其他客运铁路终点" not in names
+                    or "铁路行程轨迹" not in names
+                ):
                     errors.append("主图缺少客运底图或原有行迹")
                 elif names.index("铁路行程轨迹") > names.index("其他客运铁路"):
                     errors.append("原有行迹没有绘制在客运底图上方")
