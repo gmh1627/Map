@@ -37,6 +37,7 @@ from qgis.core import (
 ROOT = Path(r"F:\Desktop\Railway")
 OUTPUT_DIR = ROOT / "地图输出" / "全国专题图" / "铁路枢纽局部图"
 SOURCE_PROJECT = OUTPUT_DIR / "铁路枢纽局部图.qgz"
+CURRENT_RAIL_GPKG = ROOT / "地图输出" / "全国专题图" / "全国足迹" / "全国足迹_数据.gpkg"
 OSM_GPKG = ROOT / "制图工具" / "数据源" / "GeoPackage" / "travel_map_home2_min_gan.gpkg"
 OUTPUT_GPKG = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.gpkg"
 OUTPUT_PROJECT = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.qgz"
@@ -274,7 +275,7 @@ def add_background_legend(layout: QgsPrintLayout) -> None:
 
 
 def main() -> int:
-    for required in (SOURCE_PROJECT, OSM_GPKG):
+    for required in (SOURCE_PROJECT, CURRENT_RAIL_GPKG, OSM_GPKG):
         if not required.exists():
             raise FileNotFoundError(required)
     app = QgsApplication([], False)
@@ -296,8 +297,6 @@ def main() -> int:
             raise RuntimeError(f"北京布局地图框数量异常：{len(map_items)}")
         map_item = map_items[0]
 
-        passenger = build_passenger_layer(project)
-        style_passenger_layer(passenger)
         map_layers = map_item.layers()
         route_index = next(
             (index for index, layer in enumerate(map_layers) if layer.name() == "铁路行程轨迹"),
@@ -305,6 +304,18 @@ def main() -> int:
         )
         if route_index is None:
             raise RuntimeError("北京布局缺少铁路行程轨迹图层")
+        previous_routes = map_layers[route_index]
+        current_routes = QgsVectorLayer(
+            f"{CURRENT_RAIL_GPKG}|layername=铁路行程轨迹", "铁路行程轨迹", "ogr"
+        )
+        if not current_routes.isValid():
+            raise RuntimeError(f"无法打开当前铁路行迹：{CURRENT_RAIL_GPKG}")
+        current_routes.setRenderer(previous_routes.renderer().clone())
+        project.addMapLayer(current_routes)
+        map_layers[route_index] = current_routes
+
+        passenger = build_passenger_layer(project)
+        style_passenger_layer(passenger)
         map_layers.insert(route_index + 1, passenger)
         map_item.setLayers(map_layers)
         map_item.setKeepLayerSet(True)

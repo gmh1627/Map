@@ -53,6 +53,10 @@ def main() -> int:
             }
             if forbidden:
                 errors.append("混入货运或未运营线路：" + "、".join(sorted(forbidden)))
+        route_layers = project.mapLayersByName("铁路行程轨迹")
+        route_count = route_layers[0].featureCount() if route_layers else 0
+        if route_count != 133:
+            errors.append(f"当前行迹数量应为133，实际为：{route_count}")
 
         layouts = project.layoutManager().printLayouts()
         if len(layouts) != 1 or layouts[0].name() != "北京及周边铁路行迹_客运铁路底图":
@@ -86,6 +90,7 @@ def main() -> int:
         print(
             {
                 "passenger_features": feature_count,
+                "travel_routes": route_count,
                 "image": [image.width(), image.height(), IMAGE_PATH.stat().st_size],
                 "nonwhite_ratio": round(ratio, 4),
                 "errors": errors,
