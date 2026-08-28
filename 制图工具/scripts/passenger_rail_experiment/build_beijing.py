@@ -518,15 +518,14 @@ def build_unified_admin_layers(
     province_source = QgsVectorLayer(str(PROVINCE_SOURCE), "完整省级行政区源数据", "ogr")
     if not province_source.isValid():
         raise RuntimeError(f"无法打开省级行政区源数据：{PROVINCE_SOURCE}")
-    complete_municipalities = {}
+    complete_provinces = {}
     for feature in province_source.getFeatures():
         try:
             code = int(feature["adcode"])
         except (TypeError, ValueError):
             continue
-        if code in {110000, 120000}:
-            complete_municipalities[code] = feature.geometry()
-    if set(complete_municipalities) != {110000, 120000}:
+        complete_provinces[code] = feature.geometry()
+    if not {110000, 120000}.issubset(complete_provinces):
         raise RuntimeError("无法读取完整北京、天津轮廓")
     all_records: list[tuple[QgsFeature, int]] = []
     visible_province_codes: set[int] = set()
@@ -547,17 +546,13 @@ def build_unified_admin_layers(
     if not records:
         raise RuntimeError("统一行政区范围内没有要素")
 
-    province_groups: dict[int, list[QgsGeometry]] = defaultdict(list)
-    for feature, code in records:
-        province_groups[code].append(feature.geometry())
     province_lines = []
     dissolved_by_code: dict[int, QgsGeometry] = {}
-    for code, geometries in province_groups.items():
-        dissolved = (
-            QgsGeometry(complete_municipalities[code])
-            if code in complete_municipalities
-            else QgsGeometry.unaryUnion(geometries)
-        )
+    missing_provinces = sorted(visible_province_codes - set(complete_provinces))
+    if missing_provinces:
+        raise RuntimeError(f"省级源数据缺少行政区：{missing_provinces}")
+    for code in sorted(visible_province_codes):
+        dissolved = QgsGeometry(complete_provinces[code])
         if dissolved.isNull() or dissolved.isEmpty():
             continue
         dissolved_by_code[code] = dissolved
@@ -631,7 +626,7 @@ def build_unified_admin_layers(
         for index in (0, -1):
             endpoint = QgsGeometry.fromPointXY(adjusted[index])
             distance = province_geometry.distance(endpoint)
-            if 1e-9 < distance < 0.005:
+            if 1e-9 < distance < 0.03:
                 adjusted[index] = province_geometry.nearestPoint(endpoint).asPoint()
         connected_parts.append(adjusted)
     connected_city_geometry = QgsGeometry.fromMultiPolylineXY(connected_parts)
@@ -715,20 +710,71 @@ def text_format(size: float, color: str) -> QgsTextFormat:
     return fmt
 
 
-def add_background_legend(layout: QgsPrintLayout) -> None:
+def travel_route_symbol(highspeed: bool) -> QgsLineSymbol:
+    symbol = QgsLineSymbol()
+    if highspeed:
+        outer = QgsSimpleLineSymbolLayer(QColor("#FFFDF7"), 1.30)
+        inner = QgsSimpleLineSymbolLayer(QColor("#2E7D83"), 0.72)
+    else:
+        outer = QgsSimpleLineSymbolLayer(QColor("#283237"), 1.12)
+        inner = QgsSimpleLineSymbolLayer(QColor("#FFFDF7"), 0.44)
+    for line in (outer, inner):
+        line.setWidthUnit(Qgis.RenderUnit.Millimeters)
+        line.setPenJoinStyle(Qt.RoundJoin)
+        line.setPenCapStyle(Qt.RoundCap)
+    symbol.changeSymbolLayer(0, outer)
+    symbol.appendSymbolLayer(inner)
+    return symbol
+
+
+def add_legend_entry(
+    layout: QgsPrintLayout,
+    x: float,
+    label_text: str,
+    label_width: float,
+    symbol: QgsLineSymbol,
+    line_width: float = 12.0,
+) -> None:
     line = QgsLayoutItemPolyline(
-        QPolygonF([QPointF(103.0, 233.2), QPointF(117.0, 233.2)]), layout
+        QPolygonF([QPointF(x, 222.5), QPointF(x + line_width, 222.5)]), layout
     )
-    line.setSymbol(background_symbol())
+    line.setSymbol(symbol)
     layout.addLayoutItem(line)
-    label = QgsLayoutItemLabel(layout)
-    label.setText("其他客运铁路")
-    label.setTextFormat(text_format(8.0, "#68736F"))
-    label.setHAlign(Qt.AlignLeft)
-    label.setVAlign(Qt.AlignVCenter)
-    label.attemptMove(QgsLayoutPoint(118.0, 229.2, QgsUnitTypes.LayoutMillimeters))
-    label.attemptResize(QgsLayoutSize(42.0, 8.0, QgsUnitTypes.LayoutMillimeters))
-    layout.addLayoutItem(label)
+    label_item = QgsLayoutItemLabel(layout)
+    label_item.setText(label_text)
+    label_item.setTextFormat(text_format(8.0, "#68736F"))
+    label_item.setHAlign(Qt.AlignLeft)
+    label_item.setVAlign(Qt.AlignVCenter)
+    label_item.attemptMove(
+        QgsLayoutPoint(x + line_width + 1.0, 218.5, QgsUnitTypes.LayoutMillimeters)
+    )
+    label_item.attemptResize(
+        QgsLayoutSize(label_width, 8.0, QgsUnitTypes.LayoutMillimeters)
+    )
+    layout.addLayoutItem(label_item)
+
+
+def replace_inline_legend(layout: QgsPrintLayout) -> None:
+    legend_texts = {"高铁/动车（含城际、市郊）", "普铁", "其他铁路线路"}
+    for item in list(layout.items()):
+        if isinstance(item, QgsLayoutItemPolyline):
+            layout.removeLayoutItem(item)
+        elif isinstance(item, QgsLayoutItemLabel) and item.text() in legend_texts:
+            layout.removeLayoutItem(item)
+    add_legend_entry(
+        layout,
+        94.0,
+        "高铁/动车（含城际、市郊）",
+        52.0,
+        travel_route_symbol(True),
+        11.0,
+    )
+    add_legend_entry(
+        layout, 160.0, "普铁", 17.0, travel_route_symbol(False), 11.0
+    )
+    add_legend_entry(
+        layout, 191.0, "其他铁路线路", 36.0, background_symbol(), 11.0
+    )
 
 
 def main() -> int:
@@ -815,7 +861,7 @@ def main() -> int:
         ]
         map_item.setLayers(map_layers)
         map_item.setKeepLayerSet(True)
-        add_background_legend(layout)
+        replace_inline_legend(layout)
 
         used_ids = {layer.id() for layer in map_layers}
         for layer_id in list(project.mapLayers()):

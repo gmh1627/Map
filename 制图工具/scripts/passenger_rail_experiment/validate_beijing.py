@@ -10,7 +10,9 @@ from qgis.core import (
     QgsApplication,
     QgsCoordinateTransform,
     QgsGeometry,
+    QgsLayoutItemLabel,
     QgsLayoutItemMap,
+    QgsLayoutItemPolyline,
     QgsPointXY,
     QgsProject,
 )
@@ -169,7 +171,7 @@ def main() -> int:
                     distance = province_geometry.distance(
                         QgsGeometry.fromPointXY(point)
                     )
-                    if 1e-9 < distance < 0.005:
+                    if 1e-9 < distance < 0.03:
                         near_misses.append(distance)
             if near_misses:
                 errors.append(
@@ -201,6 +203,33 @@ def main() -> int:
             errors.append("试验布局缺失或重复")
         else:
             maps = [item for item in layouts[0].items() if isinstance(item, QgsLayoutItemMap)]
+            legend_texts = {"高铁/动车（含城际、市郊）", "普铁", "其他铁路线路"}
+            legend_labels = [
+                item
+                for item in layouts[0].items()
+                if isinstance(item, QgsLayoutItemLabel) and item.text() in legend_texts
+            ]
+            legend_lines = [
+                item
+                for item in layouts[0].items()
+                if isinstance(item, QgsLayoutItemPolyline)
+            ]
+            if len(legend_labels) != 3 or {item.text() for item in legend_labels} != legend_texts:
+                errors.append("三项铁路图例文字缺失或重复")
+            elif max(item.positionWithUnits().y() for item in legend_labels) - min(
+                item.positionWithUnits().y() for item in legend_labels
+            ) > 0.1:
+                errors.append("三项铁路图例不在同一行")
+            else:
+                highspeed_label = next(
+                    item
+                    for item in legend_labels
+                    if item.text() == "高铁/动车（含城际、市郊）"
+                )
+                if highspeed_label.positionWithUnits().x() < 106.0:
+                    errors.append("高铁图例与比例尺间距不足")
+            if len(legend_lines) != 3:
+                errors.append(f"铁路图例样线数量应为3，实际为：{len(legend_lines)}")
             if len(maps) != 1:
                 errors.append(f"主图地图框数量异常：{len(maps)}")
             elif passenger_layers:
