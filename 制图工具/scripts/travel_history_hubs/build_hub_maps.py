@@ -484,6 +484,28 @@ def style_sar_label(layer: QgsVectorLayer) -> None:
     layer.setLabelsEnabled(True)
 
 
+def style_tianjin_label(layer: QgsVectorLayer) -> None:
+    settings = QgsPalLayerSettings()
+    settings.enabled = True
+    settings.fieldName = "'天津'"
+    settings.isExpression = True
+    settings.placement = Qgis.LabelPlacement.OverPoint
+    settings.priority = 3
+    settings.displayAll = True
+    settings.obstacle = False
+    settings.setFormat(
+        text_format(
+            9.3,
+            "#697570",
+            "思源黑体 CN",
+            buffer_size=0.34,
+            weight=QFont.Medium,
+        )
+    )
+    layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
+    layer.setLabelsEnabled(True)
+
+
 def style_internal_boundaries(layer: QgsVectorLayer) -> None:
     symbol = QgsLineSymbol.createSimple(
         {
@@ -1015,7 +1037,7 @@ def main() -> int:
                     '"name" = \'天津市\'',
                 )
                 style_provinces(tianjin_boundary)
-                tianjin_boundary.setLabelsEnabled(False)
+                style_tianjin_label(tianjin_boundary)
                 beijing_district_lines = municipality_internal_boundaries(
                     project,
                     cities,
@@ -1168,7 +1190,6 @@ def main() -> int:
         return 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":

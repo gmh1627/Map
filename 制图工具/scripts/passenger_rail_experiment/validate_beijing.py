@@ -118,6 +118,19 @@ def main() -> int:
         ]
         if missing_unified:
             errors.append("缺少统一行政区图层：" + "、".join(missing_unified))
+        tianjin_layers = project.mapLayersByName("统一天津填色")
+        if tianjin_layers:
+            if not tianjin_layers[0].labelsEnabled():
+                errors.append("天津名称未启用")
+            tianjin_geometry = next(tianjin_layers[0].getFeatures()).geometry()
+            polygons = (
+                tianjin_geometry.asMultiPolygon()
+                if tianjin_geometry.isMultipart()
+                else [tianjin_geometry.asPolygon()]
+            )
+            interior_ring_count = sum(max(0, len(polygon) - 1) for polygon in polygons)
+            if interior_ring_count:
+                errors.append(f"天津轮廓仍含{interior_ring_count}个内部空洞")
         obsolete_tokens = {
             "高亮城市",
             "北京市内部区界",

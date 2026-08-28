@@ -56,8 +56,8 @@ def main() -> int:
 
         route_layers = project.mapLayersByName("铁路行程轨迹")
         route_count = route_layers[0].featureCount() if route_layers else None
-        if route_count != 132:
-            errors.append(f"Expected 132 railway routes, got {route_count}")
+        if route_count != 133:
+            errors.append(f"Expected 133 railway routes, got {route_count}")
         elif route_layers:
             service_counts = {"conventional": 0, "highspeed": 0}
             d901_service = None
@@ -67,7 +67,7 @@ def main() -> int:
                     service_counts[service] += 1
                 if str(feature["train"]) == "D901":
                     d901_service = service
-            if service_counts != {"conventional": 43, "highspeed": 89}:
+            if service_counts != {"conventional": 44, "highspeed": 89}:
                 errors.append(f"Unexpected route service counts: {service_counts}")
             if d901_service != "highspeed":
                 errors.append(f"D901 should use the EMU style, got {d901_service}")
@@ -85,6 +85,9 @@ def main() -> int:
                 errors.append(f"Missing {label} internal district boundaries")
             elif next(internal_layers[0].getFeatures()).geometry().length() <= 0:
                 errors.append(f"Empty {label} internal district boundaries")
+        tianjin_labels = project.mapLayersByName("北京及周边铁路行迹天津市共边轮廓")
+        if not tianjin_labels or not tianjin_labels[0].labelsEnabled():
+            errors.append("Tianjin label is missing or disabled")
 
         context_layers = project.mapLayersByName("北京及周边铁路行迹周边城市")
         context_boundary_layers = project.mapLayersByName(
@@ -189,7 +192,6 @@ def main() -> int:
         return 1 if errors else 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":

@@ -30,6 +30,7 @@ from qgis.core import (
     QgsLayoutPoint,
     QgsLayoutSize,
     QgsLineSymbol,
+    QgsPalLayerSettings,
     QgsPrintLayout,
     QgsProject,
     QgsPointXY,
@@ -41,6 +42,7 @@ from qgis.core import (
     QgsUnitTypes,
     QgsVectorFileWriter,
     QgsVectorLayer,
+    QgsVectorLayerSimpleLabeling,
     QgsWkbTypes,
 )
 
@@ -51,6 +53,7 @@ SOURCE_PROJECT = OUTPUT_DIR / "铁路枢纽局部图.qgz"
 CURRENT_RAIL_GPKG = ROOT / "地图输出" / "全国专题图" / "全国足迹" / "全国足迹_数据.gpkg"
 OSM_GPKG = ROOT / "制图工具" / "数据源" / "GeoPackage" / "travel_map_home2_min_gan.gpkg"
 CITY_SOURCE = ROOT / "city" / "city.json"
+PROVINCE_SOURCE = ROOT / "province" / "province.json"
 OUTPUT_GPKG = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.gpkg"
 OUTPUT_PROJECT = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.qgz"
 OUTPUT_IMAGE = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.png"
@@ -512,6 +515,19 @@ def build_unified_admin_layers(
     source = QgsVectorLayer(str(CITY_SOURCE), "统一行政区源数据", "ogr")
     if not source.isValid():
         raise RuntimeError(f"无法打开行政区源数据：{CITY_SOURCE}")
+    province_source = QgsVectorLayer(str(PROVINCE_SOURCE), "完整省级行政区源数据", "ogr")
+    if not province_source.isValid():
+        raise RuntimeError(f"无法打开省级行政区源数据：{PROVINCE_SOURCE}")
+    complete_municipalities = {}
+    for feature in province_source.getFeatures():
+        try:
+            code = int(feature["adcode"])
+        except (TypeError, ValueError):
+            continue
+        if code in {110000, 120000}:
+            complete_municipalities[code] = feature.geometry()
+    if set(complete_municipalities) != {110000, 120000}:
+        raise RuntimeError("无法读取完整北京、天津轮廓")
     all_records: list[tuple[QgsFeature, int]] = []
     visible_province_codes: set[int] = set()
     for feature in source.getFeatures():
@@ -537,7 +553,11 @@ def build_unified_admin_layers(
     province_lines = []
     dissolved_by_code: dict[int, QgsGeometry] = {}
     for code, geometries in province_groups.items():
-        dissolved = QgsGeometry.unaryUnion(geometries)
+        dissolved = (
+            QgsGeometry(complete_municipalities[code])
+            if code in complete_municipalities
+            else QgsGeometry.unaryUnion(geometries)
+        )
         if dissolved.isNull() or dissolved.isEmpty():
             continue
         dissolved_by_code[code] = dissolved
@@ -628,6 +648,7 @@ def build_unified_admin_layers(
     tianjin_fill = create_polygon_layer(
         project, source, "统一天津填色", dissolved_by_code[120000], "#F7F8F6", 1.0
     )
+    style_tianjin_label(tianjin_fill)
     return province_layer, city_layer, beijing_fill, tianjin_fill
 
 
@@ -643,6 +664,20 @@ def style_fill_only(layer: QgsVectorLayer) -> None:
             )
         )
     )
+
+
+def style_tianjin_label(layer: QgsVectorLayer) -> None:
+    settings = QgsPalLayerSettings()
+    settings.enabled = True
+    settings.fieldName = "'天津'"
+    settings.isExpression = True
+    settings.placement = Qgis.LabelPlacement.OverPoint
+    settings.priority = 3
+    settings.displayAll = True
+    settings.obstacle = False
+    settings.setFormat(text_format(9.3, "#697570"))
+    layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
+    layer.setLabelsEnabled(True)
 
 
 def background_symbol(color: str = "#AEC2CD", width: float = 0.34) -> QgsLineSymbol:
