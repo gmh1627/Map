@@ -29,20 +29,16 @@ from qgis.core import (
     QgsLayoutPoint,
     QgsLayoutSize,
     QgsLineSymbol,
-    QgsMarkerSymbol,
-    QgsPalLayerSettings,
     QgsPrintLayout,
     QgsProject,
     QgsPointXY,
     QgsRectangle,
     QgsRendererCategory,
     QgsSimpleLineSymbolLayer,
-    QgsSingleSymbolRenderer,
     QgsTextFormat,
     QgsUnitTypes,
     QgsVectorFileWriter,
     QgsVectorLayer,
-    QgsVectorLayerSimpleLabeling,
 )
 
 
@@ -450,64 +446,6 @@ def style_passenger_layer(layer: QgsVectorLayer) -> None:
     )
 
 
-def build_terminal_layer(project: QgsProject) -> QgsVectorLayer:
-    memory = QgsVectorLayer("Point?crs=EPSG:4326", "其他客运铁路终点", "memory")
-    memory.dataProvider().addAttributes([QgsField("name", QVariant.String)])
-    memory.updateFields()
-    features = []
-    for terminals in CORRIDOR_TERMINALS.values():
-        for name, coordinate in terminals:
-            feature = QgsFeature(memory.fields())
-            feature.setAttribute("name", name)
-            feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*coordinate)))
-            features.append(feature)
-    memory.dataProvider().addFeatures(features)
-    memory.updateExtents()
-    options = QgsVectorFileWriter.SaveVectorOptions()
-    options.driverName = "GPKG"
-    options.layerName = "其他客运铁路终点"
-    options.fileEncoding = "UTF-8"
-    options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
-    error, message, _, _ = QgsVectorFileWriter.writeAsVectorFormatV3(
-        memory, str(OUTPUT_GPKG), project.transformContext(), options
-    )
-    if error != QgsVectorFileWriter.NoError:
-        raise RuntimeError(f"无法写出客运铁路终点图层：{message}")
-    layer = QgsVectorLayer(
-        f"{OUTPUT_GPKG}|layername=其他客运铁路终点", "其他客运铁路终点", "ogr"
-    )
-    if not layer.isValid():
-        raise RuntimeError("写出的客运铁路终点图层无效")
-    project.addMapLayer(layer)
-    layer.setRenderer(
-        QgsSingleSymbolRenderer(
-            QgsMarkerSymbol.createSimple(
-                {
-                    "name": "circle",
-                    "color": "#EEF2F0",
-                    "outline_color": "#9BA9A4",
-                    "outline_width": "0.18",
-                    "outline_width_unit": "MM",
-                    "size": "1.25",
-                    "size_unit": "MM",
-                }
-            )
-        )
-    )
-    settings = QgsPalLayerSettings()
-    settings.enabled = True
-    settings.fieldName = "name"
-    settings.placement = Qgis.LabelPlacement.OrderedPositionsAroundPoint
-    settings.dist = 0.6
-    settings.distUnits = Qgis.RenderUnit.Millimeters
-    settings.priority = 3
-    settings.obstacle = False
-    settings.setFormat(text_format(7.0, "#76817D"))
-    layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
-    layer.setLabelsEnabled(True)
-    return layer
-
-
 def text_format(size: float, color: str) -> QgsTextFormat:
     fmt = QgsTextFormat()
     font = QFont("思源黑体 CN")
@@ -587,8 +525,6 @@ def main() -> int:
         passenger = build_passenger_layer(project, extraction_extent)
         style_passenger_layer(passenger)
         map_layers.insert(route_index + 1, passenger)
-        terminals = build_terminal_layer(project)
-        map_layers.insert(route_index + 1, terminals)
         map_item.setLayers(map_layers)
         map_item.setKeepLayerSet(True)
         add_background_legend(layout)
@@ -619,7 +555,6 @@ def main() -> int:
         print(
             {
                 "features": passenger.featureCount(),
-                "background_terminals": terminals.featureCount(),
                 "classes": counts,
                 "basis": basis,
                 "image": [image.width(), image.height(), OUTPUT_IMAGE.stat().st_size],

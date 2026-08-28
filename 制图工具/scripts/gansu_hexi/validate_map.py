@@ -54,6 +54,24 @@ def main() -> int:
             width = highlighted[0].renderer().symbol().symbolLayer(0).width()
             if abs(width - 0.22) > 0.01:
                 errors.append(f"高亮城市边界线宽 {width}，预期 0.22")
+        station_label_layers = project.mapLayersByName("主要车站名")
+        expected_label_latitudes = {
+            "武威站": 37.91787,
+            "兰州西站": 35.96879,
+            "定西北站": 35.53481,
+        }
+        actual_label_latitudes = (
+            {
+                str(feature["name"]): feature.geometry().asPoint().y()
+                for feature in station_label_layers[0].getFeatures()
+            }
+            if station_label_layers
+            else {}
+        )
+        for name, expected in expected_label_latitudes.items():
+            actual = actual_label_latitudes.get(name)
+            if actual is None or abs(actual - expected) > 1e-5:
+                errors.append(f"{name} 标签纬度异常：{actual}")
         image = QImage(str(IMAGE))
         if image.isNull() or image.width() < 2500 or image.height() < 1800:
             errors.append("PNG缺失或分辨率过低")

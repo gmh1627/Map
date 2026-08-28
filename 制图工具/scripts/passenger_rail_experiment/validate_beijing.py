@@ -6,7 +6,14 @@ import sys
 from pathlib import Path
 
 from qgis.PyQt.QtGui import QColor, QImage
-from qgis.core import QgsApplication, QgsCoordinateTransform, QgsLayoutItemMap, QgsProject
+from qgis.core import (
+    QgsApplication,
+    QgsCoordinateTransform,
+    QgsGeometry,
+    QgsLayoutItemMap,
+    QgsPointXY,
+    QgsProject,
+)
 
 
 ROOT = Path(r"F:\Desktop\Railway")
@@ -15,6 +22,13 @@ PROJECT_PATH = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.qgz"
 IMAGE_PATH = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.png"
 ORIGINAL_PROJECT = OUTPUT_DIR / "铁路枢纽局部图.qgz"
 ORIGINAL_IMAGE = OUTPUT_DIR / "北京及周边铁路行迹.png"
+CORRIDOR_TERMINALS = {
+    "崇礼线": (("崇礼站", (115.3110046, 41.0058806)),),
+    "津蓟线": (
+        ("天津北站", (117.2030494, 39.1656713)),
+        ("蓟州北站", (117.3913352, 40.0253968)),
+    ),
+}
 CORRIDOR_CONNECTIONS = (
     ("崇礼线", "京包客专线"),
     ("沙城-沙城西线", "丰沙线"),
@@ -88,33 +102,22 @@ def main() -> int:
         route_count = route_layers[0].featureCount() if route_layers else 0
         if route_count != 133:
             errors.append(f"当前行迹数量应为133，实际为：{route_count}")
-        terminal_layers = project.mapLayersByName("其他客运铁路终点")
-        terminal_count = terminal_layers[0].featureCount() if terminal_layers else 0
-        if terminal_count != 3:
-            errors.append(f"背景客运终点数量应为3，实际为：{terminal_count}")
-        elif not terminal_layers[0].labelsEnabled():
-            errors.append("背景客运终点标签未启用")
-        elif passenger_layers:
+        if project.mapLayersByName("其他客运铁路终点"):
+            errors.append("不应显示背景客运终点图层")
+        if passenger_layers:
             corridors = {
                 str(feature["name"]): feature.geometry()
                 for feature in passenger_layers[0].getFeatures()
             }
-            terminal_corridors = {
-                "崇礼站": "崇礼线",
-                "天津北站": "津蓟线",
-                "蓟州北站": "津蓟线",
-            }
-            detached_terminals = [
-                str(feature["name"])
-                for feature in terminal_layers[0].getFeatures()
-                if str(feature["name"]) not in terminal_corridors
-                or corridors[terminal_corridors[str(feature["name"])]].distance(
-                    feature.geometry()
-                )
-                > 0.01
-            ]
+            detached_terminals = []
+            for corridor_name, terminals in CORRIDOR_TERMINALS.items():
+                geometry = corridors.get(corridor_name)
+                for terminal_name, coordinate in terminals:
+                    point = QgsGeometry.fromPointXY(QgsPointXY(*coordinate))
+                    if geometry is None or geometry.distance(point) > 0.01:
+                        detached_terminals.append(terminal_name)
             if detached_terminals:
-                errors.append("背景终点未落在客运走廊：" + "、".join(detached_terminals))
+                errors.append("客运走廊未经过真实终点：" + "、".join(detached_terminals))
 
         layouts = project.layoutManager().printLayouts()
         if len(layouts) != 1 or layouts[0].name() != "北京及周边铁路行迹_客运铁路底图":
@@ -127,7 +130,6 @@ def main() -> int:
                 names = [layer.name() for layer in maps[0].layers()]
                 if (
                     "其他客运铁路" not in names
-                    or "其他客运铁路终点" not in names
                     or "铁路行程轨迹" not in names
                 ):
                     errors.append("主图缺少客运底图或原有行迹")

@@ -99,6 +99,15 @@ def main() -> int:
             if context_labels:
                 if not context_labels[0].labelsEnabled():
                     item_errors.append("unvisited city labels are disabled")
+            if key == "yangzhou_zhenjiang":
+                moved_layers = project.mapLayersByName("移动后的车站名")
+                moved = {
+                    str(feature["name"]): feature.geometry().asPoint()
+                    for feature in moved_layers[0].getFeatures()
+                } if moved_layers else {}
+                point = moved.get("合肥南站")
+                if point is None or abs(point.y() - 31.80335) > 1e-5:
+                    item_errors.append("Hefei South label has the wrong vertical position")
             layouts = project.layoutManager().printLayouts()
             if len(layouts) != 1:
                 item_errors.append(f"expected one layout, got {len(layouts)}")

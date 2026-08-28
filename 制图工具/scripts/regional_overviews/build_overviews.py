@@ -368,7 +368,8 @@ SPECS = (
         station_names=("合肥南", "高邮", "扬州东", "镇江"),
         visited_cities=("合肥市", "扬州市", "镇江市"),
         city_labels=("合肥市", "扬州市", "镇江市"),
-        station_labels=(("合肥南", 117.16, 31.89),),
+        # Move the label down by 2.5 times the 8.2 pt station-label em.
+        station_labels=(("合肥南", 117.16, 31.80335),),
         area_labels=(("高邮市", 119.521044, 32.846740),),
         focus_areas=(
             FocusSpec(RAILWAY_ROOT / "city" / "yangzhou.geojson", ("高邮市",)),
