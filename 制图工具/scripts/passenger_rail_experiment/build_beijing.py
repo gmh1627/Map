@@ -21,6 +21,7 @@ from qgis.core import (
     QgsFeature,
     QgsFeatureRequest,
     QgsField,
+    QgsFillSymbol,
     QgsGeometry,
     QgsLayoutExporter,
     QgsLayoutItemLabel,
@@ -35,10 +36,12 @@ from qgis.core import (
     QgsRectangle,
     QgsRendererCategory,
     QgsSimpleLineSymbolLayer,
+    QgsSingleSymbolRenderer,
     QgsTextFormat,
     QgsUnitTypes,
     QgsVectorFileWriter,
     QgsVectorLayer,
+    QgsWkbTypes,
 )
 
 
@@ -47,6 +50,7 @@ OUTPUT_DIR = ROOT / "地图输出" / "全国专题图" / "铁路枢纽局部图"
 SOURCE_PROJECT = OUTPUT_DIR / "铁路枢纽局部图.qgz"
 CURRENT_RAIL_GPKG = ROOT / "地图输出" / "全国专题图" / "全国足迹" / "全国足迹_数据.gpkg"
 OSM_GPKG = ROOT / "制图工具" / "数据源" / "GeoPackage" / "travel_map_home2_min_gan.gpkg"
+CITY_SOURCE = ROOT / "city" / "city.json"
 OUTPUT_GPKG = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.gpkg"
 OUTPUT_PROJECT = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.qgz"
 OUTPUT_IMAGE = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.png"
@@ -422,7 +426,226 @@ def build_passenger_layer(
     return layer
 
 
-def background_symbol(color: str = "#BEC8C4", width: float = 0.30) -> QgsLineSymbol:
+def write_output_layer(
+    project: QgsProject, memory: QgsVectorLayer, layer_name: str
+) -> QgsVectorLayer:
+    options = QgsVectorFileWriter.SaveVectorOptions()
+    options.driverName = "GPKG"
+    options.layerName = layer_name
+    options.fileEncoding = "UTF-8"
+    options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
+    error, message, _, _ = QgsVectorFileWriter.writeAsVectorFormatV3(
+        memory, str(OUTPUT_GPKG), project.transformContext(), options
+    )
+    if error != QgsVectorFileWriter.NoError:
+        raise RuntimeError(f"无法写出{layer_name}：{message}")
+    layer = QgsVectorLayer(f"{OUTPUT_GPKG}|layername={layer_name}", layer_name, "ogr")
+    if not layer.isValid():
+        raise RuntimeError(f"写出的{layer_name}无效")
+    project.addMapLayer(layer)
+    return layer
+
+
+def province_code(feature: QgsFeature) -> int | None:
+    level = str(feature["level"])
+    parent = feature["parent"]
+    parent_code = parent.get("adcode") if isinstance(parent, dict) else None
+    if level == "district" and parent_code in {110000, 120000}:
+        return int(parent_code)
+    if level != "city":
+        return None
+    routes = feature["acroutes"]
+    value = routes[1] if isinstance(routes, list) and len(routes) > 1 else parent_code
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        try:
+            return int(feature["adcode"]) // 10000 * 10000
+        except (TypeError, ValueError):
+            return None
+
+
+def polygon_boundary(geometry: QgsGeometry) -> QgsGeometry:
+    polygons = geometry.asMultiPolygon() if geometry.isMultipart() else [geometry.asPolygon()]
+    rings = [ring for polygon in polygons for ring in polygon if ring]
+    result = QgsGeometry.fromMultiPolylineXY(rings)
+    result.convertToMultiType()
+    return result
+
+
+def create_polygon_layer(
+    project: QgsProject,
+    source: QgsVectorLayer,
+    layer_name: str,
+    geometry: QgsGeometry,
+    fill: str,
+    opacity: float,
+) -> QgsVectorLayer:
+    geometry.convertToMultiType()
+    memory = QgsVectorLayer(
+        f"MultiPolygon?crs={source.crs().authid()}", layer_name, "memory"
+    )
+    memory.dataProvider().addAttributes([QgsField("name", QVariant.String)])
+    memory.updateFields()
+    feature = QgsFeature(memory.fields())
+    feature.setAttribute("name", layer_name)
+    feature.setGeometry(geometry)
+    memory.dataProvider().addFeature(feature)
+    memory.updateExtents()
+    layer = write_output_layer(project, memory, layer_name)
+    symbol = QgsFillSymbol.createSimple(
+        {
+            "color": fill,
+            "outline_color": "255,255,255,0",
+            "outline_width": "0",
+        }
+    )
+    symbol.setOpacity(opacity)
+    layer.setRenderer(QgsSingleSymbolRenderer(symbol))
+    layer.setLabelsEnabled(False)
+    return layer
+
+
+def build_unified_admin_layers(
+    project: QgsProject, extraction_extent: QgsRectangle
+) -> tuple[QgsVectorLayer, QgsVectorLayer, QgsVectorLayer, QgsVectorLayer]:
+    source = QgsVectorLayer(str(CITY_SOURCE), "统一行政区源数据", "ogr")
+    if not source.isValid():
+        raise RuntimeError(f"无法打开行政区源数据：{CITY_SOURCE}")
+    all_records: list[tuple[QgsFeature, int]] = []
+    visible_province_codes: set[int] = set()
+    for feature in source.getFeatures():
+        code = province_code(feature)
+        if code is None:
+            continue
+        if str(feature["level"]) == "district" and code not in {110000, 120000}:
+            continue
+        all_records.append((feature, code))
+        if feature.geometry().boundingBox().intersects(extraction_extent):
+            visible_province_codes.add(code)
+    records = [
+        (feature, code)
+        for feature, code in all_records
+        if code in visible_province_codes
+    ]
+    if not records:
+        raise RuntimeError("统一行政区范围内没有要素")
+
+    province_groups: dict[int, list[QgsGeometry]] = defaultdict(list)
+    for feature, code in records:
+        province_groups[code].append(feature.geometry())
+    province_lines = []
+    dissolved_by_code: dict[int, QgsGeometry] = {}
+    for code, geometries in province_groups.items():
+        dissolved = QgsGeometry.unaryUnion(geometries)
+        if dissolved.isNull() or dissolved.isEmpty():
+            continue
+        dissolved_by_code[code] = dissolved
+        province_lines.append(polygon_boundary(dissolved))
+
+    internal_lines = []
+    for index, (first, first_code) in enumerate(records):
+        first_boundary = first.geometry().convertToType(QgsWkbTypes.LineGeometry, True)
+        for second, second_code in records[index + 1 :]:
+            if first_code != second_code:
+                continue
+            if not first.geometry().boundingBox().intersects(second.geometry().boundingBox()):
+                continue
+            second_boundary = second.geometry().convertToType(
+                QgsWkbTypes.LineGeometry, True
+            )
+            shared = first_boundary.intersection(second_boundary)
+            if (
+                not shared.isNull()
+                and not shared.isEmpty()
+                and QgsWkbTypes.geometryType(shared.wkbType())
+                == QgsWkbTypes.LineGeometry
+                and shared.length() > 1e-9
+            ):
+                internal_lines.append(shared)
+    if not province_lines or not internal_lines:
+        raise RuntimeError("无法生成统一省界或市界")
+
+    def create_line_layer(layer_name: str, geometries: list[QgsGeometry], color: str, width: float):
+        geometry = QgsGeometry.unaryUnion(geometries)
+        geometry.convertToMultiType()
+        memory = QgsVectorLayer(
+            f"MultiLineString?crs={source.crs().authid()}", layer_name, "memory"
+        )
+        memory.dataProvider().addAttributes([QgsField("name", QVariant.String)])
+        memory.updateFields()
+        feature = QgsFeature(memory.fields())
+        feature.setAttribute("name", layer_name)
+        feature.setGeometry(geometry)
+        memory.dataProvider().addFeature(feature)
+        memory.updateExtents()
+        layer = write_output_layer(project, memory, layer_name)
+        layer.setRenderer(
+            QgsSingleSymbolRenderer(
+                QgsLineSymbol.createSimple(
+                    {
+                        "line_color": color,
+                        "line_width": str(width),
+                        "line_width_unit": "MM",
+                        "joinstyle": "round",
+                        "capstyle": "round",
+                    }
+                )
+            )
+        )
+        layer.setLabelsEnabled(False)
+        return layer
+
+    province_geometry = QgsGeometry.unaryUnion(province_lines)
+    city_geometry = QgsGeometry.unaryUnion(internal_lines)
+    city_parts = (
+        city_geometry.asMultiPolyline()
+        if city_geometry.isMultipart()
+        else [city_geometry.asPolyline()]
+    )
+    connected_parts = []
+    for part in city_parts:
+        if not part:
+            continue
+        adjusted = list(part)
+        for index in (0, -1):
+            endpoint = QgsGeometry.fromPointXY(adjusted[index])
+            distance = province_geometry.distance(endpoint)
+            if 1e-9 < distance < 0.005:
+                adjusted[index] = province_geometry.nearestPoint(endpoint).asPoint()
+        connected_parts.append(adjusted)
+    connected_city_geometry = QgsGeometry.fromMultiPolylineXY(connected_parts)
+
+    province_layer = create_line_layer(
+        "统一省界", [province_geometry], "#78847F", 0.42
+    )
+    city_layer = create_line_layer(
+        "统一市界", [connected_city_geometry], "#C1C8C6", 0.15
+    )
+    beijing_fill = create_polygon_layer(
+        project, source, "统一北京填色", dissolved_by_code[110000], "#B7CDBD", 0.62
+    )
+    tianjin_fill = create_polygon_layer(
+        project, source, "统一天津填色", dissolved_by_code[120000], "#F7F8F6", 1.0
+    )
+    return province_layer, city_layer, beijing_fill, tianjin_fill
+
+
+def style_fill_only(layer: QgsVectorLayer) -> None:
+    layer.setRenderer(
+        QgsSingleSymbolRenderer(
+            QgsFillSymbol.createSimple(
+                {
+                    "color": "#F7F8F6",
+                    "outline_color": "255,255,255,0",
+                    "outline_width": "0",
+                }
+            )
+        )
+    )
+
+
+def background_symbol(color: str = "#AEC2CD", width: float = 0.34) -> QgsLineSymbol:
     symbol = QgsLineSymbol()
     line = QgsSimpleLineSymbolLayer(QColor(color), width)
     line.setWidthUnit(Qgis.RenderUnit.Millimeters)
@@ -433,8 +656,8 @@ def background_symbol(color: str = "#BEC8C4", width: float = 0.30) -> QgsLineSym
 
 
 def style_passenger_layer(layer: QgsVectorLayer) -> None:
-    conventional = background_symbol("#C3CBC8", 0.28)
-    highspeed = background_symbol("#B5C8C8", 0.32)
+    conventional = background_symbol("#AEC2CD", 0.34)
+    highspeed = background_symbol("#9EB9C7", 0.36)
     layer.setRenderer(
         QgsCategorizedSymbolRenderer(
             "rail_class",
@@ -524,7 +747,37 @@ def main() -> int:
         )
         passenger = build_passenger_layer(project, extraction_extent)
         style_passenger_layer(passenger)
-        map_layers.insert(route_index + 1, passenger)
+        province_boundaries, city_boundaries, beijing_fill, tianjin_fill = (
+            build_unified_admin_layers(project, extraction_extent)
+        )
+        obsolete_tokens = {
+            "高亮城市",
+            "北京市内部区界",
+            "天津市内部区界",
+            "周边城市内部边界",
+            "天津市共边轮廓",
+        }
+        filtered_layers = []
+        for layer in map_layers:
+            name = layer.name()
+            if any(token in name for token in obsolete_tokens):
+                continue
+            if "周边省份" in name:
+                style_fill_only(layer)
+            filtered_layers.append(layer)
+        map_layers = filtered_layers
+        route_index = next(
+            index
+            for index, layer in enumerate(map_layers)
+            if layer.name() == "铁路行程轨迹"
+        )
+        map_layers[route_index + 1 : route_index + 1] = [
+            passenger,
+            province_boundaries,
+            city_boundaries,
+            beijing_fill,
+            tianjin_fill,
+        ]
         map_item.setLayers(map_layers)
         map_item.setKeepLayerSet(True)
         add_background_legend(layout)

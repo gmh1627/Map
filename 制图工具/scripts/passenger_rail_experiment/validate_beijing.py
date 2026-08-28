@@ -98,6 +98,70 @@ def main() -> int:
             ]
             if disconnected:
                 errors.append("客运走廊未接入枢纽：" + "、".join(disconnected))
+            expected_styles = {
+                "conventional": ("#aec2cd", 0.34),
+                "highspeed": ("#9eb9c7", 0.36),
+            }
+            for category in passenger_layers[0].renderer().categories():
+                value = str(category.value())
+                if value not in expected_styles:
+                    continue
+                symbol_layer = category.symbol().symbolLayer(0)
+                expected_color, expected_width = expected_styles[value]
+                if symbol_layer.color().name().lower() != expected_color:
+                    errors.append(f"{value}背景铁路颜色异常")
+                if abs(symbol_layer.width() - expected_width) > 0.01:
+                    errors.append(f"{value}背景铁路线宽异常")
+        unified_names = {"统一省界", "统一市界", "统一北京填色", "统一天津填色"}
+        missing_unified = [
+            name for name in sorted(unified_names) if len(project.mapLayersByName(name)) != 1
+        ]
+        if missing_unified:
+            errors.append("缺少统一行政区图层：" + "、".join(missing_unified))
+        obsolete_tokens = {
+            "高亮城市",
+            "北京市内部区界",
+            "天津市内部区界",
+            "周边城市内部边界",
+            "天津市共边轮廓",
+        }
+        obsolete = [
+            layer.name()
+            for layer in project.mapLayers().values()
+            if any(token in layer.name() for token in obsolete_tokens)
+        ]
+        if obsolete:
+            errors.append("仍含旧行政边界图层：" + "、".join(obsolete))
+        province_layers = project.mapLayersByName("统一省界")
+        city_layers = project.mapLayersByName("统一市界")
+        if province_layers and city_layers:
+            province_symbol = province_layers[0].renderer().symbol().symbolLayer(0)
+            city_symbol = city_layers[0].renderer().symbol().symbolLayer(0)
+            if abs(province_symbol.width() - 0.42) > 0.01:
+                errors.append("统一省界线宽应为0.42 mm")
+            if abs(city_symbol.width() - 0.15) > 0.01:
+                errors.append("统一市界线宽应为0.15 mm")
+            province_geometry = next(province_layers[0].getFeatures()).geometry()
+            city_geometry = next(city_layers[0].getFeatures()).geometry()
+            parts = (
+                city_geometry.asMultiPolyline()
+                if city_geometry.isMultipart()
+                else [city_geometry.asPolyline()]
+            )
+            near_misses = []
+            for part in parts:
+                if not part:
+                    continue
+                for point in (part[0], part[-1]):
+                    distance = province_geometry.distance(
+                        QgsGeometry.fromPointXY(point)
+                    )
+                    if 1e-9 < distance < 0.005:
+                        near_misses.append(distance)
+            if near_misses:
+                errors.append(
+                    f"市界与省界存在{len(near_misses)}个近距离未接合端点"
+                )
         route_layers = project.mapLayersByName("铁路行程轨迹")
         route_count = route_layers[0].featureCount() if route_layers else 0
         if route_count != 133:
@@ -130,6 +194,8 @@ def main() -> int:
                 names = [layer.name() for layer in maps[0].layers()]
                 if (
                     "其他客运铁路" not in names
+                    or "统一省界" not in names
+                    or "统一市界" not in names
                     or "铁路行程轨迹" not in names
                 ):
                     errors.append("主图缺少客运底图或原有行迹")
