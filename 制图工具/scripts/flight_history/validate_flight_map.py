@@ -7,7 +7,14 @@ import sys
 from pathlib import Path
 
 from qgis.PyQt.QtGui import QImage
-from qgis.core import QgsApplication, QgsGeometry, QgsLayoutItemMap, QgsPointXY, QgsProject
+from qgis.core import (
+    QgsApplication,
+    QgsGeometry,
+    QgsLayoutItemLabel,
+    QgsLayoutItemMap,
+    QgsPointXY,
+    QgsProject,
+)
 
 
 OUTPUT_DIR = Path(r"F:\Desktop\Railway\地图输出\全国专题图\航线图")
@@ -26,7 +33,7 @@ def main() -> int:
         invalid = [layer.name() for layer in project.mapLayers().values() if not layer.isValid()]
         if invalid:
             errors.append("Invalid layers: " + ", ".join(invalid))
-        expected = {"飞行航线": 15, "航向箭头": 15, "机场节点": 13}
+        expected = {"飞行航线": 16, "航向箭头": 16, "机场节点": 13}
         counts = {}
         for name, count in expected.items():
             matches = project.mapLayersByName(name)
@@ -46,6 +53,23 @@ def main() -> int:
         via_point = QgsGeometry.fromPointXY(QgsPointXY(114.778889, 25.853333))
         if route_by_seq[11].geometry().distance(via_point) > 1e-7:
             errors.append("Stopover route does not pass through KOW")
+        latest = route_by_seq.get(16)
+        if latest is None:
+            errors.append("Missing CA1845 flight record")
+        else:
+            expected_latest = {
+                "date": "2026.8",
+                "origin": "PEK",
+                "destination": "HFE",
+                "flight": "CA1845",
+                "distance_km": 959,
+                "via": "",
+            }
+            for field, expected_value in expected_latest.items():
+                if latest[field] != expected_value:
+                    errors.append(
+                        f"CA1845 {field}: expected {expected_value}, got {latest[field]}"
+                    )
         for seq, route in route_by_seq.items():
             geometry = route.geometry()
             arrow_geometry = arrow_by_seq[seq].geometry()
@@ -61,6 +85,14 @@ def main() -> int:
             errors.append(f"Expected one main map, got {len(main_maps)}")
         elif arrow_layer.id() not in {layer.id() for layer in main_maps[0].layers()}:
             errors.append("Arrow layer is missing from the main map")
+        subtitle = "16 次飞行｜累计 22,240 km｜抵达 12 座城市、13 座机场（含经停）"
+        labels = [
+            item.text()
+            for item in layouts[0].items()
+            if isinstance(item, QgsLayoutItemLabel)
+        ] if len(layouts) == 1 else []
+        if subtitle not in labels:
+            errors.append("Flight summary subtitle is outdated or missing")
         image = QImage(str(png))
         image_info = None
         if image.isNull():
@@ -75,7 +107,6 @@ def main() -> int:
         return 1 if errors else 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":

@@ -103,6 +103,8 @@ FLIGHTS = (
     ("2026.4", "JGN", "PKX", "MF8212", 2074, None),
     ("2026.6", "DNH", "LHW", "MU2234", 1048, None),
     ("2026.6", "LHW", "HFE", "MU9977", 1473, None),
+    # 中国国航，空客321-252(NX)。
+    ("2026.8", "PEK", "HFE", "CA1845", 959, None),
 )
 
 
@@ -420,7 +422,7 @@ def build_layout(project: QgsProject, main_layers: list, inset_layers: list) -> 
     add_label(layout, "飞行航迹", 12, 3, 190, 16, 27, "#F2FAFC", "华文新魏")
     add_label(
         layout,
-        "15 次飞行｜累计 21,281 km｜抵达 12 座城市、13 座机场（含经停）",
+        "16 次飞行｜累计 22,240 km｜抵达 12 座城市、13 座机场（含经停）",
         13,
         20,
         390,
@@ -468,7 +470,7 @@ def main() -> int:
     for source in (PROVINCE_SOURCE,):
         if not source.exists():
             raise FileNotFoundError(source)
-    if sum(flight[4] for flight in FLIGHTS) != 21281:
+    if sum(flight[4] for flight in FLIGHTS) != 22240:
         raise RuntimeError("Flight mileage total no longer matches the article")
 
     app = QgsApplication([], False)
@@ -523,7 +525,6 @@ def main() -> int:
         return 0
     finally:
         QgsProject.instance().clear()
-        app.exitQgis()
 
 
 if __name__ == "__main__":
