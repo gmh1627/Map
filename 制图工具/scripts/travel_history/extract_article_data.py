@@ -10,9 +10,9 @@ from pathlib import Path
 
 DEFAULT_ARTICLE = Path(r"F:\Desktop\Blog\source\_posts\行旅杂记.md")
 EXPECTED_PROVINCES = 21
-EXPECTED_CITIES = 87
-EXPECTED_RAIL_TRIPS = 132
-EXPECTED_RAIL_DISTANCE_KM = 52035
+EXPECTED_CITIES = 88
+EXPECTED_RAIL_TRIPS = 135
+EXPECTED_RAIL_DISTANCE_KM = 55806
 
 
 def parse_args() -> argparse.Namespace:
@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def parse_visited_regions(text: str) -> list[dict]:
-    start = text.index("至此，共计去过21个省级行政区，87个城市")
+    start = text.index("至此，共计去过21个省级行政区，88个城市")
     end = text.index("<figure", start)
     lines = text[start:end].splitlines()
 
@@ -142,7 +142,7 @@ def main() -> int:
     actual = (province_count, city_count, len(records), distance_km)
     if actual != expected:
         raise RuntimeError(f"Article totals do not match: expected {expected}, got {actual}")
-    if class_counts != {"conventional": 43, "high_speed_emu": 89}:
+    if class_counts != {"conventional": 45, "high_speed_emu": 90}:
         raise RuntimeError(f"Rail class totals do not match article: {class_counts}")
 
     warnings = []

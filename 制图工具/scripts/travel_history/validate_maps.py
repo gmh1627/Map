@@ -25,17 +25,17 @@ PARSED_SOURCE = Path(__file__).resolve().parent / "parsed_source.json"
 EXPECTED_COUNTS = {
     "全国省级行政区": 35,
     "全国地级行政区": 477,
-    "去过的城市": 87,
+    "去过的城市": 88,
     "去过的省级行政区": 21,
-    "铁路行程轨迹": 133,
-    "记录车站": 129,
-    "去过的城市标注": 87,
+    "铁路行程轨迹": 135,
+    "记录车站": 131,
+    "去过的城市标注": 88,
     "重点城市标注": 7,
     "铁路图省级行政区": 35,
 }
 EXPECTED_RAIL_SUBTITLE = (
-    "133 段乘车记录｜普铁 44 次 · 高铁/动车 89 次｜总里程 54,760 km\n"
-    "其中普铁 21,740 km，高铁/动车 33,020 km｜抵达 65 个城市的 129 座车站"
+    "135 段乘车记录｜普铁 45 次 · 高铁/动车 90 次｜总里程 55,806 km\n"
+    "其中普铁 22,472 km，高铁/动车 33,334 km｜抵达 66 个城市的 131 座车站"
 )
 EXPECTED_NEW_ROUTES = {
     131: ("D901", "北京西", "广州", ["涿州东", "石家庄", "郑州东", "广州北"]),
@@ -52,6 +52,8 @@ EXPECTED_NEW_ROUTES = {
             "高碑店",
         ],
     ),
+    134: ("K1036", "合肥", "德州", ["蚌埠", "宿州", "徐州"]),
+    135: ("G816", "德州东", "北京南", []),
 }
 EXPECTED_NETWORK_OVERRIDES = {}
 
@@ -144,8 +146,8 @@ def main() -> int:
                 for service in ("conventional", "highspeed")
             }
             expected_summary = {
-                "conventional": {"trips": 44, "table_km": 21740},
-                "highspeed": {"trips": 89, "table_km": 33020},
+                "conventional": {"trips": 45, "table_km": 22472},
+                "highspeed": {"trips": 90, "table_km": 33334},
             }
             if service_summary != expected_summary:
                 errors.append(

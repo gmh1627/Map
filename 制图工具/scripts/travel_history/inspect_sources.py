@@ -167,8 +167,7 @@ def main() -> int:
         print(REPORT)
         return 0
     finally:
-        app.exitQgis()
-
+        pass
 
 if __name__ == "__main__":
     try:

@@ -40,6 +40,16 @@ PROVINCE_NAME_MAP = {
 # services are counted with high-speed/EMU records even when they use a
 # conventional physical line.
 CONVENTIONAL_TRAIN_EXCEPTIONS: set[str] = set()
+ROUTE_CONTROL_POINTS = {
+    ("湛江", "北京西", "K158"): [
+        "遂溪", "廉江", "陆川", "玉林", "贵港", "柳州", "桂林北",
+        "全州南", "永州", "衡阳", "长沙", "武昌", "花园", "广水",
+        "信阳", "驻马店", "西平", "漯河", "许昌", "郑州", "新乡",
+        "鹤壁", "安阳", "邯郸", "邢台", "石家庄", "定州", "保定",
+        "高碑店",
+    ],
+    ("合肥", "德州", "K1036"): ["蚌埠", "宿州", "徐州"],
+}
 
 
 def split_markdown_row(line: str) -> list[str]:
@@ -130,8 +140,7 @@ def parse_rail_records(lines: list[str]) -> list[dict]:
         current_date = date or current_date
         train = re.sub(r"\s+", "", train).upper()
         distance_value = int(re.sub(r"[^0-9]", "", distance))
-        records.append(
-            {
+        record = {
                 "seq": len(records) + 1,
                 "date": current_date,
                 "origin": origin,
@@ -140,7 +149,10 @@ def parse_rail_records(lines: list[str]) -> list[dict]:
                 "distance_km": distance_value,
                 "service_class": classify_service(train, origin, destination),
             }
-        )
+        controls = ROUTE_CONTROL_POINTS.get((origin, destination, train))
+        if controls:
+            record["control_points"] = controls
+        records.append(record)
     return records
 
 

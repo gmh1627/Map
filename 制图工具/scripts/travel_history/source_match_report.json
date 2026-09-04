@@ -35,6 +35,14 @@
       "adcode": "441900"
     },
     {
+      "source_name": "阳江",
+      "full_name": "阳江市",
+      "province": "广东省",
+      "source": "city",
+      "fid": 257,
+      "adcode": "441700"
+    },
+    {
       "source_name": "河源",
       "full_name": "河源市",
       "province": "广东省",
@@ -49,14 +57,6 @@
       "source": "city",
       "fid": 253,
       "adcode": "441300"
-    },
-    {
-      "source_name": "阳江",
-      "full_name": "阳江市",
-      "province": "广东省",
-      "source": "city",
-      "fid": 257,
-      "adcode": "441700"
     },
     {
       "source_name": "江门",
@@ -497,6 +497,14 @@
       "source": "city",
       "fid": 181,
       "adcode": "370400"
+    },
+    {
+      "source_name": "德州",
+      "full_name": "德州市",
+      "province": "山东省",
+      "source": "city",
+      "fid": 190,
+      "adcode": "371400"
     },
     {
       "source_name": "福州",
@@ -1298,6 +1306,20 @@
       "tags": "\"alt_name\"=>\"黄桥站;黄桥火车站;Huangqiao Railway Station\",\"name:en\"=>\"Yingshang\",\"name:zh\"=>\"颍上\",\"railway\"=>\"station\",\"train\"=>\"yes\"",
       "score": 5
     },
+    "德州": {
+      "fid": 50640,
+      "lon": 116.2826708,
+      "lat": 37.4486663,
+      "tags": "\"alt_name\"=>\"德州站;德州火车站;Dezhou Railway Station\",\"name:en\"=>\"Dezhou\",\"name:zh\"=>\"德州\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:position:exact:京沪\"=>\"366.317\",\"railway:position:exact:石德\"=>\"181.017\",\"railway:ref\"=>\"16115\",\"railway:station_category\"=>\"一等站\",\"start_date\"=>\"1908\",\"train\"=>\"yes\",\"wikidata\"=>\"Q11071656\",\"wikipedia\"=>\"zh:德州站\"",
+      "score": 7
+    },
+    "德州东": {
+      "fid": 51061,
+      "lon": 116.45582110000001,
+      "lat": 37.4089344,
+      "tags": "\"alt_name:de\"=>\"Dezhou Ost\",\"alt_name:en\"=>\"Dezhou East\",\"name:en\"=>\"Dezhoudong\",\"name:zh\"=>\"德州东\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"66809\",\"start_date\"=>\"2011-06-30\",\"train\"=>\"yes\",\"wikidata\"=>\"Q5268591\"",
+      "score": 7
+    },
     "合肥北城": {
       "fid": 51332,
       "lon": 117.24669990000001,
@@ -1597,101 +1619,6 @@
       "lon": 111.01546400000001,
       "lat": 38.493298200000005,
       "tags": "\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"train\"=>\"yes\"",
-      "score": 7
-    },
-    "遂溪": {
-      "lon": 110.2624679,
-      "lat": 21.4008526,
-      "score": 7
-    },
-    "廉江": {
-      "lon": 110.292717,
-      "lat": 21.6175577,
-      "score": 7
-    },
-    "陆川": {
-      "lon": 110.253795,
-      "lat": 22.31272,
-      "score": 7
-    },
-    "全州南": {
-      "lon": 111.0365114,
-      "lat": 25.9560928,
-      "score": 7
-    },
-    "衡阳": {
-      "lon": 112.6260051,
-      "lat": 26.8934986,
-      "score": 7
-    },
-    "长沙": {
-      "lon": 113.0088425,
-      "lat": 28.1971531,
-      "score": 7
-    },
-    "武昌": {
-      "lon": 114.3124643,
-      "lat": 30.530793,
-      "score": 7
-    },
-    "花园": {
-      "lon": 113.9714439,
-      "lat": 31.2466839,
-      "score": 7
-    },
-    "广水": {
-      "lon": 114.0311546,
-      "lat": 31.6337763,
-      "score": 7
-    },
-    "西平": {
-      "lon": 114.0334395,
-      "lat": 33.379065,
-      "score": 7
-    },
-    "许昌": {
-      "lon": 113.8142676,
-      "lat": 34.0218471,
-      "score": 7
-    },
-    "鹤壁": {
-      "lon": 114.2675452,
-      "lat": 35.7601835,
-      "score": 7
-    },
-    "安阳": {
-      "lon": 114.3336343,
-      "lat": 36.104279,
-      "score": 7
-    },
-    "邯郸": {
-      "lon": 114.4696555,
-      "lat": 36.6012666,
-      "score": 7
-    },
-    "邢台": {
-      "lon": 114.4861618,
-      "lat": 37.0692045,
-      "score": 7
-    },
-    "石家庄": {
-      "lon": 114.4781291,
-      "lat": 38.0095033,
-      "score": 7
-    },
-    "定州": {
-      "lon": 114.9671026,
-      "lat": 38.5298375,
-      "score": 7
-    },
-    "保定": {
-      "lon": 115.473167,
-      "lat": 38.8627726,
-      "score": 7
-    },
-    "高碑店": {
-      "lon": 115.8527002,
-      "lat": 39.3278413,
       "score": 7
     }
   },

@@ -1,7 +1,7 @@
 {
   "source": "F:\\Desktop\\Blog\\source\\_posts\\行旅杂记.md",
   "province_count": 21,
-  "city_count": 87,
+  "city_count": 88,
   "places": [
     {
       "category": "province",
@@ -12,9 +12,9 @@
         "广州",
         "茂名",
         "东莞",
+        "阳江",
         "河源",
         "惠州",
-        "阳江",
         "江门",
         "佛山",
         "中山",
@@ -146,7 +146,8 @@
       "province": "山东",
       "province_full": "山东省",
       "cities": [
-        "枣庄"
+        "枣庄",
+        "德州"
       ]
     },
     {
@@ -238,11 +239,11 @@
       ]
     }
   ],
-  "rail_record_count": 132,
-  "station_count": 129,
+  "rail_record_count": 135,
+  "station_count": 131,
   "service_counts": {
-    "conventional": 43,
-    "highspeed": 89
+    "conventional": 45,
+    "highspeed": 90
   },
   "stations": [
     "上海",
@@ -307,6 +308,8 @@
     "张掖",
     "张掖西",
     "徐州",
+    "德州",
+    "德州东",
     "扬州东",
     "敦煌",
     "新乡",
@@ -401,7 +404,38 @@
       "destination": "北京西",
       "train": "K158",
       "distance_km": 2725,
-      "service_class": "conventional"
+      "service_class": "conventional",
+      "control_points": [
+        "遂溪",
+        "廉江",
+        "陆川",
+        "玉林",
+        "贵港",
+        "柳州",
+        "桂林北",
+        "全州南",
+        "永州",
+        "衡阳",
+        "长沙",
+        "武昌",
+        "花园",
+        "广水",
+        "信阳",
+        "驻马店",
+        "西平",
+        "漯河",
+        "许昌",
+        "郑州",
+        "新乡",
+        "鹤壁",
+        "安阳",
+        "邯郸",
+        "邢台",
+        "石家庄",
+        "定州",
+        "保定",
+        "高碑店"
+      ]
     },
     {
       "seq": 4,
@@ -1573,12 +1607,59 @@
       "distance_km": 2725,
       "service_class": "conventional",
       "control_points": [
-        "遂溪", "廉江", "陆川", "玉林", "贵港", "柳州", "桂林北",
-        "全州南", "永州", "衡阳", "长沙", "武昌", "花园", "广水",
-        "信阳", "驻马店", "西平", "漯河", "许昌", "郑州", "新乡",
-        "鹤壁", "安阳", "邯郸", "邢台", "石家庄", "定州", "保定",
+        "遂溪",
+        "廉江",
+        "陆川",
+        "玉林",
+        "贵港",
+        "柳州",
+        "桂林北",
+        "全州南",
+        "永州",
+        "衡阳",
+        "长沙",
+        "武昌",
+        "花园",
+        "广水",
+        "信阳",
+        "驻马店",
+        "西平",
+        "漯河",
+        "许昌",
+        "郑州",
+        "新乡",
+        "鹤壁",
+        "安阳",
+        "邯郸",
+        "邢台",
+        "石家庄",
+        "定州",
+        "保定",
         "高碑店"
       ]
+    },
+    {
+      "seq": 134,
+      "date": "2026.9",
+      "origin": "合肥",
+      "destination": "德州",
+      "train": "K1036",
+      "distance_km": 732,
+      "service_class": "conventional",
+      "control_points": [
+        "蚌埠",
+        "宿州",
+        "徐州"
+      ]
+    },
+    {
+      "seq": 135,
+      "date": "2026.9",
+      "origin": "德州东",
+      "destination": "北京南",
+      "train": "G816",
+      "distance_km": 314,
+      "service_class": "highspeed"
     }
   ]
 }
