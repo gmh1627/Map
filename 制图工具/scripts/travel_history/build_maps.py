@@ -617,7 +617,7 @@ def make_layout(
         add_label(layout, "高铁/动车（含城际、市郊）", 151, 297, 88, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
         add_route_legend_sample(layout, 245, 301.5, 22, False)
         add_label(layout, "普铁", 271, 297, 30, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
-    add_label(layout, "数据截至 2026.08", 343, 297, 75, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
+    add_label(layout, "数据截至 2026.09", 343, 297, 75, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
 
     exporter = QgsLayoutExporter(layout)
     settings = QgsLayoutExporter.ImageExportSettings()
