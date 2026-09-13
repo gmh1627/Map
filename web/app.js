@@ -85,11 +85,10 @@
       const p = feature.properties;
       return `${p.train} ${p.origin} ${p.destination}`.toLowerCase().includes(query);
     });
-    $("routeCount").textContent = `${selectedRouteIds.size}/${routeData.features.length}`;
     $("routeList").innerHTML = rows.map((feature) => {
       const p = feature.properties;
       const id = Number(p.seq);
-      return `<label class="route-option"><input type="checkbox" data-route-id="${id}"${selectedRouteIds.has(id) ? " checked" : ""}><span class="route-option-main"><strong>${p.train} · ${p.origin}—${p.destination}</strong><small>${p.service === "highspeed" ? "高铁 / 动车" : "普铁"} · ${p.table_km || 0} km</small></span></label>`;
+      return `<label class="route-option"><input type="checkbox" data-route-id="${id}"${selectedRouteIds.has(id) ? " checked" : ""}><span class="route-option-main"><strong>${p.train} · ${p.origin}—${p.destination}</strong><small>${p.table_km || 0} km</small></span></label>`;
     }).join("") || '<div class="note">没有匹配的路线</div>';
   }
   Promise.all([load("provinces"), load("cities"), load("visited_cities"), load("visited_city_labels"), load("rail_visited_cities"), load("rail_city_labels"), load("other_visited_cities"), load("other_city_labels"), load("railway_network"), load("visited_routes"), load("visited_stations"), load("network_stations")]).then(([provinces, cities, visitedCities, labels, railCities, railCityLabels, otherCities, otherCityLabels, network, routes, stations, networkStations]) => {
