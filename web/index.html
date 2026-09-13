@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>中国铁路图</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <h1>中国铁路图</h1>
+        <p id="status">铁路足迹 · 全国路网</p>
+      </div>
+      <button id="reset" type="button">重置视图</button>
+    </header>
+    <section class="workspace">
+      <aside class="panel" aria-label="图层控制">
+        <h2>显示图层</h2>
+        <label class="switch"><input id="visited" type="checkbox" checked><span>到过的路线</span></label>
+        <label class="switch"><input id="network" type="checkbox"><span>全国铁路底图</span></label>
+        <label class="switch"><input id="visitedHighspeed" type="checkbox"><span>到过的高铁 / 动车</span></label>
+        <label class="switch"><input id="visitedConventional" type="checkbox"><span>到过的普速铁路</span></label>
+        <label class="switch"><input id="speedNetwork" type="checkbox"><span>按设计速度着色</span></label>
+        <hr>
+        <h2>地图要素</h2>
+        <label class="switch"><input id="cityBounds" type="checkbox" checked><span>地级市边界</span></label>
+        <label class="switch"><input id="visitedCities" type="checkbox" checked><span>铁路到达城市</span></label>
+        <label class="switch"><input id="otherVisitedCities" type="checkbox"><span>其他到访城市</span></label>
+        <hr>
+        <div class="route-list-heading"><h2>路线附表</h2><span id="routeCount"></span></div>
+        <input id="routeSearch" class="route-search" type="search" placeholder="搜索车次、起点或终点" autocomplete="off">
+        <div class="route-actions"><button id="selectAllRoutes" type="button">全选</button><button id="clearRoutes" type="button">全不选</button></div>
+        <div id="routeList" class="route-list" aria-label="到过的路线列表"></div>
+        <div class="legend" id="legend"></div>
+        <p class="note">铁路底图来自本地 OSM 铁路数据，按设计速度或最高速度标签归类；线路会在浏览器端简化显示。</p>
+      </aside>
+      <div id="map" role="application" aria-label="中国铁路交互地图"></div>
+    </section>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
