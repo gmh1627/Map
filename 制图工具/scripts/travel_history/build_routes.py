@@ -39,12 +39,11 @@ from qgis.core import (
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+RAILWAY_ROOT = SCRIPT_DIR.parents[2]
 PARSED = SCRIPT_DIR / "parsed_source.json"
 MATCH_REPORT = SCRIPT_DIR / "source_match_report.json"
-RAIL_GPKG = Path(
-    r"F:\Desktop\Railway\制图工具\数据源\GeoPackage\travel_map_home2_min_gan.gpkg"
-)
-DEFAULT_OUTPUT_DIR = Path(r"F:\Desktop\Railway\地图输出\全国专题图\全国足迹")
+RAIL_GPKG = RAILWAY_ROOT / "制图工具" / "数据源" / "GeoPackage" / "travel_map_home2_min_gan.gpkg"
+DEFAULT_OUTPUT_DIR = RAILWAY_ROOT / "地图输出" / "全国专题图" / "全国足迹"
 OUTPUT_DIR = DEFAULT_OUTPUT_DIR
 OUTPUT_GPKG = OUTPUT_DIR / "铁路轨迹.gpkg"
 ROUTE_REPORT = OUTPUT_DIR / "线路构建报告.json"
@@ -264,8 +263,32 @@ def feature_polylines(geometry: QgsGeometry) -> list[list[QgsPointXY]]:
     return [line] if len(line) >= 2 else []
 
 
-def stitch_route_geometries(geometries: list[QgsGeometry]) -> QgsGeometry:
-    """Join ordered path edges and discard detached branch fragments."""
+def remove_revisited_loops(points: list[QgsPointXY]) -> list[QgsPointXY]:
+    """Remove station-throat detours which leave and revisit the same vertex."""
+    result: list[QgsPointXY] = []
+    positions: dict[tuple[float, float], int] = {}
+    for point in points:
+        key = (round(point.x(), 5), round(point.y(), 5))
+        previous = positions.get(key)
+        if previous is not None and len(result) - previous > 2:
+            removed = result[previous + 1 :]
+            result = result[: previous + 1]
+            for old in removed:
+                old_key = (round(old.x(), 5), round(old.y(), 5))
+                if positions.get(old_key, -1) > previous:
+                    positions.pop(old_key, None)
+            continue
+        positions[key] = len(result)
+        result.append(point)
+    return result
+
+
+def stitch_route_geometries(
+    geometries: list[QgsGeometry],
+    origin: tuple[float, float],
+    destination: tuple[float, float],
+) -> QgsGeometry:
+    """Join ordered path edges, remove loops, and enforce exact endpoints."""
     stitched: list[QgsPointXY] = []
     for geometry in geometries:
         candidates = feature_polylines(geometry)
@@ -283,7 +306,18 @@ def stitch_route_geometries(geometries: list[QgsGeometry]) -> QgsGeometry:
             if stitched[-1].distance(chosen[-1]) < stitched[-1].distance(chosen[0]):
                 chosen = list(reversed(chosen))
         stitched.extend(chosen if not stitched else chosen[1:])
-    return QgsGeometry.fromPolylineXY(stitched) if len(stitched) >= 2 else QgsGeometry.collectGeometry(geometries)
+    stitched = remove_revisited_loops(stitched)
+    if len(stitched) < 2:
+        return QgsGeometry.collectGeometry(geometries)
+    origin_point = QgsPointXY(*origin)
+    destination_point = QgsPointXY(*destination)
+    forward = stitched[0].distance(origin_point) + stitched[-1].distance(destination_point)
+    reverse = stitched[-1].distance(origin_point) + stitched[0].distance(destination_point)
+    if reverse < forward:
+        stitched.reverse()
+    stitched[0] = origin_point
+    stitched[-1] = destination_point
+    return QgsGeometry.fromPolylineXY(stitched)
 
 
 def project_onto_polyline(
@@ -409,7 +443,8 @@ def main() -> int:
         name: (float(value["lon"]), float(value["lat"]))
         for name, value in station_matches.items()
     }
-    station_coords.update(WAYPOINT_COORDS)
+    for name, coordinate in WAYPOINT_COORDS.items():
+        station_coords.setdefault(name, coordinate)
     min_lon = min(value[0] for value in station_coords.values()) - NETWORK_MARGIN_DEGREES
     min_lat = min(value[1] for value in station_coords.values()) - NETWORK_MARGIN_DEGREES
     max_lon = max(value[0] for value in station_coords.values()) + NETWORK_MARGIN_DEGREES
@@ -737,7 +772,10 @@ def main() -> int:
         feature_cache = {}
 
         def feature_geometry(detail: dict) -> QgsGeometry:
-            if detail.get("coordinates"):
+            # Coordinates are authoritative for synthetic/partial edges. For
+            # source OSM ways, retain the original way geometry and use the
+            # optional projected endpoints below to trim it.
+            if detail.get("coordinates") and detail.get("fid") is None:
                 return QgsGeometry.fromPolylineXY([QgsPointXY(*point) if isinstance(point, tuple) else point for point in detail["coordinates"]])
             fid = detail["fid"]
             part_index = detail["part"]
@@ -919,14 +957,51 @@ def main() -> int:
                     edge_details[(min(start, end), max(start, end), preferred)]
                     for start, end in zip(global_path, global_path[1:])
                 ]
+                details = add_exact_endpoint_connectors(
+                    details, start_coordinate, end_coordinate, node_coordinates[global_path[0]], node_coordinates[global_path[-1]]
+                )
                 dense_path_cache[cache_key] = details
                 return details
             details = [
                 local_details[(min(start, end), max(start, end), preferred)]
                 for start, end in zip(path, path[1:])
             ]
+            details = add_exact_endpoint_connectors(
+                details, start_coordinate, end_coordinate, local_coordinates[path[0]], local_coordinates[path[-1]]
+            )
             dense_path_cache[cache_key] = details
             return details
+
+        def add_exact_endpoint_connectors(
+            details: list[dict],
+            start_coordinate: tuple[float, float],
+            end_coordinate: tuple[float, float],
+            path_start: tuple[float, float],
+            path_end: tuple[float, float],
+        ) -> list[dict]:
+            """Make dense-section geometry terminate at the actual station points."""
+            if not details:
+                return details
+            result = list(details)
+            track_class = result[0].get("track_class", "conventional")
+            if haversine_km(start_coordinate, path_start) > 0.001:
+                result.insert(0, {
+                    "fid": None,
+                    "part": None,
+                    "length_km": haversine_km(start_coordinate, path_start),
+                    "track_class": track_class,
+                    "coordinates": [start_coordinate, path_start],
+                })
+            track_class = result[-1].get("track_class", track_class)
+            if haversine_km(path_end, end_coordinate) > 0.001:
+                result.append({
+                    "fid": None,
+                    "part": None,
+                    "length_km": haversine_km(path_end, end_coordinate),
+                    "track_class": track_class,
+                    "coordinates": [path_end, end_coordinate],
+                })
+            return result
 
         def corridor_path(start_node: int, end_node: int, preferred: str) -> list[int]:
             start_coordinate = node_coordinates[start_node]
@@ -1038,7 +1113,11 @@ def main() -> int:
                 else "ok" if 0.72 <= ratio <= 1.18 else "review"
             )
             track_counts = Counter(detail["track_class"] for detail in details)
-            collected = stitch_route_geometries(geometries)
+            collected = stitch_route_geometries(
+                geometries,
+                station_coords[record["origin"]],
+                station_coords[record["destination"]],
+            )
             output = QgsFeature()
             output.setGeometry(collected)
             output.setAttributes(

@@ -11,12 +11,11 @@ from qgis.core import QgsApplication, QgsFeatureRequest, QgsVectorLayer
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+RAILWAY_ROOT = SCRIPT_DIR.parents[2]
 PARSED = SCRIPT_DIR / "parsed_source.json"
-PROVINCES = Path(r"F:\Desktop\Railway\province\province.json")
-CITIES = Path(r"F:\Desktop\Railway\city\city.json")
-RAIL_GPKG = Path(
-    r"F:\Desktop\Railway\制图工具\数据源\GeoPackage\travel_map_home2_min_gan.gpkg"
-)
+PROVINCES = RAILWAY_ROOT / "province" / "province.json"
+CITIES = RAILWAY_ROOT / "city" / "city.json"
+RAIL_GPKG = RAILWAY_ROOT / "制图工具" / "数据源" / "GeoPackage" / "travel_map_home2_min_gan.gpkg"
 REPORT = SCRIPT_DIR / "source_match_report.json"
 
 CITY_SUFFIXES = (

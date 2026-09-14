@@ -20,8 +20,10 @@ from qgis.core import (
 )
 
 
-DEFAULT_OUTPUT_DIR = Path(r"F:\Desktop\Railway\地图输出\全国专题图\全国足迹")
-PARSED_SOURCE = Path(__file__).resolve().parent / "parsed_source.json"
+SCRIPT_DIR = Path(__file__).resolve().parent
+RAILWAY_ROOT = SCRIPT_DIR.parents[2]
+DEFAULT_OUTPUT_DIR = RAILWAY_ROOT / "地图输出" / "全国专题图" / "全国足迹"
+PARSED_SOURCE = SCRIPT_DIR / "parsed_source.json"
 EXPECTED_COUNTS = {
     "全国省级行政区": 35,
     "全国地级行政区": 477,
@@ -32,6 +34,8 @@ EXPECTED_COUNTS = {
     "去过的城市标注": 88,
     "重点城市标注": 7,
     "铁路图省级行政区": 35,
+    "统一省界": 1,
+    "统一市界": 1,
 }
 EXPECTED_RAIL_SUBTITLE = (
     "135 段乘车记录｜普铁 45 次 · 高铁/动车 90 次\n"
@@ -109,6 +113,38 @@ def main() -> int:
                 int(feature["seq"]): feature
                 for feature in route_layers[0].getFeatures()
             }
+            station_layers = project.mapLayersByName("记录车站")
+            station_points = {
+                str(feature["name"]): feature.geometry().asPoint()
+                for feature in station_layers[0].getFeatures()
+            } if station_layers else {}
+            endpoint_errors = []
+            loop_errors = []
+            for seq, feature in route_features.items():
+                geometry = feature.geometry()
+                parts = geometry.asMultiPolyline() if geometry.isMultipart() else [geometry.asPolyline()]
+                points = [point for part in parts for point in part]
+                record = expected_records.get(seq)
+                if not points or not record:
+                    continue
+                origin = station_points.get(record["origin"])
+                destination = station_points.get(record["destination"])
+                if origin is not None and destination is not None:
+                    direct = points[0].distance(origin) + points[-1].distance(destination)
+                    reverse = points[-1].distance(origin) + points[0].distance(destination)
+                    if min(direct, reverse) > 0.00001:
+                        endpoint_errors.append(seq)
+                seen = {}
+                for index, point in enumerate(points):
+                    key = (round(point.x(), 5), round(point.y(), 5))
+                    if key in seen and index - seen[key] > 2:
+                        loop_errors.append(seq)
+                        break
+                    seen[key] = index
+            if endpoint_errors:
+                errors.append(f"Routes do not end at recorded stations: {endpoint_errors}")
+            if loop_errors:
+                errors.append(f"Routes contain station-throat loops: {loop_errors}")
             actual_services = {
                 seq: str(feature["service"])
                 for seq, feature in route_features.items()

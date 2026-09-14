@@ -18,6 +18,7 @@ from qgis.core import (
     QgsFeature,
     QgsField,
     QgsFillSymbol,
+    QgsGeometry,
     QgsLayoutExporter,
     QgsLayoutItemLabel,
     QgsLayoutItemMap,
@@ -47,16 +48,15 @@ from qgis.core import (
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+RAILWAY_ROOT = SCRIPT_DIR.parents[2]
 PARSED = SCRIPT_DIR / "parsed_source.json"
 MATCH_REPORT = SCRIPT_DIR / "source_match_report.json"
-PROVINCE_JSON = Path(r"F:\Desktop\Railway\province\province.json")
-CITY_JSON = Path(r"F:\Desktop\Railway\city\city.json")
-DEFAULT_ROUTE_GPKG = Path(r"F:\Desktop\Railway\地图输出\全国专题图\全国足迹\铁路轨迹.gpkg")
+PROVINCE_JSON = RAILWAY_ROOT / "province" / "province.json"
+CITY_JSON = RAILWAY_ROOT / "city" / "city.json"
+DEFAULT_ROUTE_GPKG = RAILWAY_ROOT / "地图输出" / "全国专题图" / "全国足迹" / "铁路轨迹.gpkg"
 ROUTE_GPKG = DEFAULT_ROUTE_GPKG
-ROUTE_SOURCES_GPKG = Path(
-    r"F:\Desktop\Railway\制图工具\数据源\GeoPackage\route_sources.gpkg"
-)
-DEFAULT_OUTPUT_DIR = Path(r"F:\Desktop\Railway\地图输出\全国专题图\全国足迹")
+ROUTE_SOURCES_GPKG = RAILWAY_ROOT / "制图工具" / "数据源" / "GeoPackage" / "route_sources.gpkg"
+DEFAULT_OUTPUT_DIR = RAILWAY_ROOT / "地图输出" / "全国专题图" / "全国足迹"
 OUTPUT_DIR = DEFAULT_OUTPUT_DIR
 OUTPUT_GPKG = OUTPUT_DIR / "全国足迹_数据.gpkg"
 OUTPUT_PROJECT = OUTPUT_DIR / "全国足迹.qgz"
@@ -180,6 +180,94 @@ def copy_source_layer(
     provider.addFeatures(output)
     memory.updateExtents()
     return save_memory_layer(project, memory, layer_name, overwrite_file)
+
+
+def province_code(feature: QgsFeature) -> int | None:
+    level = str(feature["level"] or "")
+    parent = feature["parent"] if "parent" in feature.fields().names() else None
+    parent_code = parent.get("adcode") if isinstance(parent, dict) else None
+    if level == "district" and parent_code in {110000, 120000, 310000, 500000}:
+        return int(parent_code)
+    if level != "city":
+        return None
+    routes = feature["acroutes"] if "acroutes" in feature.fields().names() else None
+    value = routes[1] if isinstance(routes, list) and len(routes) > 1 else parent_code
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        try:
+            return int(feature["adcode"]) // 10000 * 10000
+        except (TypeError, ValueError):
+            return None
+
+
+def polygon_boundary(geometry: QgsGeometry) -> QgsGeometry:
+    polygons = geometry.asMultiPolygon() if geometry.isMultipart() else [geometry.asPolygon()]
+    rings = [ring for polygon in polygons for ring in polygon if ring]
+    result = QgsGeometry.fromMultiPolylineXY(rings)
+    result.convertToMultiType()
+    return result
+
+
+def build_unified_admin_boundaries(
+    project: QgsProject, cities: QgsVectorLayer
+) -> tuple[QgsVectorLayer, QgsVectorLayer]:
+    """Derive province and internal city lines from the same city polygons."""
+    grouped: dict[int, list[QgsFeature]] = {}
+    for feature in cities.getFeatures():
+        code = province_code(feature)
+        if code is not None:
+            grouped.setdefault(code, []).append(feature)
+    city_parts = []
+    segment_owners: dict[tuple[tuple[float, float], tuple[float, float]], list[int]] = {}
+    segment_points = {}
+    for code, features in grouped.items():
+        for feature in features:
+            polygons = feature.geometry().asMultiPolygon() if feature.geometry().isMultipart() else [feature.geometry().asPolygon()]
+            for polygon in polygons:
+                for ring in polygon:
+                    if len(ring) < 2:
+                        continue
+                    city_parts.append(ring)
+                    for start, end in zip(ring, ring[1:]):
+                        first = (round(start.x(), 6), round(start.y(), 6))
+                        second = (round(end.x(), 6), round(end.y(), 6))
+                        key = tuple(sorted((first, second)))
+                        segment_owners.setdefault(key, []).append(code)
+                        segment_points.setdefault(key, (start, end))
+    province_segments = []
+    for key, owners in segment_owners.items():
+        if len(owners) == 1 or len(set(owners)) > 1:
+            start, end = segment_points[key]
+            province_segments.append([start, end])
+    province_geometry = QgsGeometry.fromMultiPolylineXY(province_segments)
+    city_geometry = QgsGeometry.fromMultiPolylineXY(city_parts)
+
+    def save_line(name: str, geometry: QgsGeometry, color: str, width: float) -> QgsVectorLayer:
+        geometry.convertToMultiType()
+        memory = QgsVectorLayer(f"MultiLineString?crs={cities.crs().authid()}", name, "memory")
+        memory.dataProvider().addAttributes([QgsField("name", QVariant.String)])
+        memory.updateFields()
+        feature = QgsFeature(memory.fields())
+        feature.setAttribute("name", name)
+        feature.setGeometry(geometry)
+        memory.dataProvider().addFeature(feature)
+        memory.updateExtents()
+        layer = save_memory_layer(project, memory, name)
+        layer.setRenderer(QgsSingleSymbolRenderer(QgsLineSymbol.createSimple({
+            "line_color": color,
+            "line_width": str(width),
+            "line_width_unit": "MM",
+            "joinstyle": "round",
+            "capstyle": "round",
+        })))
+        layer.setLabelsEnabled(False)
+        return layer
+
+    return (
+        save_line("统一省界", province_geometry, "#727D78", 0.38),
+        save_line("统一市界", city_geometry, "#A8B8C4", 0.085),
+    )
 
 
 def build_station_layer(project: QgsProject, matches: dict, records: list) -> QgsVectorLayer:
@@ -331,8 +419,8 @@ def style_all_provinces(layer: QgsVectorLayer, visited_names: set[str]) -> None:
         symbol = QgsFillSymbol.createSimple(
             {
                 "color": rgba("#D8E8F3", 224) if visited else "#EEF3F6",
-                "outline_color": "#587A93" if visited else "#7B8B96",
-                "outline_width": "0.52" if visited else "0.38",
+                "outline_color": "255,255,255,0",
+                "outline_width": "0",
                 "outline_width_unit": "MM",
                 "joinstyle": "round",
             }
@@ -345,8 +433,8 @@ def style_neutral_provinces(layer: QgsVectorLayer) -> None:
     symbol = QgsFillSymbol.createSimple(
         {
             "color": "#F3F4F2",
-            "outline_color": "#727D78",
-            "outline_width": "0.38",
+            "outline_color": "255,255,255,0",
+            "outline_width": "0",
             "outline_width_unit": "MM",
             "joinstyle": "round",
         }
@@ -358,8 +446,8 @@ def style_all_cities(layer: QgsVectorLayer) -> None:
     symbol = QgsFillSymbol.createSimple(
         {
             "color": "255,255,255,0",
-            "outline_color": rgba("#A8B8C4", 130),
-            "outline_width": "0.085",
+            "outline_color": "255,255,255,0",
+            "outline_width": "0",
             "outline_width_unit": "MM",
             "joinstyle": "round",
         }
@@ -371,8 +459,8 @@ def style_visited_cities(layer: QgsVectorLayer, for_rail: bool = False) -> None:
     symbol = QgsFillSymbol.createSimple(
         {
             "color": rgba("#B5D3E8", 42 if for_rail else 172),
-            "outline_color": rgba("#47799C", 120 if for_rail else 230),
-            "outline_width": "0.14" if for_rail else "0.28",
+            "outline_color": "255,255,255,0",
+            "outline_width": "0",
             "outline_width_unit": "MM",
             "joinstyle": "round",
         }
@@ -668,6 +756,9 @@ def main() -> int:
             project, all_province_source, "全国省级行政区", overwrite_file=True
         )
         all_cities = copy_source_layer(project, all_city_source, "全国地级行政区")
+        province_boundaries, city_boundaries = build_unified_admin_boundaries(
+            project, all_city_source
+        )
         rail_provinces = copy_source_layer(
             project, all_province_source, "铁路图省级行政区"
         )
@@ -707,8 +798,8 @@ def main() -> int:
                 QgsFillSymbol.createSimple(
                     {
                         "color": "255,255,255,0",
-                        "outline_color": "#4B6F8A",
-                        "outline_width": "0.52",
+                        "outline_color": "255,255,255,0",
+                        "outline_width": "0",
                         "outline_width_unit": "MM",
                     }
                 )
@@ -732,9 +823,10 @@ def main() -> int:
         visit_layers = [
             required_city_labels,
             visited_city_labels,
+            province_boundaries,
+            city_boundaries,
             visited_city_layer,
             visited_province_layer,
-            all_cities,
             all_provinces,
         ]
         make_layout(
@@ -744,10 +836,10 @@ def main() -> int:
             "21 个省级行政区 · 88 个城市",
             visit_layers,
             VISIT_IMAGE,
-            inset_layers=[all_cities, all_provinces],
+            inset_layers=[province_boundaries, city_boundaries, all_provinces],
         )
 
-        rail_layers = [stations, routes, all_cities, rail_provinces]
+        rail_layers = [stations, routes, province_boundaries, city_boundaries, rail_provinces]
         make_layout(
             project,
             "铁路路线",
@@ -756,7 +848,7 @@ def main() -> int:
             rail_layers,
             RAIL_IMAGE,
             rail_legend=True,
-            inset_layers=[all_cities, rail_provinces],
+            inset_layers=[province_boundaries, city_boundaries, rail_provinces],
         )
 
         project.setTitle("全国足迹与铁路路线")
