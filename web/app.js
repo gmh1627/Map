@@ -30,7 +30,7 @@
   }
   function addSpeedLegend() {
     const legend = $("legend");
-    legend.innerHTML = '<div class="legend-title">设计速度 / 最高速度</div>' + Object.keys(speedLabels).map((key) => `<div class="legend-row"><i class="swatch" style="background:${speedColors[key]}"></i><span>${speedLabels[key]}</span></div>`).join("");
+    legend.innerHTML = '<div class="legend-title">到过路线</div><div class="legend-row"><i class="swatch" style="background:#258b8a"></i><span>高铁 / 动车</span></div><div class="legend-row"><i class="swatch" style="background:#263b42"></i><span>普速铁路</span></div><div class="legend-title speed-legend-title">设计速度 / 最高速度</div>' + Object.keys(speedLabels).map((key) => `<div class="legend-row"><i class="swatch" style="background:${speedColors[key]}"></i><span>${speedLabels[key]}</span></div>`).join("");
   }
   function refresh() {
     Object.values(layers).forEach((layer) => map.removeLayer(layer));

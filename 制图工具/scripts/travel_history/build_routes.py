@@ -451,6 +451,8 @@ def main() -> int:
                             "part": part_index,
                             "length_km": length,
                             "track_class": "highspeed" if highspeed else "conventional",
+                            "start_coordinate": points[0],
+                            "end_coordinate": points[-1],
                         }
                     if conventional_cost < data["conventional_cost"]:
                         data["conventional_cost"] = conventional_cost
@@ -459,6 +461,8 @@ def main() -> int:
                             "part": part_index,
                             "length_km": length,
                             "track_class": "highspeed" if highspeed else "conventional",
+                            "start_coordinate": points[0],
+                            "end_coordinate": points[-1],
                         }
                 else:
                     graph.add_edge(
@@ -472,6 +476,8 @@ def main() -> int:
                         "part": part_index,
                         "length_km": length,
                         "track_class": "highspeed" if highspeed else "conventional",
+                        "start_coordinate": points[0],
+                        "end_coordinate": points[-1],
                     }
                     edge_details[(min(start, end), max(start, end), "highspeed")] = detail.copy()
                     edge_details[(min(start, end), max(start, end), "conventional")] = detail.copy()
@@ -550,10 +556,19 @@ def main() -> int:
         for group in placement_groups.values():
             points = group["points"]
             total_km = geometry_length_km(points)
+            base_start = node_id(points[0])
+            base_end = node_id(points[-1])
+            # Replace the original whole-way edge with projected station
+            # sub-edges. Keeping the unsplit edge lets a shortest path bypass
+            # a station projection and continue beyond the route endpoint.
+            if graph.has_edge(base_start, base_end):
+                graph.remove_edge(base_start, base_end)
+            for network_class in ("highspeed", "conventional"):
+                edge_details.pop((min(base_start, base_end), max(base_start, base_end), network_class), None)
             locations = [
-                {"node": node_id(points[0]), "along_km": 0.0},
+                {"node": base_start, "along_km": 0.0},
                 *sorted(group["placements"], key=lambda item: item["along_km"]),
-                {"node": node_id(points[-1]), "along_km": total_km},
+                {"node": base_end, "along_km": total_km},
             ]
             for left, right in zip(locations, locations[1:]):
                 start = int(left["node"])
@@ -708,7 +723,14 @@ def main() -> int:
                 feature_cache[fid] = feature.geometry()
             geometry = feature_cache[fid]
             parts = feature_polylines(geometry)
-            return QgsGeometry.fromPolylineXY(parts[part_index])
+            points = parts[part_index]
+            start_coordinate = detail.get("start_coordinate")
+            end_coordinate = detail.get("end_coordinate")
+            if start_coordinate and end_coordinate:
+                _, start_along, _ = project_onto_polyline(points, start_coordinate)
+                _, end_along, _ = project_onto_polyline(points, end_coordinate)
+                points = polyline_substring(points, min(start_along, end_along), max(start_along, end_along))
+            return QgsGeometry.fromPolylineXY([QgsPointXY(*point) if isinstance(point, tuple) else point for point in points])
 
         route_features = []
         route_report = []

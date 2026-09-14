@@ -31,6 +31,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 17px 0; }
 .route-option-main strong { font-weight: 650; }
 .route-option-main small { color: var(--muted); overflow-wrap: anywhere; }
 .legend-title { color: var(--muted); font-size: 12px; margin-bottom: 7px; }
+.speed-legend-title { margin-top: 15px; }
 .legend-row { display: flex; align-items: center; gap: 7px; margin: 5px 0; color: var(--muted); font-size: 12px; }
 .swatch { width: 26px; height: 4px; border-radius: 2px; }
 .note { color: var(--muted); font-size: 11px; margin-top: 18px; }
