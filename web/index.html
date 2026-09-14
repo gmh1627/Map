@@ -5,19 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>中国铁路图</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=20260914-3">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <link rel="stylesheet" href="styles.20260914.css">
 </head>
 <body>
   <main class="shell">
     <header class="topbar">
       <div>
         <h1>中国铁路图</h1>
-        <p id="status">铁路足迹 · 全国路网</p>
+        <p id="status"></p>
       </div>
       <button id="reset" type="button">重置视图</button>
     </header>
     <section class="workspace">
       <aside class="panel" aria-label="图层控制">
+        <section class="map-summary" aria-label="铁路足迹统计">
+          <div class="summary-label">铁路足迹</div>
+          <div>135 段乘车记录｜普铁 45 次 · 高铁 / 动车 90 次</div>
+          <div>总里程 55,806 km（其中普铁 22,472 km，高铁 / 动车 33,334 km）</div>
+          <div>抵达 66 个城市的 131 座车站</div>
+        </section>
         <h2>显示图层</h2>
         <label class="switch"><input id="visited" type="checkbox" checked><span>到过的路线</span></label>
         <label class="switch"><input id="network" type="checkbox"><span>全国铁路底图</span></label>
@@ -40,6 +48,6 @@
     </section>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=20260914-3"></script>
+  <script src="app.20260914.js"></script>
 </body>
 </html>
