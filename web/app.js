@@ -16,7 +16,7 @@
   const styleOtherVisitedCity = { color: "#aabbb4", weight: .75, fillColor: "#e1e9e5", fillOpacity: .42 };
   const styleRoute = (service) => service === "highspeed" ? { color: "#258b8a", weight: 2.6, opacity: .9 } : { color: "#263b42", weight: 2.1, opacity: .88 };
 
-  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260914`); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
+  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260914-2`); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
   function geojson(data, options) { return L.geoJSON(data, options); }
   function addCityLabels(data, className = "city-label", filter = undefined) {
     return geojson(data, { filter, pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 2.8, color: "#477b91", fillColor: "#477b91", fillOpacity: .9, weight: 0.6 }), onEachFeature: (feature, layer) => layer.bindTooltip(feature.properties.display || "", { permanent: true, direction: "right", className, offset: [4, 0] }) });
@@ -30,7 +30,7 @@
   }
   function addSpeedLegend() {
     const legend = $("legend");
-    legend.innerHTML = '<div class="legend-title">到过路线</div><div class="legend-row"><i class="swatch" style="background:#258b8a"></i><span>高铁 / 动车</span></div><div class="legend-row"><i class="swatch" style="background:#263b42"></i><span>普速铁路</span></div><div class="legend-title speed-legend-title">设计速度 / 最高速度</div>' + Object.keys(speedLabels).map((key) => `<div class="legend-row"><i class="swatch" style="background:${speedColors[key]}"></i><span>${speedLabels[key]}</span></div>`).join("");
+    legend.innerHTML = '<div class="legend-title">到过路线</div><div class="legend-row"><i class="swatch route-swatch" style="color:#258b8a"></i><span>高铁 / 动车</span></div><div class="legend-row"><i class="swatch route-swatch" style="color:#263b42"></i><span>普速铁路</span></div><div class="legend-title speed-legend-title">设计速度 / 最高速度</div>' + Object.keys(speedLabels).map((key) => `<div class="legend-row"><i class="swatch" style="background:${speedColors[key]}"></i><span>${speedLabels[key]}</span></div>`).join("");
   }
   function refresh() {
     Object.values(layers).forEach((layer) => map.removeLayer(layer));
@@ -50,10 +50,12 @@
       layers.network.addTo(map);
     }
     if (routeData) {
+      layers.routeCasing = geojson(routeData, { filter: (feature) => selectedRouteIds.has(Number(feature.properties.seq)), style: () => ({ color: "#fffdf7", weight: 4.2, opacity: .96 }), onEachFeature: routePopup });
       layers.visited = geojson(routeData, { filter: (feature) => selectedRouteIds.has(Number(feature.properties.seq)), style: (feature) => styleRoute(feature.properties.service), onEachFeature: routePopup });
       layers.highspeed = geojson(routeData, { filter: (feature) => selectedRouteIds.has(Number(feature.properties.seq)) && feature.properties.service === "highspeed", style: () => styleRoute("highspeed"), onEachFeature: routePopup });
       layers.conventional = geojson(routeData, { filter: (feature) => selectedRouteIds.has(Number(feature.properties.seq)) && feature.properties.service === "conventional", style: () => styleRoute("conventional"), onEachFeature: routePopup });
     }
+    if (routeData && ($("visited").checked || $("visitedHighspeed").checked || $("visitedConventional").checked)) layers.routeCasing.addTo(map);
     if (routeData && $("visited").checked) layers.visited.addTo(map);
     if (routeData && $("visitedHighspeed").checked) layers.highspeed.addTo(map);
     if (routeData && $("visitedConventional").checked) layers.conventional.addTo(map);
