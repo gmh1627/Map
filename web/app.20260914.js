@@ -16,7 +16,7 @@
   const styleOtherVisitedCity = { color: "#aabbb4", weight: .75, fillColor: "#e1e9e5", fillOpacity: .42 };
   const styleRoute = (service) => service === "highspeed" ? { color: "#258b8a", weight: 2.6, opacity: .9 } : { color: "#263b42", weight: 2.1, opacity: .88 };
 
-  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260914-3`, { cache: "no-store" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
+  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260914-4`, { cache: "no-store" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
   function geojson(data, options) { return L.geoJSON(data, options); }
   function addCityLabels(data, className = "city-label", filter = undefined) {
     return geojson(data, { filter, pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 2.8, color: "#477b91", fillColor: "#477b91", fillOpacity: .9, weight: 0.6 }), onEachFeature: (feature, layer) => layer.bindTooltip(feature.properties.display || "", { permanent: true, direction: "right", className, offset: [4, 0] }) });

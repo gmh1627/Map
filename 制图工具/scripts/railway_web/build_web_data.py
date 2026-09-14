@@ -158,14 +158,14 @@ def export_routes(output: Path) -> int:
             if feature.geometry().contains(point_geometry):
                 return str(feature["display"])
         return ""
-    route_times = json.loads(ROUTE_TIMES.read_text(encoding="utf-8")) if ROUTE_TIMES.exists() else {}
+    route_times = json.loads(ROUTE_TIMES.read_text(encoding="utf-8-sig")) if ROUTE_TIMES.exists() else {}
     result = []
     for feature in route_layer.getFeatures():
         geometry = feature.geometry().simplify(0.001)
         origin = str(feature["origin"] or "")
         destination = str(feature["destination"] or "")
         extra = route_times.get(str(feature["seq"]), {})
-        result.append({"type": "Feature", "properties": {"seq": feature["seq"], "date": feature["date"], "origin": origin, "destination": destination, "origin_city": city_for_station(origin), "destination_city": city_for_station(destination), "train": feature["train"], "service": feature["service"], "table_km": feature["table_km"], "time": extra.get("time", ""), "note": extra.get("note", "")}, "geometry": geometry_json(geometry)})
+        result.append({"type": "Feature", "properties": {"seq": feature["seq"], "date": extra.get("date", feature["date"]), "origin": origin, "destination": destination, "origin_city": city_for_station(origin), "destination_city": city_for_station(destination), "train": feature["train"], "service": feature["service"], "table_km": feature["table_km"], "time": extra.get("time", ""), "note": extra.get("note", "")}, "geometry": geometry_json(geometry)})
     output.write_text(json.dumps(feature_collection(result), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     return len(result)
 

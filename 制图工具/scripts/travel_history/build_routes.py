@@ -264,6 +264,28 @@ def feature_polylines(geometry: QgsGeometry) -> list[list[QgsPointXY]]:
     return [line] if len(line) >= 2 else []
 
 
+def stitch_route_geometries(geometries: list[QgsGeometry]) -> QgsGeometry:
+    """Join ordered path edges and discard detached branch fragments."""
+    stitched: list[QgsPointXY] = []
+    for geometry in geometries:
+        candidates = feature_polylines(geometry)
+        if not candidates:
+            continue
+        if not stitched:
+            chosen = candidates[0]
+        else:
+            chosen = min(
+                candidates,
+                key=lambda part: min(
+                    stitched[-1].distance(part[0]), stitched[-1].distance(part[-1])
+                ),
+            )
+            if stitched[-1].distance(chosen[-1]) < stitched[-1].distance(chosen[0]):
+                chosen = list(reversed(chosen))
+        stitched.extend(chosen if not stitched else chosen[1:])
+    return QgsGeometry.fromPolylineXY(stitched) if len(stitched) >= 2 else QgsGeometry.collectGeometry(geometries)
+
+
 def project_onto_polyline(
     points: list[QgsPointXY], target: tuple[float, float]
 ) -> tuple[float, float, tuple[float, float]]:
@@ -1016,7 +1038,7 @@ def main() -> int:
                 else "ok" if 0.72 <= ratio <= 1.18 else "review"
             )
             track_counts = Counter(detail["track_class"] for detail in details)
-            collected = QgsGeometry.collectGeometry(geometries)
+            collected = stitch_route_geometries(geometries)
             output = QgsFeature()
             output.setGeometry(collected)
             output.setAttributes(
