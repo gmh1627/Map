@@ -66,6 +66,7 @@ WAYPOINT_COORDS = {
     "桐城南": (116.9593385, 30.8752543),
     "铜陵北": (118.0160809, 31.0157065),
     "无为": (117.9639065, 31.3063668),
+    "繁昌西": (118.1530398, 31.0733641),
     "常平": (114.0003801, 22.9871798),
     "樟木头": (114.0626375, 22.9043667),
     "平湖": (114.1195271, 22.6948818),
@@ -148,7 +149,7 @@ ROUTE_WAYPOINTS = {
     33: ["江门"],
     34: ["商丘", "开封"],
     38: ["兰考南", "亳州南"],
-    39: ["无为", "铜陵"],
+    39: ["无为", "铜陵", "繁昌西"],
     42: ["舒城东", "庐江西", "桐城南"],
     44: ["铜陵北", "无为"],
     45: ["江门"],
@@ -285,10 +286,9 @@ def remove_revisited_loops(points: list[QgsPointXY]) -> list[QgsPointXY]:
 
 def stitch_route_geometries(
     geometries: list[QgsGeometry],
-    origin: tuple[float, float],
-    destination: tuple[float, float],
+    required_points: list[tuple[float, float]],
 ) -> QgsGeometry:
-    """Join ordered path edges, remove loops, and enforce exact endpoints."""
+    """Join path edges, remove loops, then restore all itinerary controls."""
     stitched: list[QgsPointXY] = []
     for geometry in geometries:
         candidates = feature_polylines(geometry)
@@ -309,12 +309,37 @@ def stitch_route_geometries(
     stitched = remove_revisited_loops(stitched)
     if len(stitched) < 2:
         return QgsGeometry.collectGeometry(geometries)
-    origin_point = QgsPointXY(*origin)
-    destination_point = QgsPointXY(*destination)
+    origin_point = QgsPointXY(*required_points[0])
+    destination_point = QgsPointXY(*required_points[-1])
     forward = stitched[0].distance(origin_point) + stitched[-1].distance(destination_point)
     reverse = stitched[-1].distance(origin_point) + stitched[0].distance(destination_point)
     if reverse < forward:
         stitched.reverse()
+    search_start = 0
+    # Station throats often contain a short spur: approach the station, leave
+    # on a parallel mapped way, and rejoin the route. Replace that local hook
+    # with a compact station-centered join while retaining the station point.
+    for coordinate in required_points:
+        target = QgsPointXY(*coordinate)
+        nearest = min(
+            range(search_start, len(stitched)),
+            key=lambda index: haversine_km(
+                (stitched[index].x(), stitched[index].y()), coordinate
+            ),
+        )
+        before = nearest
+        while before > search_start and haversine_km(
+            (stitched[before].x(), stitched[before].y()), coordinate
+        ) < 5.0:
+            before -= 1
+        after = nearest
+        while after < len(stitched) - 1 and haversine_km(
+            (stitched[after].x(), stitched[after].y()), coordinate
+        ) < 5.0:
+            after += 1
+        replacement = [stitched[before], target, stitched[after]]
+        stitched[before : after + 1] = replacement
+        search_start = before + 1
     stitched[0] = origin_point
     stitched[-1] = destination_point
     return QgsGeometry.fromPolylineXY(stitched)
@@ -1115,8 +1140,7 @@ def main() -> int:
             track_counts = Counter(detail["track_class"] for detail in details)
             collected = stitch_route_geometries(
                 geometries,
-                station_coords[record["origin"]],
-                station_coords[record["destination"]],
+                [station_coords[name] for name in reported_control_names],
             )
             output = QgsFeature()
             output.setGeometry(collected)

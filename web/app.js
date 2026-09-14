@@ -1,11 +1,13 @@
 (() => {
   const map = L.map("map", { zoomControl: true, preferCanvas: true, attributionControl: true }).setView([35.5, 105.5], 4);
-  const bounds = L.latLngBounds([[17.5, 73.5], [53.6, 135.2]]);
+  const insetMap = L.map("insetMap", { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, preferCanvas: true });
+  const bounds = L.latLngBounds([[18.2, 73.5], [53.6, 135.2]]);
   map.setMaxBounds(bounds.pad(0.08));
   const layers = {};
   let routeData = null;
   let railCitiesData = null;
   let railCityLabelsData = null;
+  let visitedStationsData = null;
   const selectedRouteIds = new Set();
   const speedColors = { "300+": "#9b2c52", "250-299": "#d06b3c", "200-249": "#d59c32", "160-199": "#6a9b55", "120-159": "#3b8b87", "0-119": "#6a7895", unknown: "#aeb9b6" };
   const speedLabels = { "300+": "≥ 300 km/h", "250-299": "250–299 km/h", "200-249": "200–249 km/h", "160-199": "160–199 km/h", "120-159": "120–159 km/h", "0-119": "≤ 119 km/h", unknown: "未标注速度" };
@@ -33,21 +35,21 @@
       : { pane: "tripRoutes", color: "#fffdf7", weight: 1.55, opacity: .98, lineCap: "round", lineJoin: "round" };
   };
 
-  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260914-7`, { cache: "no-store" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
+  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260915-1`, { cache: "no-store" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
   function geojson(data, options) { return L.geoJSON(data, options); }
   function addCityLabels(data, className = "city-label", filter = undefined) {
     return geojson(data, { filter, pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 2.8, color: "#477b91", fillColor: "#477b91", fillOpacity: .9, weight: 0.6 }), onEachFeature: (feature, layer) => layer.bindTooltip(feature.properties.display || "", { permanent: true, direction: "right", className, offset: [4, 0] }) });
   }
-  function addStations(data, service, labels = true, visible = true) {
+  function addStations(data, service, labels = true, visible = true, names = null) {
     return geojson(data, {
-      filter: (feature) => !service || (feature.properties.services || "").split(",").includes(service),
+      filter: (feature) => (!service || (feature.properties.services || "").split(",").includes(service)) && (!names || names.has(feature.properties.name)),
       pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: service ? 3.2 : 2.4, color: service === "highspeed" ? "#258b8a" : service === "conventional" ? "#263b42" : "#667d74", fillColor: "#fff", fillOpacity: visible ? 1 : 0, opacity: visible ? 1 : 0, weight: 1.0 }),
       onEachFeature: labels ? (feature, layer) => layer.bindTooltip(feature.properties.name || "", { permanent: true, direction: "right", className: "station-label", offset: [5, 0] }) : undefined,
     });
   }
   function addSpeedLegend() {
     const legend = $("legend");
-    legend.innerHTML = '<div class="legend-title">到过路线</div><div class="legend-row"><i class="swatch route-swatch route-swatch--highspeed" aria-hidden="true"></i><span>高铁 / 动车</span></div><div class="legend-row"><i class="swatch route-swatch route-swatch--conventional" aria-hidden="true"></i><span>普速铁路</span></div><div class="legend-title speed-legend-title">设计速度 / 最高速度</div>' + Object.keys(speedLabels).map((key) => `<div class="legend-row"><i class="swatch" style="background:${speedColors[key]}"></i><span>${speedLabels[key]}</span></div>`).join("");
+    legend.innerHTML = '<div class="legend-title">铁路行程</div><div class="legend-row"><i class="swatch route-swatch route-swatch--highspeed" aria-hidden="true"></i><span>高铁 / 动车</span></div><div class="legend-row"><i class="swatch route-swatch route-swatch--conventional" aria-hidden="true"></i><span>普速铁路</span></div><div class="legend-title speed-legend-title">设计速度 / 最高速度</div>' + Object.keys(speedLabels).map((key) => `<div class="legend-row"><i class="swatch" style="background:${speedColors[key]}"></i><span>${speedLabels[key]}</span></div>`).join("");
   }
   function refresh() {
     Object.values(layers).forEach((layer) => map.removeLayer(layer));
@@ -101,12 +103,24 @@
       layers.otherCities.addTo(map);
       layers.otherCityLabels.addTo(map);
     }
-    if (($("network").checked || $("speedNetwork").checked) && zoom >= 9) layers.networkStations.addTo(map);
-    if (($("network").checked || $("speedNetwork").checked) && zoom >= 12) layers.networkStationLabels.addTo(map);
-    const showHighspeedStations = $("visitedHighspeed").checked || ($("visited").checked && !$("visitedConventional").checked);
-    const showConventionalStations = $("visitedConventional").checked || ($("visited").checked && !$("visitedHighspeed").checked);
-    if (zoom >= 7 && showHighspeedStations) layers.highspeedStations.addTo(map);
-    if (zoom >= 7 && showConventionalStations) layers.conventionalStations.addTo(map);
+    const showAllRoutes = $("visited").checked;
+    const showHighspeedRoutes = showAllRoutes || $("visitedHighspeed").checked;
+    const showConventionalRoutes = showAllRoutes || $("visitedConventional").checked;
+    const visibleRoutes = (routeData?.features || []).filter((feature) =>
+      selectedRouteIds.has(Number(feature.properties.seq))
+      && ((feature.properties.service === "highspeed" && showHighspeedRoutes)
+        || (feature.properties.service === "conventional" && showConventionalRoutes))
+    );
+    const stationNames = new Set(visibleRoutes.flatMap((feature) => [feature.properties.origin, feature.properties.destination]));
+    if (visitedStationsData) {
+      layers.highspeedStations = addStations(visitedStationsData, "highspeed", true, true, stationNames);
+      layers.conventionalStations = addStations(visitedStationsData, "conventional", true, true, stationNames);
+    }
+    const routeSubset = selectedRouteIds.size < (routeData?.features.length || 0);
+    if (!routeSubset && ($("network").checked || $("speedNetwork").checked) && zoom >= 9) layers.networkStations.addTo(map);
+    if (!routeSubset && ($("network").checked || $("speedNetwork").checked) && zoom >= 12) layers.networkStationLabels.addTo(map);
+    if (zoom >= 7 && showHighspeedRoutes && layers.highspeedStations) layers.highspeedStations.addTo(map);
+    if (zoom >= 7 && showConventionalRoutes && layers.conventionalStations) layers.conventionalStations.addTo(map);
   }
   function routePopup(feature, layer) {
     const p = feature.properties;
@@ -138,11 +152,14 @@
     layers.network = geojson(network, { style: (feature) => ({ pane: "railNetwork", color: speedColors[feature.properties.speed_class] || speedColors.unknown, weight: 1.05, opacity: .7 }) });
     routeData = routes;
     routeData.features.forEach((feature) => selectedRouteIds.add(Number(feature.properties.seq)));
-    layers.highspeedStations = addStations(stations, "highspeed");
-    layers.conventionalStations = addStations(stations, "conventional");
+    visitedStationsData = stations;
     layers.networkStations = addStations(networkStations, null, false);
     layers.networkStationLabels = addStations(networkStations, null, true, false);
     layers.provinces.addTo(map);
+    geojson(provinces, { style: { stroke: false, fillColor: "#f8faf8", fillOpacity: 1 } }).addTo(insetMap);
+    geojson(cityBoundaries, { style: { color: "#c1cbc7", weight: .45, fill: false } }).addTo(insetMap);
+    geojson(provinceBoundaries, { style: { color: "#71807a", weight: .9, fill: false } }).addTo(insetMap);
+    insetMap.fitBounds([[2.5, 105], [24, 124]], { padding: [2, 2] });
     addSpeedLegend();
     refresh();
     map.fitBounds(bounds, { padding: [12, 12] });

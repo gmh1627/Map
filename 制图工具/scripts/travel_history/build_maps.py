@@ -210,38 +210,49 @@ def polygon_boundary(geometry: QgsGeometry) -> QgsGeometry:
 
 
 def build_unified_admin_boundaries(
-    project: QgsProject, cities: QgsVectorLayer
+    project: QgsProject, cities: QgsVectorLayer, provinces: QgsVectorLayer
 ) -> tuple[QgsVectorLayer, QgsVectorLayer]:
-    """Derive province and internal city lines from the same city polygons."""
-    grouped: dict[int, list[QgsFeature]] = {}
+    """Use province polygons for outlines and same-province shared city edges."""
+    province_lines = [
+        polygon_boundary(feature.geometry()) for feature in provinces.getFeatures()
+        if not feature.geometry().isNull() and not feature.geometry().isEmpty()
+    ]
+    province_geometry = QgsGeometry.unaryUnion(province_lines)
+    segment_records = {}
     for feature in cities.getFeatures():
         code = province_code(feature)
-        if code is not None:
-            grouped.setdefault(code, []).append(feature)
-    city_parts = []
-    segment_owners: dict[tuple[tuple[float, float], tuple[float, float]], list[int]] = {}
-    segment_points = {}
-    for code, features in grouped.items():
-        for feature in features:
-            polygons = feature.geometry().asMultiPolygon() if feature.geometry().isMultipart() else [feature.geometry().asPolygon()]
-            for polygon in polygons:
-                for ring in polygon:
-                    if len(ring) < 2:
-                        continue
-                    city_parts.append(ring)
-                    for start, end in zip(ring, ring[1:]):
-                        first = (round(start.x(), 6), round(start.y(), 6))
-                        second = (round(end.x(), 6), round(end.y(), 6))
-                        key = tuple(sorted((first, second)))
-                        segment_owners.setdefault(key, []).append(code)
-                        segment_points.setdefault(key, (start, end))
-    province_segments = []
-    for key, owners in segment_owners.items():
-        if len(owners) == 1 or len(set(owners)) > 1:
-            start, end = segment_points[key]
-            province_segments.append([start, end])
-    province_geometry = QgsGeometry.fromMultiPolylineXY(province_segments)
-    city_geometry = QgsGeometry.fromMultiPolylineXY(city_parts)
+        if code is None:
+            continue
+        polygons = feature.geometry().asMultiPolygon() if feature.geometry().isMultipart() else [feature.geometry().asPolygon()]
+        for polygon in polygons:
+            for ring in polygon:
+                for start, end in zip(ring, ring[1:]):
+                    first = (round(start.x(), 6), round(start.y(), 6))
+                    second = (round(end.x(), 6), round(end.y(), 6))
+                    key = tuple(sorted((first, second)))
+                    record = segment_records.setdefault(
+                        key, {"points": (start, end), "owners": set(), "codes": set()}
+                    )
+                    record["owners"].add(feature.id())
+                    record["codes"].add(code)
+    internal_segments = [
+        list(record["points"])
+        for record in segment_records.values()
+        if len(record["owners"]) >= 2 and len(record["codes"]) == 1
+    ]
+    city_geometry = QgsGeometry.fromMultiPolylineXY(internal_segments).mergeLines()
+    city_parts = city_geometry.asMultiPolyline() if city_geometry.isMultipart() else [city_geometry.asPolyline()]
+    connected_parts = []
+    for part in city_parts:
+        if not part:
+            continue
+        adjusted = list(part)
+        for index in (0, -1):
+            endpoint = QgsGeometry.fromPointXY(adjusted[index])
+            distance = province_geometry.distance(endpoint)
+            if 1e-9 < distance < 0.03:
+                adjusted[index] = province_geometry.nearestPoint(endpoint).asPoint()
+        connected_parts.append(adjusted)
 
     def save_line(name: str, geometry: QgsGeometry, color: str, width: float) -> QgsVectorLayer:
         geometry.convertToMultiType()
@@ -266,7 +277,7 @@ def build_unified_admin_boundaries(
 
     return (
         save_line("统一省界", province_geometry, "#727D78", 0.38),
-        save_line("统一市界", city_geometry, "#A8B8C4", 0.085),
+        save_line("统一市界", QgsGeometry.fromMultiPolylineXY(connected_parts), "#A8B8C4", 0.085),
     )
 
 
@@ -757,7 +768,7 @@ def main() -> int:
         )
         all_cities = copy_source_layer(project, all_city_source, "全国地级行政区")
         province_boundaries, city_boundaries = build_unified_admin_boundaries(
-            project, all_city_source
+            project, all_city_source, all_province_source
         )
         rail_provinces = copy_source_layer(
             project, all_province_source, "铁路图省级行政区"

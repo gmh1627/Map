@@ -172,40 +172,49 @@ def polygon_boundary(geometry: QgsGeometry) -> QgsGeometry:
 
 
 def export_unified_admin_boundaries() -> tuple[int, int]:
-    """Derive province and internal city lines from the same city polygons."""
-    layer = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=全国地级行政区", "cities", "ogr")
-    if not layer.isValid():
-        raise RuntimeError("Invalid nationwide city layer")
-    grouped: dict[int, list[QgsFeature]] = {}
-    for feature in layer.getFeatures():
+    """Match the proven regional-map boundary construction method."""
+    cities = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=全国地级行政区", "cities", "ogr")
+    provinces = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=全国省级行政区", "provinces", "ogr")
+    if not cities.isValid() or not provinces.isValid():
+        raise RuntimeError("Invalid nationwide administrative layers")
+    province_lines = [polygon_boundary(feature.geometry()) for feature in provinces.getFeatures()]
+    province_geometry = QgsGeometry.unaryUnion(province_lines)
+    segment_records = {}
+    for feature in cities.getFeatures():
         code = province_code(feature)
-        if code is not None:
-            grouped.setdefault(code, []).append(feature)
-
-    city_parts = []
-    segment_owners: dict[tuple[tuple[float, float], tuple[float, float]], list[int]] = {}
-    segment_points = {}
-    for code, features in grouped.items():
-        for feature in features:
-            polygons = feature.geometry().asMultiPolygon() if feature.geometry().isMultipart() else [feature.geometry().asPolygon()]
-            for polygon in polygons:
-                for ring in polygon:
-                    if len(ring) < 2:
-                        continue
-                    city_parts.append(ring)
-                    for start, end in zip(ring, ring[1:]):
-                        first = (round(start.x(), 6), round(start.y(), 6))
-                        second = (round(end.x(), 6), round(end.y(), 6))
-                        key = tuple(sorted((first, second)))
-                        segment_owners.setdefault(key, []).append(code)
-                        segment_points.setdefault(key, (start, end))
-    province_segments = []
-    for key, owners in segment_owners.items():
-        if len(owners) == 1 or len(set(owners)) > 1:
-            start, end = segment_points[key]
-            province_segments.append([start, end])
-    province_geometry = QgsGeometry.fromMultiPolylineXY(province_segments)
-    connected_city_geometry = QgsGeometry.fromMultiPolylineXY(city_parts)
+        if code is None:
+            continue
+        polygons = feature.geometry().asMultiPolygon() if feature.geometry().isMultipart() else [feature.geometry().asPolygon()]
+        for polygon in polygons:
+            for ring in polygon:
+                for start, end in zip(ring, ring[1:]):
+                    first = (round(start.x(), 6), round(start.y(), 6))
+                    second = (round(end.x(), 6), round(end.y(), 6))
+                    key = tuple(sorted((first, second)))
+                    record = segment_records.setdefault(
+                        key, {"points": (start, end), "owners": set(), "codes": set()}
+                    )
+                    record["owners"].add(feature.id())
+                    record["codes"].add(code)
+    internal_segments = [
+        list(record["points"])
+        for record in segment_records.values()
+        if len(record["owners"]) >= 2 and len(record["codes"]) == 1
+    ]
+    city_geometry = QgsGeometry.fromMultiPolylineXY(internal_segments).mergeLines()
+    city_parts = city_geometry.asMultiPolyline() if city_geometry.isMultipart() else [city_geometry.asPolyline()]
+    connected_parts = []
+    for part in city_parts:
+        if not part:
+            continue
+        adjusted = list(part)
+        for index in (0, -1):
+            endpoint = QgsGeometry.fromPointXY(adjusted[index])
+            distance = province_geometry.distance(endpoint)
+            if 1e-9 < distance < 0.03:
+                adjusted[index] = province_geometry.nearestPoint(endpoint).asPoint()
+        connected_parts.append(adjusted)
+    connected_city_geometry = QgsGeometry.fromMultiPolylineXY(connected_parts)
 
     (DATA / "province_boundaries.geojson").write_text(
         json.dumps(feature_collection([{"type": "Feature", "properties": {}, "geometry": geometry_json(province_geometry)}]), ensure_ascii=False, separators=(",", ":")),
@@ -215,7 +224,7 @@ def export_unified_admin_boundaries() -> tuple[int, int]:
         json.dumps(feature_collection([{"type": "Feature", "properties": {}, "geometry": geometry_json(connected_city_geometry)}]), ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
-    return len(province_segments), len(city_parts)
+    return len(province_lines), len(internal_segments)
 
 
 def export_routes(output: Path) -> int:
@@ -236,7 +245,9 @@ def export_routes(output: Path) -> int:
     route_times = json.loads(ROUTE_TIMES.read_text(encoding="utf-8-sig")) if ROUTE_TIMES.exists() else {}
     result = []
     for feature in route_layer.getFeatures():
-        geometry = feature.geometry().simplify(0.001)
+        # Keep control-station vertices visible in the interactive map while
+        # removing only the tiny OSM digitising noise.
+        geometry = feature.geometry().simplify(0.0001)
         origin = str(feature["origin"] or "")
         destination = str(feature["destination"] or "")
         extra = route_times.get(str(feature["seq"]), {})

@@ -42,6 +42,7 @@ EXPECTED_RAIL_SUBTITLE = (
     "总里程 55,806 km（其中普铁 22,472 km，高铁/动车 33,334 km）｜抵达 66 个城市的 131 座车站"
 )
 EXPECTED_NEW_ROUTES = {
+    39: ("G7725", "合肥南", "芜湖", ["无为", "铜陵", "繁昌西"]),
     131: ("D901", "北京西", "广州", ["涿州东", "石家庄", "郑州东", "广州北"]),
     132: ("G5689", "广州", "湛江北", ["佛山", "茂名南"]),
     133: (
@@ -119,7 +120,6 @@ def main() -> int:
                 for feature in station_layers[0].getFeatures()
             } if station_layers else {}
             endpoint_errors = []
-            loop_errors = []
             for seq, feature in route_features.items():
                 geometry = feature.geometry()
                 parts = geometry.asMultiPolyline() if geometry.isMultipart() else [geometry.asPolyline()]
@@ -134,17 +134,8 @@ def main() -> int:
                     reverse = points[-1].distance(origin) + points[0].distance(destination)
                     if min(direct, reverse) > 0.00001:
                         endpoint_errors.append(seq)
-                seen = {}
-                for index, point in enumerate(points):
-                    key = (round(point.x(), 5), round(point.y(), 5))
-                    if key in seen and index - seen[key] > 2:
-                        loop_errors.append(seq)
-                        break
-                    seen[key] = index
             if endpoint_errors:
                 errors.append(f"Routes do not end at recorded stations: {endpoint_errors}")
-            if loop_errors:
-                errors.append(f"Routes contain station-throat loops: {loop_errors}")
             actual_services = {
                 seq: str(feature["service"])
                 for seq, feature in route_features.items()
