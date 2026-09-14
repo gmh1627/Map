@@ -37,8 +37,9 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 17px 0; }
 #map { min-height: 400px; background: #f3f6f4; }
 .leaflet-container { font: 13px/1.45 "Segoe UI", "Microsoft YaHei", sans-serif; }
 .leaflet-control-attribution { font-size: 10px; }
-.city-label, .station-label, .other-city-label { border: 0 !important; background: transparent !important; box-shadow: none !important; font-family: "STKaiti", "华文楷体", "KaiTi", serif; line-height: 1.2; padding: 0 1px; text-shadow: 0 0 2px rgba(255,255,255,.95), 0 0 1px rgba(255,255,255,.95); }
-.city-label { color: #52625d; font-size: 11px; }
+.city-label, .station-label, .other-city-label { border: 0 !important; background: transparent !important; box-shadow: none !important; font-family: "STKaiti", "华文楷体", "KaiTi", serif; line-height: 1.2; padding: 0; text-shadow: 0 0 2px rgba(255,255,255,.92); }
+.city-label::before, .station-label::before, .other-city-label::before { display: none !important; }
+.city-label { color: #3d514a; font-size: 13px; font-weight: 600; }
 .other-city-label { color: #8a9892; font-size: 10px; }
-.station-label { color: #243630; font-size: 12px; font-weight: 400; }
+.station-label { color: #243630; font-size: 10px; font-weight: 400; }
 @media (max-width: 720px) { .workspace { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); } .panel { max-height: 240px; border-right: 0; border-bottom: 1px solid var(--line); } #map { min-height: 420px; } }

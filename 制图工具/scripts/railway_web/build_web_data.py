@@ -162,7 +162,7 @@ def export_routes(output: Path) -> int:
         geometry = feature.geometry().simplify(0.001)
         origin = str(feature["origin"] or "")
         destination = str(feature["destination"] or "")
-        result.append({"type": "Feature", "properties": {"seq": feature["seq"], "origin": origin, "destination": destination, "origin_city": city_for_station(origin), "destination_city": city_for_station(destination), "train": feature["train"], "service": feature["service"], "table_km": feature["table_km"]}, "geometry": geometry_json(geometry)})
+        result.append({"type": "Feature", "properties": {"seq": feature["seq"], "date": feature["date"], "origin": origin, "destination": destination, "origin_city": city_for_station(origin), "destination_city": city_for_station(destination), "train": feature["train"], "service": feature["service"], "table_km": feature["table_km"]}, "geometry": geometry_json(geometry)})
     output.write_text(json.dumps(feature_collection(result), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     return len(result)
 
