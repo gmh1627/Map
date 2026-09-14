@@ -10,13 +10,13 @@
   const speedColors = { "300+": "#9b2c52", "250-299": "#d06b3c", "200-249": "#d59c32", "160-199": "#6a9b55", "120-159": "#3b8b87", "0-119": "#6a7895", unknown: "#aeb9b6" };
   const speedLabels = { "300+": "≥ 300 km/h", "250-299": "250–299 km/h", "200-249": "200–249 km/h", "160-199": "160–199 km/h", "120-159": "120–159 km/h", "0-119": "≤ 119 km/h", unknown: "未标注速度" };
   const $ = (id) => document.getElementById(id);
-  const styleProvince = { color: "#71807a", weight: 1.2, fillColor: "#f8faf8", fillOpacity: 1 };
+  const styleProvince = { color: "#71807a", weight: 1.2, fillColor: "#f8faf8", fillOpacity: 0 };
   const styleCities = { color: "#c1cbc7", weight: 0.55, fill: false };
   const styleVisitedCity = { color: "#477b91", weight: 1.1, fillColor: "#c8dfea", fillOpacity: .45 };
   const styleOtherVisitedCity = { color: "#aabbb4", weight: .75, fillColor: "#e1e9e5", fillOpacity: .42 };
   const styleRoute = (service) => service === "highspeed" ? { color: "#258b8a", weight: 2.6, opacity: .9 } : { color: "#263b42", weight: 2.1, opacity: .88 };
 
-  async function load(name) { const response = await fetch(`data/${name}.geojson`); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
+  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260914`); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
   function geojson(data, options) { return L.geoJSON(data, options); }
   function addCityLabels(data, className = "city-label", filter = undefined) {
     return geojson(data, { filter, pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 2.8, color: "#477b91", fillColor: "#477b91", fillOpacity: .9, weight: 0.6 }), onEachFeature: (feature, layer) => layer.bindTooltip(feature.properties.display || "", { permanent: true, direction: "right", className, offset: [4, 0] }) });
@@ -41,6 +41,8 @@
       layers.railCities = geojson(railCitiesData, { filter: (feature) => routeCities.has(feature.properties.display), style: styleVisitedCity });
       layers.railCityLabels = addCityLabels(railCityLabelsData, "city-label", (feature) => routeCities.has(feature.properties.display));
     }
+    // Draw the province outline after city boundaries so shared borders stay continuous.
+    layers.provinces.bringToFront();
     if ($("network").checked || $("speedNetwork").checked) {
       layers.network.setStyle((feature) => $("speedNetwork").checked
         ? { color: speedColors[feature.properties.speed_class] || speedColors.unknown, weight: 1.05, opacity: .72 }

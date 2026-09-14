@@ -453,6 +453,7 @@ def main() -> int:
                             "track_class": "highspeed" if highspeed else "conventional",
                             "start_coordinate": points[0],
                             "end_coordinate": points[-1],
+                            "coordinates": [(point.x(), point.y()) for point in points],
                         }
                     if conventional_cost < data["conventional_cost"]:
                         data["conventional_cost"] = conventional_cost
@@ -463,6 +464,7 @@ def main() -> int:
                             "track_class": "highspeed" if highspeed else "conventional",
                             "start_coordinate": points[0],
                             "end_coordinate": points[-1],
+                            "coordinates": [(point.x(), point.y()) for point in points],
                         }
                 else:
                     graph.add_edge(
@@ -478,6 +480,7 @@ def main() -> int:
                         "track_class": "highspeed" if highspeed else "conventional",
                         "start_coordinate": points[0],
                         "end_coordinate": points[-1],
+                        "coordinates": [(point.x(), point.y()) for point in points],
                     }
                     edge_details[(min(start, end), max(start, end), "highspeed")] = detail.copy()
                     edge_details[(min(start, end), max(start, end), "conventional")] = detail.copy()
@@ -712,6 +715,8 @@ def main() -> int:
         feature_cache = {}
 
         def feature_geometry(detail: dict) -> QgsGeometry:
+            if detail.get("coordinates"):
+                return QgsGeometry.fromPolylineXY([QgsPointXY(*point) if isinstance(point, tuple) else point for point in detail["coordinates"]])
             fid = detail["fid"]
             part_index = detail["part"]
             if fid is None:
