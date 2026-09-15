@@ -8,6 +8,7 @@ and compact attraction callouts connected to their mapped locations.
 from __future__ import annotations
 
 import json
+import gzip
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,6 +27,7 @@ from qgis.core import (
     QgsLayoutExporter,
     QgsLayoutItemLabel,
     QgsLayoutItemMap,
+    QgsLayoutItemPicture,
     QgsLayoutItemPolyline,
     QgsLayoutItemShape,
     QgsLayoutMeasurement,
@@ -33,6 +35,8 @@ from qgis.core import (
     QgsLayoutSize,
     QgsLineSymbol,
     QgsMarkerSymbol,
+    QgsCategorizedSymbolRenderer,
+    QgsRendererCategory,
     QgsPalLayerSettings,
     QgsPointXY,
     QgsPrintLayout,
@@ -57,6 +61,8 @@ OUTPUT_DIR = RAILWAY_ROOT / "地图输出" / "旅游专题图" / "涞源县旅�
 OUTPUT_GPKG = OUTPUT_DIR / "涞源县旅游图_数据.gpkg"
 OUTPUT_QGZ = OUTPUT_DIR / "涞源县旅游图.qgz"
 OUTPUT_PNG = OUTPUT_DIR / "涞源县旅游图.png"
+REFERENCE_IMAGE = SCRIPT_DIR / "assets" / "涞源县旅游图_参考.png"
+OSM_NETWORK = SCRIPT_DIR / "assets" / "laiyuan_osm_network.json.gz"
 
 ADMIN_SOURCES = (
     RAILWAY_ROOT / "city" / "baoding.geojson",
@@ -66,9 +72,10 @@ ADMIN_SOURCES = (
 
 PAGE = (112.395, 150.707)
 MAP_FRAME = (0.635, 0.635, 111.125, 149.437)
-MAP_EXTENT = (114.24, 38.99, 115.16, 39.92)
-LAYOUT_SCALE_X = PAGE[0] / 180.0
-LAYOUT_SCALE_Y = PAGE[1] / 315.0
+MAP_EXTENT = (114.263, 38.99, 115.137, 39.92)
+REFERENCE_PIXELS = (531.0, 712.0)
+PX_X = PAGE[0] / REFERENCE_PIXELS[0]
+PX_Y = PAGE[1] / REFERENCE_PIXELS[1]
 FOCUS_NAME = "涞源县"
 MAX_IMAGE_BYTES = 4_000_000
 
@@ -85,68 +92,75 @@ class PoiSpec:
     category: str
     tag: str
     note: str
+    anchor_x: float
+    anchor_y: float
     card_x: float
     card_y: float
     card_w: float
     side: str
+    theme: str = "simple"
 
 
-# Coordinates are cartographic anchors. They can be refined in the generated
-# GeoPackage without changing the layout design.
+# Geographic coordinates remain editable in the GeoPackage. Pixel anchors and
+# card coordinates trace the supplied 531 x 712 reference composition.
 POIS = (
-    PoiSpec("马蹄梁", 114.430, 39.635, "自然", "可打卡", "草甸与山口景观", 19, 72, 41, "left"),
-    PoiSpec("空中草原", 114.355, 39.585, "自然", "推荐", "高山草甸 · 夏季避暑", 18, 83, 43, "left"),
-    PoiSpec("横岭子", 115.045, 39.650, "自然", "可打卡", "北部山地村落", 143, 82, 30, "right"),
-    PoiSpec("乌龙沟长城", 115.015, 39.545, "长城", "重点", "明长城敌楼较集中", 132, 104, 41, "right"),
-    PoiSpec("浮图峪长城", 114.974, 39.475, "长城", "推荐", "山谷古堡与长城遗存", 129, 120, 44, "right"),
-    PoiSpec("白石口长城", 114.978, 39.405, "长城", "可打卡", "白石山北侧长城节点", 132, 140, 41, "right"),
-    PoiSpec("插箭岭长城", 114.884, 39.510, "长城", "可打卡", "古关隘与山脊长城", 130, 157, 43, "right"),
-    PoiSpec("白石山景区", 114.700, 39.218, "景区", "必打卡", "峰林栈道 · 国家 5A 景区", 118, 218, 55, "right"),
-    PoiSpec("十瀑峡", 114.625, 39.255, "自然", "推荐", "峡谷瀑布群", 77, 237, 34, "right"),
-    PoiSpec("仙人峪", 114.505, 39.245, "自然", "可打卡", "峡谷溪流与山地步道", 16, 243, 43, "left"),
-    PoiSpec("七山滑雪度假区", 114.400, 39.355, "滑雪", "推荐", "冬季滑雪与山地度假", 7, 171, 54, "left"),
-    PoiSpec("龙门飞狐", 114.440, 39.300, "自然", "可打卡", "太行峡谷地貌", 11, 213, 39, "left"),
-    PoiSpec("阁院寺", 114.686, 39.366, "古建", "重点", "辽代文殊殿", 14, 129, 37, "left"),
-    PoiSpec("兴文塔", 114.703, 39.355, "古建", "可打卡", "县城古塔", 20, 143, 34, "left"),
-    PoiSpec("拒马源头", 114.695, 39.373, "自然", "可打卡", "拒马河源头", 75, 103, 38, "left"),
-    PoiSpec("涞源博物馆", 114.710, 39.350, "博物馆", "推荐", "了解涞源历史文化", 17, 157, 46, "left"),
-    PoiSpec("涞源古城", 114.690, 39.348, "古建", "可打卡", "县城历史街区", 121, 177, 40, "right"),
-    PoiSpec("泰山宫", 114.674, 39.344, "古建", "可打卡", "古建筑群", 23, 185, 33, "left"),
-    PoiSpec("白求恩战地手术室旧址", 114.836, 39.365, "遗址", "推荐", "抗战历史纪念地", 112, 194, 61, "right"),
-    PoiSpec("石窝遗址", 114.760, 39.435, "遗址", "可打卡", "史前文化遗址", 117, 135, 36, "right"),
-    PoiSpec("涞源湖", 114.730, 39.322, "自然", "可打卡", "县城近郊水景", 120, 208, 34, "right"),
-    PoiSpec("天桥山自然保护区", 114.785, 39.115, "自然", "推荐", "森林与山地生态", 106, 265, 55, "right"),
-    PoiSpec("白石山温泉度假区", 114.654, 39.286, "景区", "可打卡", "温泉与度假住宿", 17, 228, 52, "left"),
-    PoiSpec("古北岳", 114.610, 39.090, "古建", "可打卡", "北岳文化遗存", 86, 286, 34, "right"),
+    PoiSpec("马蹄梁", 114.430, 39.635, "", "", "", 245, 251, 130, 207, 58, "left"),
+    PoiSpec("空中草原", 114.355, 39.585, "", "￥65/人 · ￥200/车", "", 181, 239, 59, 233, 111, "left", "price"),
+    PoiSpec("黄花梁", 114.495, 39.570, "徒步", "免费", "小尾寒羊、徒步、高山草甸、大片羊群", 247, 267, 77, 259, 137, "left", "dark"),
+    PoiSpec("横岭子", 115.045, 39.650, "", "", "", 440, 239, 454, 229, 48, "right"),
+    PoiSpec("乌龙沟长城", 115.015, 39.545, "长城", "免费", "保存较为完整，适合徒步", 410, 347, 418, 305, 112, "right", "wall"),
+    PoiSpec("寨子沟明长城遗址", 114.955, 39.500, "长城", "免费", "明代长城遗存及敌台", 389, 377, 416, 343, 115, "right", "wall"),
+    PoiSpec("浮图峪长城", 114.940, 39.455, "长城", "免费", "全长约 4.5 公里，可登高远望", 367, 384, 415, 375, 116, "right", "wall"),
+    PoiSpec("白求恩战地手术室旧址", 114.836, 39.365, "", "", "", 411, 416, 442, 406, 89, "right"),
+    PoiSpec("泰山宫", 114.674, 39.344, "唐代石狮", "免费", "保存文物石刻，近县城一并游览", 249, 411, 112, 367, 139, "left", "dark"),
+    PoiSpec("阁院寺", 114.686, 39.366, "辽代", "免费", "中国八大辽构之一，皇家寺院", 249, 422, 126, 392, 125, "left", "dark"),
+    PoiSpec("兴文塔", 114.703, 39.355, "", "免费", "", 250, 432, 128, 418, 123, "left", "dark"),
+    PoiSpec("涞源博物馆", 114.710, 39.350, "辽代", "免费", "", 249, 444, 128, 440, 123, "left", "dark"),
+    PoiSpec("七山滑雪度假区", 114.400, 39.355, "", "", "", 249, 455, 20, 448, 96, "left"),
+    PoiSpec("仙人峪", 114.505, 39.245, "", "￥35", "三十多公里的峡谷景观，石灰岩地貌", 156, 500, 20, 477, 101, "left", "price"),
+    PoiSpec("龙门飞狐", 114.440, 39.300, "", "免费", "深峡谷、山野景观，可徒步", 154, 545, 20, 515, 93, "left"),
+    PoiSpec("七亩地万花谷", 114.420, 39.265, "长城", "免费", "", 162, 553, 20, 547, 105, "left", "wall"),
+    PoiSpec("十瀑峡", 114.625, 39.255, "", "", "高山峡谷瀑布景观", 229, 533, 169, 528, 55, "left"),
+    PoiSpec("七彩生态植物园", 114.780, 39.350, "", "", "", 267, 455, 370, 449, 110, "right"),
+    PoiSpec("白石口长城", 114.825, 39.315, "长城", "免费", "", 268, 483, 371, 477, 92, "right", "wall"),
+    PoiSpec("巨石阵", 114.810, 39.285, "徒步", "免费", "涞源南部奇石景观", 269, 508, 379, 501, 82, "right", "dark"),
+    PoiSpec("涞源抗战纪念馆", 114.825, 39.270, "", "", "", 269, 522, 379, 524, 89, "right"),
+    PoiSpec("涞源县生态文明纪念区", 114.940, 39.170, "", "", "", 368, 551, 441, 557, 88, "right"),
+    PoiSpec("天桥瀑布群", 114.785, 39.115, "", "", "", 302, 554, 304, 546, 83, "right"),
+    PoiSpec("鹤望长廊", 114.735, 39.090, "", "", "白石山主要景点，沿悬崖栈道游览", 254, 552, 300, 577, 78, "right"),
+    PoiSpec("白石山", 114.700, 39.218, "景区", "￥135", "世界地质公园；东门索道上山，游览约 5—6 小时", 273, 608, 303, 610, 205, "right", "major"),
+    PoiSpec("白银坨", 114.870, 39.075, "", "", "", 369, 650, 305, 644, 61, "left"),
+    PoiSpec("古北岳", 114.610, 39.090, "", "", "", 203, 658, 305, 677, 57, "right"),
 )
 
 
 CONTEXT_LABELS = {
-    "蔚县": (114.57, 39.77),
-    "广灵": (114.22, 39.72),
-    "灵丘": (114.19, 39.37),
-    "易县": (115.28, 39.36),
-    "涞水": (115.27, 39.63),
-    "唐县": (114.96, 38.98),
-    "阜平": (114.22, 38.99),
+    "蔚县": (114.49, 39.72),
+    "灵丘": (114.18, 39.40),
+    "涞水": (115.14, 39.69),
+    "易县": (115.12, 39.25),
+    "唐县": (114.66, 38.99),
 }
 
 
 ROADS = (
-    ("G112", "国道", ((114.30, 39.57), (114.49, 39.48), (114.69, 39.37), (114.91, 39.43), (115.15, 39.56))),
-    ("G108", "国道", ((114.26, 39.32), (114.48, 39.34), (114.69, 39.37), (114.88, 39.30), (115.09, 39.21))),
-    ("G207", "国道", ((114.62, 39.73), (114.66, 39.55), (114.69, 39.37), (114.66, 39.18), (114.62, 38.96))),
-    ("荣乌高速", "高速", ((114.18, 39.44), (114.43, 39.40), (114.69, 39.36), (114.93, 39.36), (115.25, 39.45))),
-    ("涞涞高速", "高速", ((114.69, 39.36), (114.86, 39.28), (115.03, 39.18), (115.25, 39.09))),
-    ("白石山旅游路", "县道", ((114.69, 39.36), (114.66, 39.29), (114.70, 39.22), (114.78, 39.12))),
-    ("乌龙沟旅游路", "县道", ((114.69, 39.37), (114.83, 39.44), (114.96, 39.54), (115.04, 39.65))),
-    ("西部旅游路", "县道", ((114.69, 39.36), (114.55, 39.34), (114.43, 39.30), (114.35, 39.22))),
+    ("北部山路", "县道", ((114.705, 39.78), (114.720, 39.69), (114.690, 39.62), (114.700, 39.54), (114.675, 39.45), (114.690, 39.37))),
+    ("西北山路", "县道", ((114.480, 39.69), (114.475, 39.60), (114.500, 39.52), (114.535, 39.46), (114.600, 39.40), (114.690, 39.37))),
+    ("东北山路", "县道", ((114.955, 39.75), (114.940, 39.66), (114.925, 39.59), (114.900, 39.50), (114.840, 39.42), (114.690, 39.37))),
+    ("东部山路", "县道", ((115.090, 39.55), (115.005, 39.49), (114.950, 39.43), (114.875, 39.39), (114.790, 39.36), (114.690, 39.37))),
+    ("西部山路", "县道", ((114.300, 39.43), (114.390, 39.42), (114.470, 39.40), (114.560, 39.38), (114.690, 39.37))),
+    ("西南峡谷路", "县道", ((114.345, 39.23), (114.420, 39.28), (114.480, 39.31), (114.535, 39.33), (114.610, 39.35), (114.690, 39.37))),
+    ("南部山路", "县道", ((114.585, 39.03), (114.600, 39.13), (114.625, 39.22), (114.650, 39.29), (114.690, 39.37))),
+    ("东南景区路", "县道", ((114.970, 39.09), (114.900, 39.14), (114.835, 39.20), (114.780, 39.27), (114.735, 39.33), (114.690, 39.37))),
+    ("荣乌高速", "高速", ((114.25, 39.41), (114.38, 39.40), (114.50, 39.39), (114.60, 39.38), (114.69, 39.37), (114.80, 39.37), (114.94, 39.39), (115.14, 39.43))),
+    ("涞涞高速", "高速", ((114.67, 39.38), (114.73, 39.33), (114.78, 39.28), (114.84, 39.22), (114.92, 39.16), (115.05, 39.10))),
+    ("G207", "国道", ((114.64, 39.76), (114.64, 39.66), (114.66, 39.56), (114.67, 39.46), (114.69, 39.37), (114.68, 39.27), (114.66, 39.15), (114.64, 39.02))),
 )
 
 
 RIVERS = (
-    ("拒马河", ((114.690, 39.382), (114.720, 39.355), (114.790, 39.338), (114.900, 39.345), (115.060, 39.385), (115.270, 39.430))),
-    ("唐河", ((114.610, 39.150), (114.650, 39.235), (114.635, 39.310), (114.565, 39.375), (114.485, 39.450))),
+    ("拒马河", ((114.665, 39.385), (114.705, 39.360), (114.755, 39.348), (114.815, 39.350), (114.880, 39.370), (114.950, 39.395))),
+    ("唐河", ((114.590, 39.120), (114.620, 39.190), (114.625, 39.255), (114.600, 39.315), (114.550, 39.365), (114.495, 39.430))),
 )
 
 
@@ -210,7 +224,11 @@ def build_admin_layers(project: QgsProject) -> tuple[QgsVectorLayer, QgsVectorLa
     fields = [QgsField("name", QVariant.String), QgsField("adcode", QVariant.Int)]
     context = memory_layer("MultiPolygon", "周边县区", fields)
     focus = memory_layer("MultiPolygon", "涞源县", fields)
-    shadow = memory_layer("MultiPolygon", "涞源县轮廓光", fields)
+    shadow = memory_layer(
+        "MultiPolygon",
+        "涞源县轮廓光",
+        fields + [QgsField("level", QVariant.Int)],
+    )
     context_features = []
     focus_features = []
     shadow_features = []
@@ -231,15 +249,26 @@ def build_admin_layers(project: QgsProject) -> tuple[QgsVectorLayer, QgsVectorLa
             out.setGeometry(geometry)
             context_features.append(out)
             if name == FOCUS_NAME:
+                # Keep the administrative polygon as the visible outline. The
+                # reference-derived polygon remains a separate calibration
+                # artifact; its raster quantisation is unsuitable for a
+                # smooth 531 px export.
+                visible_geometry = geometry
                 selected = QgsFeature(focus.fields())
                 selected.setAttributes([name, adcode])
-                selected.setGeometry(geometry)
+                selected.setGeometry(visible_geometry)
                 focus_features.append(selected)
-                for distance, suffix in ((0.030, 1), (0.018, 2), (0.009, 3)):
+                previous = visible_geometry
+                for suffix, distance in enumerate(
+                    (0.0025, 0.0050, 0.0075, 0.0100, 0.0125, 0.0150, 0.0175, 0.0200),
+                    start=1,
+                ):
+                    buffered = visible_geometry.buffer(distance, 32)
                     glow = QgsFeature(shadow.fields())
-                    glow.setAttributes([f"{name}_{suffix}", adcode])
-                    glow.setGeometry(geometry.buffer(distance, 24))
+                    glow.setAttributes([f"{name}_{suffix}", adcode, suffix])
+                    glow.setGeometry(buffered.difference(previous))
                     shadow_features.append(glow)
+                    previous = buffered
 
     if not focus_features:
         raise RuntimeError("Laiyuan County is missing from the administrative source")
@@ -260,29 +289,83 @@ def build_line_layer(
     name: str,
     output_name: str,
     records: tuple,
+    clip_layer: QgsVectorLayer | None = None,
 ) -> QgsVectorLayer:
     layer = memory_layer(
-        "LineString",
+        "MultiLineString",
         name,
         [QgsField("name", QVariant.String), QgsField("class", QVariant.String)],
     )
+    clip_geometry = None
+    if clip_layer is not None:
+        clip_geometry = QgsGeometry.unaryUnion(
+            [feature.geometry() for feature in clip_layer.getFeatures()]
+        )
     features = []
     for record in records:
         line_name, line_class, coordinates = record
+        geometry = QgsGeometry.fromPolylineXY(
+            [QgsPointXY(x, y) for x, y in coordinates]
+        )
+        if clip_geometry is not None:
+            geometry = geometry.intersection(clip_geometry)
+        if geometry.isNull() or geometry.isEmpty():
+            continue
+        if QgsWkbTypes.geometryType(geometry.wkbType()) != Qgis.GeometryType.Line:
+            continue
         feature = QgsFeature(layer.fields())
         feature.setAttributes([line_name, line_class])
-        feature.setGeometry(
-            QgsGeometry.fromPolylineXY([QgsPointXY(x, y) for x, y in coordinates])
-        )
+        feature.setGeometry(geometry)
         features.append(feature)
     layer.dataProvider().addFeatures(features)
     layer.updateExtents()
     return write_layer(project, layer, output_name)
 
 
-def build_river_layer(project: QgsProject) -> QgsVectorLayer:
+def build_river_layer(
+    project: QgsProject, clip_layer: QgsVectorLayer | None = None
+) -> QgsVectorLayer:
     records = tuple((name, "河流", coordinates) for name, coordinates in RIVERS)
-    return build_line_layer(project, "河流", "rivers", records)
+    return build_line_layer(project, "河流", "rivers", records, clip_layer)
+
+
+def build_osm_network_layers(
+    project: QgsProject, clip_layer: QgsVectorLayer
+) -> tuple[QgsVectorLayer, QgsVectorLayer]:
+    """Build a restrained real road/water network from the cached OSM extract."""
+    if not OSM_NETWORK.exists():
+        return (
+            build_line_layer(project, "道路骨架", "roads", ROADS, clip_layer),
+            build_river_layer(project, clip_layer),
+        )
+
+    with gzip.open(OSM_NETWORK, "rt", encoding="utf-8") as source:
+        payload = json.load(source)
+
+    road_records = []
+    river_records = []
+    major_classes = {"motorway", "trunk", "primary", "secondary"}
+    for element in payload.get("elements", []):
+        tags = element.get("tags", {})
+        geometry = element.get("geometry") or []
+        if len(geometry) < 2:
+            continue
+        coordinates = tuple((float(point["lon"]), float(point["lat"])) for point in geometry)
+        highway = tags.get("highway")
+        if highway in major_classes or (highway == "tertiary" and tags.get("name")):
+            road_records.append(
+                (tags.get("name") or f"OSM {element.get('id')}", highway, coordinates)
+            )
+        waterway = tags.get("waterway")
+        if waterway in {"river", "stream"}:
+            river_records.append(
+                (tags.get("name") or f"OSM {element.get('id')}", waterway, coordinates)
+            )
+
+    return (
+        build_line_layer(project, "真实道路", "roads", tuple(road_records), clip_layer),
+        build_line_layer(project, "真实河流", "rivers", tuple(river_records), clip_layer),
+    )
 
 
 def build_poi_layer(project: QgsProject) -> QgsVectorLayer:
@@ -295,13 +378,28 @@ def build_poi_layer(project: QgsProject) -> QgsVectorLayer:
         QgsField("card_y", QVariant.Double),
         QgsField("card_w", QVariant.Double),
         QgsField("side", QVariant.String),
+        QgsField("theme", QVariant.String),
+        QgsField("anchor_x", QVariant.Double),
+        QgsField("anchor_y", QVariant.Double),
     ]
     layer = memory_layer("Point", "旅游景点", fields)
     features = []
     for poi in POIS:
         feature = QgsFeature(layer.fields())
         feature.setAttributes(
-            [poi.name, poi.category, poi.tag, poi.note, poi.card_x, poi.card_y, poi.card_w, poi.side]
+            [
+                poi.name,
+                poi.category,
+                poi.tag,
+                poi.note,
+                poi.card_x,
+                poi.card_y,
+                poi.card_w,
+                poi.side,
+                poi.theme,
+                poi.anchor_x,
+                poi.anchor_y,
+            ]
         )
         feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(poi.lon, poi.lat)))
         features.append(feature)
@@ -326,9 +424,9 @@ def build_context_label_layer(project: QgsProject) -> QgsVectorLayer:
 def style_context(layer: QgsVectorLayer) -> None:
     symbol = QgsFillSymbol.createSimple(
         {
-            "color": "#FCFDFB",
-            "outline_color": "#D3DDD5",
-            "outline_width": "0.18",
+            "color": "247,247,247,255",
+            "outline_color": "#DDE7DF",
+            "outline_width": "0.15",
             "outline_width_unit": "MM",
         }
     )
@@ -336,21 +434,25 @@ def style_context(layer: QgsVectorLayer) -> None:
 
 
 def style_shadow(layer: QgsVectorLayer) -> None:
-    symbol = QgsFillSymbol.createSimple(
-        {
-            "color": "110,124,109,32",
-            "outline_style": "no",
-        }
-    )
-    layer.setRenderer(QgsSingleSymbolRenderer(symbol))
+    categories = []
+    alphas = (58, 46, 35, 25, 17, 11, 7, 3)
+    for level, alpha in enumerate(alphas, start=1):
+        symbol = QgsFillSymbol.createSimple(
+            {
+                "color": f"76,94,73,{alpha}",
+                "outline_style": "no",
+            }
+        )
+        categories.append(QgsRendererCategory(level, symbol, f"轮廓光 {level}"))
+    layer.setRenderer(QgsCategorizedSymbolRenderer("level", categories))
 
 
 def style_focus(layer: QgsVectorLayer) -> None:
     symbol = QgsFillSymbol.createSimple(
         {
-            "color": "187,228,164,220",
-            "outline_color": "#687D6B",
-            "outline_width": "0.48",
+            "color": "191,226,172,255",
+            "outline_color": "#F7FFF3",
+            "outline_width": "0.34",
             "outline_width_unit": "MM",
             "joinstyle": "round",
         }
@@ -359,36 +461,36 @@ def style_focus(layer: QgsVectorLayer) -> None:
 
 
 def style_roads(layer: QgsVectorLayer) -> None:
-    symbol = QgsLineSymbol()
-    symbol.deleteSymbolLayer(0)
-    casing = QgsSimpleLineSymbolLayer.create(
-        {
-            "line_color": "255,255,255,210",
-            "line_width": "0.86",
-            "line_width_unit": "MM",
-            "capstyle": "round",
-            "joinstyle": "round",
-        }
-    )
-    inner = QgsSimpleLineSymbolLayer.create(
-        {
-            "line_color": "#9BC58A",
-            "line_width": "0.25",
-            "line_width_unit": "MM",
-            "capstyle": "round",
-            "joinstyle": "round",
-        }
-    )
-    symbol.appendSymbolLayer(casing)
-    symbol.appendSymbolLayer(inner)
-    layer.setRenderer(QgsSingleSymbolRenderer(symbol))
+    categories = []
+    widths = {
+        "motorway": 0.25,
+        "trunk": 0.23,
+        "primary": 0.21,
+        "secondary": 0.17,
+        "tertiary": 0.13,
+        "国道": 0.21,
+        "高速": 0.25,
+        "县道": 0.13,
+    }
+    for road_class, width in widths.items():
+        symbol = QgsLineSymbol.createSimple(
+            {
+                "line_color": "119,183,98,142",
+                "line_width": str(width),
+                "line_width_unit": "MM",
+                "capstyle": "round",
+                "joinstyle": "round",
+            }
+        )
+        categories.append(QgsRendererCategory(road_class, symbol, road_class))
+    layer.setRenderer(QgsCategorizedSymbolRenderer("class", categories))
 
 
 def style_rivers(layer: QgsVectorLayer) -> None:
     symbol = QgsLineSymbol.createSimple(
         {
-            "line_color": "#B7D7D0",
-            "line_width": "0.34",
+            "line_color": "129,202,193,150",
+            "line_width": "0.16",
             "line_width_unit": "MM",
             "capstyle": "round",
         }
@@ -401,7 +503,7 @@ def style_pois(layer: QgsVectorLayer) -> None:
         {
             "name": "circle",
             "color": "#111711",
-            "size": "1.55",
+            "size": "0",
             "size_unit": "MM",
             "outline_color": "#F7FFF2",
             "outline_width": "0.34",
@@ -462,6 +564,7 @@ def add_shape(
     fill: str,
     outline: str = "255,255,255,0",
     outline_width: float = 0.0,
+    radius: float = 0.0,
 ) -> QgsLayoutItemShape:
     item = QgsLayoutItemShape(layout)
     item.setShapeType(QgsLayoutItemShape.Rectangle)
@@ -476,6 +579,10 @@ def add_shape(
         )
     )
     layout.addLayoutItem(item)
+    if radius:
+        item.setCornerRadius(
+            QgsLayoutMeasurement(radius, QgsUnitTypes.LayoutMillimeters)
+        )
     item.attemptMove(QgsLayoutPoint(x, y, QgsUnitTypes.LayoutMillimeters))
     item.attemptResize(QgsLayoutSize(width, height, QgsUnitTypes.LayoutMillimeters))
     return item
@@ -561,6 +668,18 @@ def add_polyline(
     return item
 
 
+def mm_x(pixels: float) -> float:
+    return pixels * PX_X
+
+
+def mm_y(pixels: float) -> float:
+    return pixels * PX_Y
+
+
+def px_point(x: float, y: float) -> QPointF:
+    return QPointF(mm_x(x), mm_y(y))
+
+
 def map_anchor(project: QgsProject, map_item: QgsLayoutItemMap, lon: float, lat: float) -> QPointF:
     transform = QgsCoordinateTransform(
         QgsCoordinateReferenceSystem("EPSG:4326"),
@@ -575,41 +694,53 @@ def map_anchor(project: QgsProject, map_item: QgsLayoutItemMap, lon: float, lat:
 
 
 def add_header(layout: QgsPrintLayout) -> None:
-    add_shape(layout, 0.6, 1.9, 111.2, 4.0, "#050807")
-    add_label(layout, "【北京周边系列】之保定 · 小城", 21.5, 1.95, 47, 3.8, 6.2, color="#FFFFFF", bold=True)
-    add_label(layout, "第 2-005 期 / 100", 67.5, 1.95, 27, 3.8, 6.0, color="#F6FF61", bold=True, align=Qt.AlignCenter)
-    add_ellipse(layout, 87.3, 1.95, 4.3, 3.9, "#F6F8F6", "#D9E0DB", 0.18)
-    add_label(layout, "●", 88.0, 1.95, 3.0, 3.8, 6.0, color="#6C746F", align=Qt.AlignCenter)
-    add_label(layout, "@冷三岁 · 制作", 92.5, 1.95, 18.5, 3.8, 5.4, color="#FFFFFF", bold=True, align=Qt.AlignRight)
+    bar = add_shape(layout, mm_x(3), mm_y(7), mm_x(525), mm_y(22), "#020302")
+    bar.setId("刊头_黑条")
+    add_shape(layout, mm_x(14), mm_y(11), mm_x(17), mm_y(16), "#FFFFFF", "#B8C0BA", 0.16)
+    add_label(layout, "【北京周边系列】", mm_x(39), mm_y(7), mm_x(119), mm_y(22), 6.8, color="#FFFFFF", bold=True)
+    add_label(layout, "之保定 · 小城", mm_x(155), mm_y(7), mm_x(94), mm_y(22), 6.8, color="#EFFF20", bold=True)
+    add_label(layout, "#第2-005期/100", mm_x(310), mm_y(7), mm_x(96), mm_y(22), 6.5, color="#FFFFFF", bold=True, align=Qt.AlignCenter)
+    add_ellipse(layout, mm_x(416), mm_y(8), mm_x(21), mm_y(20), "#F7F8F7", "#657069", 0.24)
+    add_ellipse(layout, mm_x(423), mm_y(11), mm_x(7), mm_y(7), "#4D5550")
+    add_shape(layout, mm_x(420), mm_y(18), mm_x(13), mm_y(7), "#78837C", radius=0.8)
+    add_label(layout, "@冷三岁 · 制作", mm_x(441), mm_y(7), mm_x(84), mm_y(22), 6.2, color="#FFFFFF", bold=True, align=Qt.AlignRight)
 
 
 def add_title(layout: QgsPrintLayout) -> None:
-    add_shape(layout, 3.8, 14.0, 4.0, 8.5, "#070A08", "#070A08", 0.35)
-    add_label(layout, "保\n定", 4.0, 14.2, 3.6, 8.0, 6.2, color="#FFFFFF", bold=True, align=Qt.AlignCenter)
-    add_label(layout, "涞源县", 8.7, 12.5, 56.0, 18.5, 52.0, FONT_TITLE, "#050705", bold=True)
+    add_shape(layout, mm_x(17), mm_y(66), mm_x(20), mm_y(42), "#050705", "#050705", 0.25, radius=2.4)
+    add_label(layout, "保\n定", mm_x(18), mm_y(67), mm_x(18), mm_y(40), 6.7, color="#FFFFFF", bold=True, align=Qt.AlignCenter)
+    add_label(layout, "涞源县", mm_x(39), mm_y(65), mm_x(267), mm_y(90), 55.0, FONT_TITLE, "#020402", bold=True)
     add_label(
         layout,
         "北京周边",
-        63.0,
-        13.0,
-        48.0,
-        13.0,
-        30.0,
+        mm_x(309),
+        mm_y(68),
+        mm_x(218),
+        mm_y(61),
+        31.0,
         FONT_TITLE,
-        "#FFF600",
+        "#050705",
         bold=True,
-        buffer_color="#050705",
-        buffer_size=0.75,
+        buffer_color="#FFF500",
+        buffer_size=0.68,
     )
-    add_label(layout, "保定各区县旅游 · 第 01 / 21", 68.0, 25.5, 42.0, 5.8, 8.6, FONT_SANS, "#111511", bold=True, align=Qt.AlignCenter)
-    add_label(layout, "北", 8.0, 37.2, 6.0, 4.5, 6.2, FONT_SANS, "#151A16", bold=True, align=Qt.AlignCenter)
-    add_label(layout, "▲", 8.0, 40.0, 6.0, 6.0, 10.5, FONT_SANS, "#111511", bold=True, align=Qt.AlignCenter)
+    add_label(layout, "保定各区县旅游·第01/21", mm_x(323), mm_y(123), mm_x(194), mm_y(31), 9.2, FONT_SANS, "#111511", bold=True, align=Qt.AlignCenter)
+    add_label(layout, "北", mm_x(42), mm_y(174), mm_x(20), mm_y(17), 6.4, FONT_SANS, "#151A16", bold=True, align=Qt.AlignCenter)
+    add_label(layout, "▲", mm_x(42), mm_y(186), mm_x(20), mm_y(27), 13.5, FONT_SANS, "#090B09", bold=True, align=Qt.AlignCenter)
 
 
 def add_city_badge(layout: QgsPrintLayout, project: QgsProject, map_item: QgsLayoutItemMap) -> None:
-    anchor = map_anchor(project, map_item, 114.695, 39.360)
-    add_shape(layout, anchor.x() - 13.5, anchor.y() - 4.0, 27.0, 8.0, "214,238,196,245", "#3F7449", 0.42)
-    add_label(layout, "涞源县城区", anchor.x() - 13.0, anchor.y() - 3.7, 26.0, 7.2, 7.7, FONT_SANS, "#173D20", bold=True, align=Qt.AlignCenter)
+    add_shape(layout, mm_x(257), mm_y(318), mm_x(72), mm_y(25), "194,230,151,245", "#294D29", 0.38, radius=1.6)
+    add_label(layout, "涞源县城区", mm_x(258), mm_y(319), mm_x(70), mm_y(23), 7.8, FONT_SANS, "#152B14", bold=True, align=Qt.AlignCenter)
+    add_shape(layout, mm_x(257), mm_y(292), mm_x(77), mm_y(12), "248,248,244,245", "#DFE3DC", 0.12, radius=0.7)
+    add_label(layout, "到北京火车3h/￥32", mm_x(260), mm_y(291), mm_x(72), mm_y(13), 4.3, FONT_SANS, "#202420", bold=True, align=Qt.AlignCenter)
+    add_shape(layout, mm_x(257), mm_y(305), mm_x(77), mm_y(12), "248,248,244,245", "#DFE3DC", 0.12, radius=0.7)
+    add_label(layout, "距北京210KM/3.0h", mm_x(260), mm_y(304), mm_x(72), mm_y(13), 4.2, FONT_SANS, "#202420", bold=True, align=Qt.AlignCenter)
+    line = add_polyline(layout, [px_point(265, 343), px_point(265, 407)], "#1E261F", 0.33)
+    line.setId("城区引线")
+    add_ellipse(layout, mm_x(258), mm_y(402), mm_x(14), mm_y(14), "#111512", "#E6ECE5", 0.18)
+    add_label(layout, "涞", mm_x(259), mm_y(402), mm_x(12), mm_y(12), 5.2, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
+    add_label(layout, "图", mm_x(258), mm_y(414), mm_x(14), mm_y(12), 4.0, FONT_SANS, "#394039", bold=True, align=Qt.AlignCenter)
 
 
 def add_poi_callout(
@@ -618,57 +749,190 @@ def add_poi_callout(
     map_item: QgsLayoutItemMap,
     poi: PoiSpec,
 ) -> None:
-    anchor = map_anchor(project, map_item, poi.lon, poi.lat)
-    card_x = poi.card_x * LAYOUT_SCALE_X
-    card_y = poi.card_y * LAYOUT_SCALE_Y
-    card_w = poi.card_w * LAYOUT_SCALE_X
-    card_h = (11.0 if poi.note else 7.0) * LAYOUT_SCALE_Y
+    anchor = px_point(poi.anchor_x, poi.anchor_y)
+    card_x = mm_x(poi.card_x)
+    card_y = mm_y(poi.card_y)
+    card_w = mm_x(poi.card_w)
+    card_h = mm_y(24.0 if poi.note else 15.0)
     card_center_y = card_y + card_h / 2.0
     if poi.side == "left":
         edge_x = card_x + card_w
-        elbow_x = min(anchor.x() - 3.0, edge_x + 8.0)
+        elbow_x = min(anchor.x() - mm_x(8), edge_x + mm_x(15))
     else:
         edge_x = card_x
-        elbow_x = max(anchor.x() + 3.0, edge_x - 8.0)
-    add_polyline(
+        elbow_x = max(anchor.x() + mm_x(8), edge_x - mm_x(15))
+    leader = add_polyline(
         layout,
-        [QPointF(anchor.x(), anchor.y()), QPointF(elbow_x, anchor.y()), QPointF(edge_x, card_center_y)],
-        "#303B32",
-        0.30,
+        [
+            QPointF(anchor.x(), anchor.y()),
+            QPointF(elbow_x, anchor.y()),
+            QPointF(elbow_x, card_center_y),
+            QPointF(edge_x, card_center_y),
+        ],
+        "#3D463E",
+        0.27,
         dashed=True,
     )
+    leader.setId(f"引线_{poi.name}")
 
-    color = CATEGORY_COLORS[poi.category]
-    chip_w = max(5.3, (2.45 * len(poi.category) + 3.0) * LAYOUT_SCALE_X)
-    tag_w = max(6.3, (2.35 * len(poi.tag) + 3.0) * LAYOUT_SCALE_X)
-    chip_h = 5.7 * LAYOUT_SCALE_Y
-    add_shape(layout, card_x, card_y, chip_w, chip_h, color, "255,255,255,0", 0.0)
-    add_label(layout, poi.category, card_x + 0.35, card_y, chip_w - 0.7, chip_h, 4.6, FONT_SANS, "#FFFFFF" if poi.category in {"长城", "博物馆", "遗址"} else "#21411B", bold=True, align=Qt.AlignCenter)
-    add_shape(layout, card_x + chip_w + 0.6, card_y, tag_w, chip_h, "#F1F4E7", "#A5B38D", 0.12)
-    add_label(layout, poi.tag, card_x + chip_w + 0.9, card_y, tag_w - 0.6, chip_h, 4.3, FONT_SANS, "#536044", bold=True, align=Qt.AlignCenter)
-    title_x = card_x + chip_w + tag_w + 1.8
-    title_w = max(5.0, card_w - (title_x - card_x))
-    add_label(layout, poi.name, title_x, card_y - 0.1, title_w, chip_h, 5.1, FONT_SANS, "#101510", bold=True)
+    dot_fill = "#E9F000" if poi.theme == "major" else "#0A0E0B"
+    dot = add_ellipse(
+        layout,
+        anchor.x() - mm_x(3.2),
+        anchor.y() - mm_y(3.2),
+        mm_x(6.4),
+        mm_y(6.4),
+        dot_fill,
+        "#E9F1E8",
+        0.22,
+    )
+    dot.setId(f"景点锚点_{poi.name}")
+
+    cursor = card_x
+    chip_h = mm_y(14)
+    if poi.theme == "major":
+        add_shape(layout, card_x, card_y, card_w, mm_y(40), "255,255,255,232", "#D7DED5", 0.12, radius=0.7)
+        add_shape(layout, card_x, card_y, mm_x(5), mm_y(17), "#E7EF00", "255,255,255,0", 0.0)
+        add_label(layout, poi.name, card_x + mm_x(9), card_y, mm_x(52), mm_y(17), 6.4, FONT_SANS, "#111511", bold=True)
+        add_shape(layout, card_x + mm_x(66), card_y + mm_y(1), mm_x(29), mm_y(14), "#242B26", "255,255,255,0", 0.0, radius=1.0)
+        add_label(layout, "景区", card_x + mm_x(68), card_y + mm_y(1), mm_x(25), mm_y(14), 4.4, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
+        add_shape(layout, card_x + mm_x(99), card_y + mm_y(1), mm_x(37), mm_y(14), "#22B99B", "255,255,255,0", 0.0, radius=1.0)
+        add_label(layout, "推荐", card_x + mm_x(101), card_y + mm_y(1), mm_x(33), mm_y(14), 4.4, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
+        add_shape(layout, card_x + mm_x(140), card_y + mm_y(1), mm_x(43), mm_y(14), "#92D94F", "255,255,255,0", 0.0, radius=1.0)
+        add_label(layout, poi.tag, card_x + mm_x(142), card_y + mm_y(1), mm_x(39), mm_y(14), 4.4, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
+        add_label(layout, poi.note, card_x + mm_x(8), card_y + mm_y(17), card_w - mm_x(13), mm_y(21), 3.8, FONT_SANS, "#4E5750", False)
+        return
+    elif poi.category:
+        badge_w = mm_x(max(24, 8 + 7 * len(poi.category)))
+        badge_color = "#22B99B" if poi.category in {"长城", "辽代", "唐代石狮", "徒步", "景区"} else "#7ED14D"
+        add_shape(layout, cursor, card_y, badge_w, chip_h, badge_color, "#FFFFFF", 0.10, radius=1.2)
+        add_label(layout, poi.category, cursor + mm_x(2), card_y, badge_w - mm_x(4), chip_h, 4.7, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
+        cursor += badge_w + mm_x(1.5)
+
+    if poi.theme == "price" and poi.name != "空中草原":
+        name_w = mm_x(max(42, len(poi.name) * 12 + 8))
+        add_shape(layout, cursor, card_y, name_w, chip_h, "#B6F48B", "#D6E8C7", 0.10, radius=1.4)
+        add_label(layout, poi.name, cursor + mm_x(3), card_y, name_w - mm_x(6), chip_h, 5.0, FONT_SANS, "#152214", bold=True, align=Qt.AlignCenter)
+        cursor += name_w + mm_x(1.5)
+
+    if poi.tag:
+        if poi.theme == "price" and poi.tag.startswith("￥"):
+            tag_w = mm_x(66 if poi.name == "空中草原" else 31)
+        else:
+            tag_w = mm_x(max(22, 8 + 6 * len(poi.tag)))
+        tag_fill = "#8FD950" if poi.tag.startswith("￥") else "#AEEA70"
+        add_shape(layout, cursor, card_y, tag_w, chip_h, tag_fill, "#FFFFFF", 0.10, radius=1.2)
+        add_label(layout, poi.tag, cursor + mm_x(2), card_y, tag_w - mm_x(4), chip_h, 4.5, FONT_SANS, "#FFFFFF" if poi.tag.startswith("￥") else "#304C25", bold=True, align=Qt.AlignCenter)
+        cursor += tag_w + mm_x(1.5)
+
+    remaining = max(mm_x(22), card_x + card_w - cursor)
+    if poi.theme == "dark":
+        name_fill, name_color = "#050706", "#FFFFFF"
+    else:
+        name_fill, name_color = "#B6F48B", "#152214"
+    if poi.theme != "major" and not (poi.theme == "price" and poi.name != "空中草原"):
+        desired = mm_x(max(31, len(poi.name) * 11 + 8))
+        name_w = min(remaining, desired)
+        add_shape(layout, cursor, card_y, name_w, chip_h, name_fill, "#D6E8C7", 0.10, radius=1.4)
+        add_label(layout, poi.name, cursor + mm_x(2), card_y, max(mm_x(18), name_w - mm_x(4)), chip_h, 4.7, FONT_SANS, name_color, bold=True, align=Qt.AlignCenter)
     if poi.note:
-        add_label(layout, poi.note, card_x, card_y + chip_h, card_w, 4.6 * LAYOUT_SCALE_Y, 3.5, FONT_SANS, "#5C665C", False)
+        add_label(layout, poi.note, card_x, card_y + chip_h, card_w, mm_y(12), 3.7, FONT_SANS, "#59635A", False)
 
 
 def add_legend(layout: QgsPrintLayout) -> None:
-    add_shape(layout, 5.0, 126.5, 26.0, 20.5, "250,252,247,220", "#506052", 0.22)
-    add_shape(layout, 5.0, 126.5, 26.0, 0.75, "#202820", "255,255,255,0", 0.0)
-    add_label(layout, "冷三岁 · 注", 10.8, 127.0, 18.0, 4.5, 5.4, FONT_SANS, "#1D271E", bold=True)
-    add_shape(layout, 6.2, 127.2, 3.5, 3.5, "#F6FAF4", "#677469", 0.16)
-    add_label(layout, "●", 6.5, 127.2, 2.8, 3.5, 4.8, FONT_SANS, "#657168", align=Qt.AlignCenter)
+    add_shape(layout, mm_x(24), mm_y(598), mm_x(122), mm_y(101), "239,247,232,222", "255,255,255,0", 0.0)
+    add_shape(layout, mm_x(24), mm_y(598), mm_x(122), mm_y(7), "#111512")
+    add_ellipse(layout, mm_x(29), mm_y(607), mm_x(30), mm_y(30), "#F7F8F6", "#59625C", 0.28)
+    add_ellipse(layout, mm_x(40), mm_y(611), mm_x(8), mm_y(8), "#535B56")
+    add_shape(layout, mm_x(35), mm_y(620), mm_x(18), mm_y(11), "#747D77", radius=1.0)
+    add_label(layout, "冷三岁·注", mm_x(61), mm_y(606), mm_x(72), mm_y(26), 7.2, FONT_SANS, "#172017", bold=True)
     rows = (
-        ("#78CE4C", "核心景区", "优先安排"),
-        ("#F0C94C", "古建遗址", "人文节点"),
-        ("#27B79A", "长城节点", "适合徒步"),
+        ("#E7EF00", "白石山", "必打卡", "#F4F500"),
+        ("#070A08", "悦客公园", "推荐打卡", "#FFFFFF"),
+        ("#184716", "仙人峪", "可打卡", "#183516"),
     )
-    for index, (color, label, note) in enumerate(rows):
-        y = 132.0 + index * 4.3
-        add_shape(layout, 6.2, y + 0.7, 2.8, 2.8, color, "#FFFFFF", 0.16)
-        add_label(layout, label, 10.6, y, 10.5, 3.8, 4.7, FONT_SANS, "#111511", bold=True)
-        add_label(layout, note, 21.0, y, 9.0, 3.8, 4.0, FONT_SANS, "#5B665C")
+    for index, (dot_color, label, note, label_color) in enumerate(rows):
+        y = 641 + index * 25
+        add_ellipse(layout, mm_x(34), mm_y(y), mm_x(12), mm_y(12), dot_color, "#EAF0E8", 0.16)
+        if index in {0, 2}:
+            add_ellipse(layout, mm_x(37), mm_y(y + 3), mm_x(6), mm_y(6), "#080B08")
+        fill = "#050706" if index < 2 else "#B4F48A"
+        add_shape(layout, mm_x(49), mm_y(y - 1), mm_x(57), mm_y(16), fill, "255,255,255,0", 0.0, radius=1.5)
+        add_label(layout, label, mm_x(51), mm_y(y - 1), mm_x(53), mm_y(16), 6.0, FONT_SANS, label_color, bold=True, align=Qt.AlignCenter)
+        add_label(layout, note, mm_x(113), mm_y(y - 1), mm_x(31), mm_y(16), 5.8, FONT_SANS, "#1E261F", bold=True)
+
+
+def add_reference_linework(layout: QgsPrintLayout) -> None:
+    """Add the faint contextual network visible behind the infographic."""
+    paths = (
+        ((6, 58), (65, 48), (116, 51), (161, 38), (222, 42), (285, 30)),
+        ((72, 29), (78, 85), (96, 121), (105, 178), (129, 211)),
+        ((152, 30), (164, 69), (176, 105), (184, 164), (203, 207)),
+        ((254, 31), (251, 91), (248, 145), (249, 206)),
+        ((346, 30), (334, 75), (344, 119), (361, 160)),
+        ((424, 31), (411, 79), (425, 127), (442, 170)),
+        ((523, 55), (481, 78), (456, 120), (463, 168)),
+        ((5, 294), (47, 308), (83, 332), (114, 369)),
+        ((5, 370), (38, 356), (71, 345), (105, 345)),
+        ((6, 524), (54, 532), (94, 553), (125, 583)),
+        ((411, 547), (452, 523), (490, 513), (527, 518)),
+        ((392, 623), (429, 608), (474, 614), (528, 640)),
+        ((347, 697), (398, 669), (448, 670), (527, 691)),
+        ((5, 660), (44, 644), (78, 650), (111, 681)),
+    )
+    for index, path in enumerate(paths):
+        item = add_polyline(
+            layout,
+            [px_point(x, y) for x, y in path],
+            "#DDEADB",
+            0.22,
+        )
+        item.setId(f"周边浅色线网_{index + 1}")
+
+
+def add_minor_annotations(layout: QgsPrintLayout) -> None:
+    # The summit block and secondary place labels are deliberately quieter than
+    # attraction cards, matching the hierarchy of the reference infographic.
+    add_label(layout, "2159米 ▲\n东甸子梁", mm_x(366), mm_y(156), mm_x(64), mm_y(29), 5.1, FONT_SANS, "#202520", bold=True, align=Qt.AlignCenter)
+    add_shape(layout, mm_x(369), mm_y(181), mm_x(25), mm_y(13), "#91D851", "#FFFFFF", 0.1, radius=1.0)
+    add_label(layout, "免费", mm_x(369), mm_y(181), mm_x(25), mm_y(13), 4.3, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
+    add_shape(layout, mm_x(397), mm_y(181), mm_x(27), mm_y(13), "#23B99D", "#FFFFFF", 0.1, radius=1.0)
+    add_label(layout, "徒步", mm_x(397), mm_y(181), mm_x(27), mm_y(13), 4.3, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
+
+    muted = (
+        ("王安镇", 242, 278, "#B97747"),
+        ("杨家庄镇", 446, 277, "#B97747"),
+        ("金家井乡", 289, 365, "#B97747"),
+        ("银坊镇", 286, 514, "#B97747"),
+        ("走马驿镇", 252, 637, "#B97747"),
+        ("水堡镇", 160, 452, "#72BDB4"),
+        ("南屯镇", 301, 406, "#74C7BB"),
+        ("北石佛镇", 297, 421, "#74C7BB"),
+        ("涞源汽车站", 293, 438, "#74C7BB"),
+        ("拒马源", 335, 448, "#7DB5D7"),
+        ("白石山镇", 186, 486, "#78BEB5"),
+        ("白石山大街", 185, 506, "#78BEB5"),
+    )
+    for name, x, y, color in muted:
+        add_label(layout, name, mm_x(x), mm_y(y), mm_x(max(45, len(name) * 13)), mm_y(13), 3.8, FONT_SANS, color, bold=False)
+
+    add_polyline(layout, [px_point(260, 567), px_point(260, 611), px_point(296, 611)], "#3F4740", 0.27, dashed=True)
+    add_label(layout, "▲", mm_x(251), mm_y(557), mm_x(18), mm_y(24), 11.5, FONT_SANS, "#111411", bold=True, align=Qt.AlignCenter)
+
+
+def add_reference_calibration(layout: QgsPrintLayout) -> None:
+    """Keep the supplied image in-project as a hidden tracing/calibration item."""
+    if not REFERENCE_IMAGE.exists():
+        return
+    picture = QgsLayoutItemPicture(layout)
+    picture.setId("校准底图_导出时关闭")
+    picture.setPicturePath(str(REFERENCE_IMAGE))
+    picture.setResizeMode(QgsLayoutItemPicture.Stretch)
+    layout.addLayoutItem(picture)
+    picture.attemptMove(QgsLayoutPoint(0, 0, QgsUnitTypes.LayoutMillimeters))
+    picture.attemptResize(QgsLayoutSize(*PAGE, QgsUnitTypes.LayoutMillimeters))
+    picture.setLocked(True)
+    picture.setVisibility(False)
 
 
 def build_layout(project: QgsProject, layers: list[QgsVectorLayer]) -> QgsPrintLayout:
@@ -704,12 +968,15 @@ def build_layout(project: QgsProject, layers: list[QgsVectorLayer]) -> QgsPrintL
     map_item.setLayers(layers)
     map_item.setKeepLayerSet(True)
 
+    add_reference_linework(layout)
     add_header(layout)
     add_title(layout)
     add_city_badge(layout, project, map_item)
+    add_minor_annotations(layout)
     for poi in POIS:
         add_poi_callout(layout, project, map_item, poi)
     add_legend(layout)
+    add_reference_calibration(layout)
     return layout
 
 
@@ -727,8 +994,7 @@ def main() -> int:
         project.setFilePathStorage(Qgis.FilePathType.Relative)
 
         context, shadow, focus = build_admin_layers(project)
-        roads = build_line_layer(project, "道路骨架", "roads", ROADS)
-        rivers = build_river_layer(project)
+        roads, rivers = build_osm_network_layers(project, focus)
         pois = build_poi_layer(project)
         context_labels = build_context_label_layer(project)
 
@@ -776,6 +1042,12 @@ def main() -> int:
             "geopackage": str(OUTPUT_GPKG),
             "poi_count": pois.featureCount(),
             "context_admin_count": context.featureCount(),
+            "road_count": roads.featureCount(),
+            "river_count": rivers.featureCount(),
+            "glow_ring_count": shadow.featureCount(),
+            "calibration_reference": str(REFERENCE_IMAGE),
+            "calibration_visible": False,
+            "network_source": "OpenStreetMap cached extract",
             "image_bytes": image_bytes,
             "page_mm": PAGE,
             "extent_wgs84": MAP_EXTENT,

@@ -4,10 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>中国铁路图</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
-  <link rel="stylesheet" href="styles.css?v=20260915-2">
+  <link rel="stylesheet" href="styles.css?v=20260915-8">
 </head>
 <body>
   <main class="shell">
@@ -16,7 +17,10 @@
         <h1>中国铁路图</h1>
         <p id="status"></p>
       </div>
-      <button id="reset" type="button">重置视图</button>
+      <div class="topbar-actions">
+        <a id="blogHome" class="button-link" href="/" hidden>返回主页</a>
+        <button id="reset" type="button">重置视图</button>
+      </div>
     </header>
     <section class="workspace">
       <aside class="panel" aria-label="图层控制">
@@ -51,14 +55,10 @@
       </aside>
       <div class="map-stage">
         <div id="map" role="application" aria-label="中国铁路交互地图"></div>
-        <div class="inset-frame" aria-label="南海诸岛插图">
-          <div id="insetMap"></div>
-          <span>南海诸岛</span>
-        </div>
       </div>
     </section>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=20260915-2"></script>
+  <script src="app.js?v=20260915-8"></script>
 </body>
 </html>

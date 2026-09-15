@@ -5,7 +5,9 @@
   "network_station_count": 5518,
   "rail_city_count": 68,
   "province_boundaries": 35,
-  "city_boundaries": 49351,
+  "city_boundaries": 476,
   "source": "F:\\Desktop\\Blog\\Map\\制图工具\\数据源\\GeoPackage\\travel_map_home2_min_gan.gpkg",
-  "simplify_degrees": 0.0025
+  "railway_simplify_degrees": 0.0025,
+  "route_simplify_degrees": 0.0,
+  "administrative_simplify_degrees": 0.0
 }

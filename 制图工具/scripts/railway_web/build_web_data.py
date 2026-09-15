@@ -17,6 +17,7 @@ SOURCE = ROOT / "制图工具" / "数据源" / "GeoPackage" / "travel_map_home2_
 NATIONAL = ROOT / "地图输出" / "全国专题图" / "全国足迹" / "全国足迹_数据.gpkg"
 ROUTES = ROOT / "地图输出" / "全国专题图" / "全国足迹" / "铁路轨迹.gpkg"
 ROUTE_TIMES = DATA / "route_times.json"
+DIRECT_ADMIN_CODES = {110000, 120000, 310000, 500000, 810000, 820000}
 
 
 def feature_collection(features: list[dict]) -> dict:
@@ -148,8 +149,13 @@ def province_code(feature: QgsFeature) -> int | None:
     level = str(feature["level"] or "")
     parent = feature["parent"] if "parent" in feature.fields().names() else None
     parent_code = parent.get("adcode") if isinstance(parent, dict) else None
-    if level == "district" and parent_code in {110000, 120000, 310000, 500000}:
+    if level == "district" and parent_code in DIRECT_ADMIN_CODES:
         return int(parent_code)
+    if level == "province":
+        try:
+            return int(feature["adcode"])
+        except (TypeError, ValueError):
+            return None
     if level != "city":
         return None
     routes = feature["acroutes"] if "acroutes" in feature.fields().names() else None
@@ -163,68 +169,140 @@ def province_code(feature: QgsFeature) -> int | None:
             return None
 
 
-def polygon_boundary(geometry: QgsGeometry) -> QgsGeometry:
-    polygons = geometry.asMultiPolygon() if geometry.isMultipart() else [geometry.asPolygon()]
-    rings = [ring for polygon in polygons for ring in polygon if ring]
-    result = QgsGeometry.fromMultiPolylineXY(rings)
-    result.convertToMultiType()
-    return result
-
-
-def export_unified_admin_boundaries() -> tuple[int, int]:
-    """Match the proven regional-map boundary construction method."""
-    cities = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=全国地级行政区", "cities", "ogr")
-    provinces = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=全国省级行政区", "provinces", "ogr")
-    if not cities.isValid() or not provinces.isValid():
-        raise RuntimeError("Invalid nationwide administrative layers")
-    province_lines = [polygon_boundary(feature.geometry()) for feature in provinces.getFeatures()]
-    province_geometry = QgsGeometry.unaryUnion(province_lines)
-    segment_records = {}
-    for feature in cities.getFeatures():
-        code = province_code(feature)
-        if code is None:
-            continue
-        polygons = feature.geometry().asMultiPolygon() if feature.geometry().isMultipart() else [feature.geometry().asPolygon()]
+def unified_boundary(geometries: list[QgsGeometry]) -> QgsGeometry:
+    """Deduplicate shared edges without changing any source boundary vertex."""
+    segments = {}
+    for geometry in geometries:
+        polygons = geometry.asMultiPolygon() if geometry.isMultipart() else [geometry.asPolygon()]
         for polygon in polygons:
             for ring in polygon:
                 for start, end in zip(ring, ring[1:]):
                     first = (round(start.x(), 6), round(start.y(), 6))
                     second = (round(end.x(), 6), round(end.y(), 6))
                     key = tuple(sorted((first, second)))
-                    record = segment_records.setdefault(
-                        key, {"points": (start, end), "owners": set(), "codes": set()}
-                    )
-                    record["owners"].add(feature.id())
-                    record["codes"].add(code)
-    internal_segments = [
-        list(record["points"])
-        for record in segment_records.values()
-        if len(record["owners"]) >= 2 and len(record["codes"]) == 1
-    ]
-    city_geometry = QgsGeometry.fromMultiPolylineXY(internal_segments).mergeLines()
-    city_parts = city_geometry.asMultiPolyline() if city_geometry.isMultipart() else [city_geometry.asPolyline()]
-    connected_parts = []
-    for part in city_parts:
-        if not part:
+                    segments.setdefault(key, [start, end])
+    return QgsGeometry.fromMultiPolylineXY(list(segments.values())).mergeLines()
+
+
+def valid_polygon(geometry: QgsGeometry) -> QgsGeometry:
+    """Return a valid polygon copy before any dissolve or boundary extraction."""
+    result = QgsGeometry(geometry)
+    if not result.isGeosValid():
+        result = result.makeValid()
+    if QgsWkbTypes.geometryType(result.wkbType()) != QgsWkbTypes.PolygonGeometry:
+        polygon_parts = [
+            part
+            for part in result.asGeometryCollection()
+            if QgsWkbTypes.geometryType(part.wkbType()) == QgsWkbTypes.PolygonGeometry
+        ]
+        result = QgsGeometry.unaryUnion(polygon_parts) if polygon_parts else QgsGeometry()
+    return result
+
+
+def export_unified_admin_layers() -> tuple[
+    int, int, dict[str, QgsGeometry], dict[str, QgsGeometry]
+]:
+    """Derive fills and boundaries from one topologically identical city source."""
+    cities = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=全国地级行政区", "cities", "ogr")
+    provinces = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=全国省级行政区", "provinces", "ogr")
+    if not cities.isValid() or not provinces.isValid():
+        raise RuntimeError("Invalid nationwide administrative layers")
+
+    city_groups: dict[int, list[QgsGeometry]] = {}
+    normalized_cities: dict[str, QgsGeometry] = {}
+    city_geometries = []
+    for feature in cities.getFeatures():
+        code = province_code(feature)
+        geometry = valid_polygon(feature.geometry())
+        if code is None or geometry.isNull() or geometry.isEmpty():
             continue
-        adjusted = list(part)
-        for index in (0, -1):
-            endpoint = QgsGeometry.fromPointXY(adjusted[index])
-            distance = province_geometry.distance(endpoint)
-            if 1e-9 < distance < 0.03:
-                adjusted[index] = province_geometry.nearestPoint(endpoint).asPoint()
-        connected_parts.append(adjusted)
-    connected_city_geometry = QgsGeometry.fromMultiPolylineXY(connected_parts)
+        city_groups.setdefault(code, []).append(geometry)
+        normalized_cities[str(feature["name"] or "")] = geometry
+        city_geometries.append(geometry)
+
+    province_names: dict[int, str] = {}
+    province_fallbacks: dict[int, QgsGeometry] = {}
+    special_provinces = []
+    for feature in provinces.getFeatures():
+        try:
+            code = int(feature["adcode"])
+        except (TypeError, ValueError):
+            geometry = valid_polygon(feature.geometry())
+            if not geometry.isNull() and not geometry.isEmpty():
+                special_provinces.append((str(feature["name"] or ""), geometry))
+            continue
+        province_names[code] = str(feature["name"] or code)
+        province_fallbacks[code] = valid_polygon(feature.geometry())
+
+    normalized_provinces: dict[int, QgsGeometry] = {}
+    province_features = []
+    for code in sorted(province_fallbacks):
+        geometries = city_groups.get(code)
+        geometry = QgsGeometry.unaryUnion(geometries) if geometries else province_fallbacks[code]
+        if geometry.isNull() or geometry.isEmpty():
+            geometry = province_fallbacks[code]
+        normalized_provinces[code] = geometry
+        province_features.append({
+            "type": "Feature",
+            "properties": {"name": province_names[code]},
+            "geometry": geometry_json(geometry),
+        })
+    for name, geometry in special_provinces:
+        province_features.append({
+            "type": "Feature",
+            "properties": {"name": name},
+            "geometry": geometry_json(geometry),
+        })
+
+    province_geometries = list(normalized_provinces.values())
+    province_geometries.extend(geometry for _, geometry in special_provinces)
+    province_geometry = unified_boundary(province_geometries)
+    city_geometry = unified_boundary(city_geometries)
+
+    (DATA / "provinces.geojson").write_text(
+        json.dumps(feature_collection(province_features), ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
 
     (DATA / "province_boundaries.geojson").write_text(
         json.dumps(feature_collection([{"type": "Feature", "properties": {}, "geometry": geometry_json(province_geometry)}]), ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
     (DATA / "city_boundaries.geojson").write_text(
-        json.dumps(feature_collection([{"type": "Feature", "properties": {}, "geometry": geometry_json(connected_city_geometry)}]), ensure_ascii=False, separators=(",", ":")),
+        json.dumps(feature_collection([{"type": "Feature", "properties": {}, "geometry": geometry_json(city_geometry)}]), ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
-    return len(province_lines), len(internal_segments)
+    return (
+        len(province_geometries),
+        len(city_geometries),
+        {province_names[code]: geometry for code, geometry in normalized_provinces.items()},
+        normalized_cities,
+    )
+
+
+def export_visited_cities(
+    output: Path,
+    normalized_provinces: dict[str, QgsGeometry],
+    normalized_cities: dict[str, QgsGeometry],
+) -> int:
+    """Keep highlighted polygons at full precision and normalize municipalities."""
+    layer = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=去过的城市", "visited cities", "ogr")
+    if not layer.isValid():
+        raise RuntimeError("Invalid visited-city layer")
+    result = []
+    for feature in layer.getFeatures():
+        geometry = feature.geometry()
+        if str(feature["source"] or "") == "province":
+            geometry = normalized_provinces.get(str(feature["province"] or ""), geometry)
+        else:
+            geometry = normalized_cities.get(str(feature["full_name"] or ""), geometry)
+        result.append({
+            "type": "Feature",
+            "properties": {"display": feature["display"], "province": feature["province"]},
+            "geometry": geometry_json(geometry),
+        })
+    output.write_text(json.dumps(feature_collection(result), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    return len(result)
 
 
 def export_routes(output: Path) -> int:
@@ -245,9 +323,11 @@ def export_routes(output: Path) -> int:
     route_times = json.loads(ROUTE_TIMES.read_text(encoding="utf-8-sig")) if ROUTE_TIMES.exists() else {}
     result = []
     for feature in route_layer.getFeatures():
-        # Keep control-station vertices visible in the interactive map while
-        # removing only the tiny OSM digitising noise.
-        geometry = feature.geometry().simplify(0.0001)
+        # Route geometries are already cleaned and shared by build_routes.py.
+        # Do not simplify each record independently: that turns a common
+        # station-to-station corridor into slightly different chord segments
+        # and produces visible double lines when zoomed in.
+        geometry = feature.geometry()
         origin = str(feature["origin"] or "")
         destination = str(feature["destination"] or "")
         extra = route_times.get(str(feature["seq"]), {})
@@ -270,15 +350,21 @@ def export_rail_cities(output: Path, all_visited_path: Path) -> int:
         geometry = feature.geometry()
         if any(geometry.contains(QgsGeometry.fromPointXY(point)) for point in points.values()):
             selected.append(feature)
-    result = [{"type": "Feature", "properties": {"display": feature["display"], "province": feature["province"], "rail_arrival": True}, "geometry": geometry_json(feature.geometry())} for feature in selected]
-    output.write_text(json.dumps(feature_collection(result), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     selected_names = {str(feature["display"]) for feature in selected}
     all_data = json.loads(all_visited_path.read_text(encoding="utf-8"))
+    result = []
+    for feature in all_data["features"]:
+        if str(feature.get("properties", {}).get("display", "")) not in selected_names:
+            continue
+        copied = dict(feature)
+        copied["properties"] = {**feature.get("properties", {}), "rail_arrival": True}
+        result.append(copied)
+    output.write_text(json.dumps(feature_collection(result), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     other = [feature for feature in all_data["features"] if str(feature.get("properties", {}).get("display", "")) not in selected_names]
     (DATA / "other_visited_cities.geojson").write_text(json.dumps(feature_collection(other), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     labels_layer = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=去过的城市标注", "visited city labels", "ogr")
-    labels = [feature for feature in labels_layer.getFeatures() if str(feature["display"]) in selected_names]
-    label_result = [{"type": "Feature", "properties": {"display": feature["display"], "province": feature["province"]}, "geometry": geometry_json(feature.geometry())} for feature in labels]
+    labels = list(labels_layer.getFeatures())
+    label_result = [{"type": "Feature", "properties": {"display": feature["display"], "province": feature["province"]}, "geometry": geometry_json(feature.geometry())} for feature in labels if str(feature["display"]) in selected_names]
     (DATA / "rail_city_labels.geojson").write_text(json.dumps(feature_collection(label_result), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     other_label_result = [{"type": "Feature", "properties": {"display": feature["display"], "province": feature["province"]}, "geometry": geometry_json(feature.geometry())} for feature in labels if str(feature["display"]) not in selected_names]
     (DATA / "other_city_labels.geojson").write_text(json.dumps(feature_collection(other_label_result), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
@@ -291,16 +377,22 @@ def main() -> int:
     app.initQgis()
     try:
         rail_segments = export_rail_network(DATA / "railway_network.geojson")
-        province_boundary_count, city_boundary_count = export_unified_admin_boundaries()
-        export_layer(NATIONAL, "全国省级行政区", DATA / "provinces.geojson", ["name"], 0.01)
+        (
+            province_boundary_count,
+            city_boundary_count,
+            normalized_provinces,
+            normalized_cities,
+        ) = export_unified_admin_layers()
         export_layer(NATIONAL, "全国地级行政区", DATA / "cities.geojson", ["name"], 0.008)
-        export_layer(NATIONAL, "去过的城市", DATA / "visited_cities.geojson", ["display", "province"], 0.008)
+        export_visited_cities(
+            DATA / "visited_cities.geojson", normalized_provinces, normalized_cities
+        )
         export_layer(NATIONAL, "去过的城市标注", DATA / "visited_city_labels.geojson", ["display", "province"], 0.0)
         route_count = export_routes(DATA / "visited_routes.geojson")
         station_count = export_station_layer(DATA / "visited_stations.geojson")
         network_station_count = export_network_stations(DATA / "network_stations.geojson")
         rail_city_count = export_rail_cities(DATA / "rail_visited_cities.geojson", DATA / "visited_cities.geojson")
-        metadata = {"rail_segments": rail_segments, "route_count": route_count, "station_count": station_count, "network_station_count": network_station_count, "rail_city_count": rail_city_count, "province_boundaries": province_boundary_count, "city_boundaries": city_boundary_count, "source": str(SOURCE), "simplify_degrees": 0.0025}
+        metadata = {"rail_segments": rail_segments, "route_count": route_count, "station_count": station_count, "network_station_count": network_station_count, "rail_city_count": rail_city_count, "province_boundaries": province_boundary_count, "city_boundaries": city_boundary_count, "source": str(SOURCE), "railway_simplify_degrees": 0.0025, "route_simplify_degrees": 0.0, "administrative_simplify_degrees": 0.0}
         (DATA / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(metadata, ensure_ascii=False))
         return 0

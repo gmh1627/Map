@@ -6,6 +6,7 @@ import json
 import sys
 from pathlib import Path
 
+from qgis.PyQt.QtGui import QImageReader
 from qgis.core import QgsApplication, QgsProject, QgsVectorLayer
 
 
@@ -16,6 +17,8 @@ GPKG = OUTPUT_DIR / "涞源县旅游图_数据.gpkg"
 QGZ = OUTPUT_DIR / "涞源县旅游图.qgz"
 PNG = OUTPUT_DIR / "涞源县旅游图.png"
 REPORT = OUTPUT_DIR / "校验报告.json"
+REFERENCE = SCRIPT_DIR / "assets" / "涞源县旅游图_参考.png"
+OSM_NETWORK = SCRIPT_DIR / "assets" / "laiyuan_osm_network.json.gz"
 
 EXPECTED_LAYERS = {
     "context_admin",
@@ -40,7 +43,8 @@ def main() -> int:
     try:
         if QGZ.exists() and not project.read(str(QGZ)):
             errors.append("QGIS project could not be opened")
-        if project.layoutManager().layoutByName("涞源县旅游图") is None:
+        layout = project.layoutManager().layoutByName("涞源县旅游图")
+        if layout is None:
             errors.append("layout '涞源县旅游图' is missing")
         if len(project.mapLayers()) < 7:
             errors.append(f"project has only {len(project.mapLayers())} layers")
@@ -52,14 +56,81 @@ def main() -> int:
                 errors.append(f"GeoPackage layer is missing: {layer_name}")
                 continue
             layer_counts[layer_name] = layer.featureCount()
-        if layer_counts.get("tourism_pois") != 24:
+        if layer_counts.get("tourism_pois") != 27:
             errors.append(
-                f"tourism_pois expected 24, got {layer_counts.get('tourism_pois')}"
+                f"tourism_pois expected 27, got {layer_counts.get('tourism_pois')}"
             )
         if layer_counts.get("laiyuan_county") != 1:
             errors.append(
                 f"laiyuan_county expected 1, got {layer_counts.get('laiyuan_county')}"
             )
+        if layer_counts.get("laiyuan_glow") != 8:
+            errors.append(
+                f"laiyuan_glow expected 8 rings, got {layer_counts.get('laiyuan_glow')}"
+            )
+        if layer_counts.get("roads", 0) < 20:
+            errors.append(f"roads layer is unexpectedly sparse: {layer_counts.get('roads')}")
+        if layer_counts.get("rivers", 0) < 5:
+            errors.append(f"rivers layer is unexpectedly sparse: {layer_counts.get('rivers')}")
+
+        if not REFERENCE.exists():
+            errors.append("hidden calibration reference is missing")
+        if not OSM_NETWORK.exists():
+            errors.append("cached OSM road/water extract is missing")
+
+        layout_metrics = {}
+        if layout is not None:
+            items = layout.items()
+            ids = {
+                item.id()
+                for item in items
+                if hasattr(item, "id") and item.id()
+            }
+            missing_leaders = [
+                name
+                for name in ("马蹄梁", "横岭子", "白石山", "古北岳")
+                if f"引线_{name}" not in ids or f"景点锚点_{name}" not in ids
+            ]
+            if missing_leaders:
+                errors.append(f"representative callouts are incomplete: {missing_leaders}")
+            calibration = layout.itemById("校准底图_导出时关闭")
+            if calibration is None:
+                errors.append("hidden calibration item is missing from the layout")
+            elif calibration.isVisible():
+                errors.append("calibration image must remain hidden during export")
+            if calibration is not None and not calibration.isLocked():
+                errors.append("calibration image must remain locked")
+            layout_metrics = {
+                "items": len(items),
+                "leaders": sum(item_id.startswith("引线_") for item_id in ids),
+                "anchors": sum(item_id.startswith("景点锚点_") for item_id in ids),
+                "calibration_visible": calibration.isVisible() if calibration else None,
+                "calibration_locked": calibration.isLocked() if calibration else None,
+            }
+
+        image_size = None
+        if PNG.exists():
+            size = QImageReader(str(PNG)).size()
+            image_size = [size.width(), size.height()]
+            if image_size != [531, 712]:
+                errors.append(f"PNG expected 531 x 712, got {image_size}")
+
+        boundary_metrics = {}
+        focus_layer = QgsVectorLayer(f"{GPKG}|layername=laiyuan_county", "focus", "ogr")
+        if focus_layer.isValid():
+            focus_geometry = next(focus_layer.getFeatures()).geometry()
+            for layer_name in ("roads", "rivers"):
+                line_layer = QgsVectorLayer(f"{GPKG}|layername={layer_name}", layer_name, "ogr")
+                outside_length = 0.0
+                for feature in line_layer.getFeatures():
+                    outside = feature.geometry().difference(focus_geometry)
+                    if not outside.isNull():
+                        outside_length += outside.length()
+                boundary_metrics[f"{layer_name}_outside_length"] = outside_length
+                if outside_length > 1e-7:
+                    errors.append(
+                        f"{layer_name} extends outside Laiyuan boundary: {outside_length}"
+                    )
 
         report = {
             "errors": errors,
@@ -67,6 +138,9 @@ def main() -> int:
             "layouts": [layout.name() for layout in project.layoutManager().layouts()],
             "gpkg_layers": layer_counts,
             "image_bytes": PNG.stat().st_size if PNG.exists() else 0,
+            "image_size": image_size,
+            "layout": layout_metrics,
+            "boundary": boundary_metrics,
         }
         REPORT.write_text(
             json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
