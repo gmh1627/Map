@@ -37,6 +37,24 @@
 
   async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260915-1`, { cache: "no-store" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
   function geojson(data, options) { return L.geoJSON(data, options); }
+  function maxLatitude(coordinates) {
+    if (typeof coordinates?.[0] === "number") return coordinates[1];
+    return Math.max(...coordinates.map(maxLatitude));
+  }
+  function mainlandOnly(data, minimumLatitude = 18) {
+    return {
+      ...data,
+      features: data.features.flatMap((feature) => {
+        const geometry = feature.geometry;
+        if (!geometry?.coordinates) return [];
+        if (geometry.type === "MultiPolygon" || geometry.type === "MultiLineString") {
+          const coordinates = geometry.coordinates.filter((part) => maxLatitude(part) >= minimumLatitude);
+          return coordinates.length ? [{ ...feature, geometry: { ...geometry, coordinates } }] : [];
+        }
+        return maxLatitude(geometry.coordinates) >= minimumLatitude ? [feature] : [];
+      }),
+    };
+  }
   function addCityLabels(data, className = "city-label", filter = undefined) {
     return geojson(data, { filter, pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 2.8, color: "#477b91", fillColor: "#477b91", fillOpacity: .9, weight: 0.6 }), onEachFeature: (feature, layer) => layer.bindTooltip(feature.properties.display || "", { permanent: true, direction: "right", className, offset: [4, 0] }) });
   }
@@ -140,9 +158,9 @@
     }).join("") || '<div class="note">没有匹配的路线</div>';
   }
   Promise.all([load("provinces"), load("city_boundaries"), load("province_boundaries"), load("visited_cities"), load("visited_city_labels"), load("rail_visited_cities"), load("rail_city_labels"), load("other_visited_cities"), load("other_city_labels"), load("railway_network"), load("visited_routes"), load("visited_stations"), load("network_stations")]).then(([provinces, cityBoundaries, provinceBoundaries, visitedCities, labels, railCities, railCityLabels, otherCities, otherCityLabels, network, routes, stations, networkStations]) => {
-    layers.provinces = geojson(provinces, { style: styleProvince });
-    layers.cities = geojson(cityBoundaries, { style: styleCities });
-    layers.provinceBoundaries = geojson(provinceBoundaries, { style: styleProvinceBoundary });
+    layers.provinces = geojson(mainlandOnly(provinces), { style: styleProvince });
+    layers.cities = geojson(mainlandOnly(cityBoundaries), { style: styleCities });
+    layers.provinceBoundaries = geojson(mainlandOnly(provinceBoundaries), { style: styleProvinceBoundary });
     layers.visitedCities = geojson(visitedCities, { style: styleVisitedCity });
     layers.cityLabels = addCityLabels(labels);
     railCitiesData = railCities;
