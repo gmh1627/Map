@@ -35,7 +35,7 @@
       : { pane: "tripRoutes", color: "#fffdf7", weight: 1.55, opacity: .98, lineCap: "round", lineJoin: "round" };
   };
 
-  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260915-1`, { cache: "no-store" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
+  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260915-2`, { cache: "no-store" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
   function geojson(data, options) { return L.geoJSON(data, options); }
   function maxLatitude(coordinates) {
     if (typeof coordinates?.[0] === "number") return coordinates[1];
