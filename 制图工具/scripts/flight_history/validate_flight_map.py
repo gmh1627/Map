@@ -17,7 +17,7 @@ from qgis.core import (
 )
 
 
-OUTPUT_DIR = Path(r"F:\Desktop\Railway\地图输出\全国专题图\航线图")
+OUTPUT_DIR = Path(r"F:\Desktop\Blog\Map\地图输出\全国专题图\航线图")
 
 
 def main() -> int:

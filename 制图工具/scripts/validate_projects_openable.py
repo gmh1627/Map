@@ -8,7 +8,7 @@ from pathlib import Path
 from qgis.core import QgsApplication, QgsProject
 
 
-ROOT = Path(r"F:\Desktop\Railway")
+ROOT = Path(r"F:\Desktop\Blog\Map")
 OUTPUT = ROOT / "地图输出"
 PROJECTS = [
     OUTPUT / "全国专题图" / "全国足迹" / "全国足迹.qgz",

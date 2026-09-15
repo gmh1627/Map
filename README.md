@@ -1,4 +1,4 @@
-# Railway
+# Map
 
 个人旅行铁路与城市足迹地图，使用 QGIS 和 PyQGIS 脚本绘制。
 

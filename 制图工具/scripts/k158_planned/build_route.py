@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 
-RAILWAY_ROOT = Path(r"F:\Desktop\Railway")
+RAILWAY_ROOT = Path(r"F:\Desktop\Blog\Map")
 SCRIPT_DIR = Path(__file__).resolve().parent
 COMMON_ROUTER = RAILWAY_ROOT / "制图工具" / "scripts" / "travel_history" / "build_routes.py"
 TIMETABLE = SCRIPT_DIR / "timetable_2026-08-23.json"

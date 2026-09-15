@@ -47,7 +47,7 @@ from qgis.core import (
 )
 
 
-ROOT = Path(r"F:\Desktop\Railway")
+ROOT = Path(r"F:\Desktop\Blog\Map")
 OUTPUT_DIR = ROOT / "地图输出" / "全国专题图" / "铁路枢纽局部图"
 SOURCE_PROJECT = OUTPUT_DIR / "铁路枢纽局部图.qgz"
 CURRENT_RAIL_GPKG = ROOT / "地图输出" / "全国专题图" / "全国足迹" / "全国足迹_数据.gpkg"

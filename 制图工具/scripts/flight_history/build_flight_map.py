@@ -49,7 +49,7 @@ from qgis.core import (
 )
 
 
-RAILWAY_ROOT = Path(r"F:\Desktop\Railway")
+RAILWAY_ROOT = Path(r"F:\Desktop\Blog\Map")
 OUTPUT_DIR = RAILWAY_ROOT / "地图输出" / "全国专题图" / "航线图"
 OUTPUT_GPKG = OUTPUT_DIR / "航线数据.gpkg"
 OUTPUT_QGZ = OUTPUT_DIR / "航线图.qgz"

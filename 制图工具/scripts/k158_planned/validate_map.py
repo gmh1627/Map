@@ -15,7 +15,7 @@ from qgis.core import (
 )
 
 
-ROOT = Path(r"F:\Desktop\Railway")
+ROOT = Path(r"F:\Desktop\Blog\Map")
 SCRIPT_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = ROOT / "地图输出" / "全国专题图" / "K158路线图"
 TIMETABLE = SCRIPT_DIR / "timetable_2026-08-23.json"

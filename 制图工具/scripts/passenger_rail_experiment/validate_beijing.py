@@ -18,7 +18,7 @@ from qgis.core import (
 )
 
 
-ROOT = Path(r"F:\Desktop\Railway")
+ROOT = Path(r"F:\Desktop\Blog\Map")
 OUTPUT_DIR = ROOT / "地图输出" / "全国专题图" / "铁路枢纽局部图"
 PROJECT_PATH = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.qgz"
 IMAGE_PATH = OUTPUT_DIR / "北京及周边铁路行迹_客运铁路底图.png"

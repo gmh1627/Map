@@ -44,7 +44,7 @@ from qgis.core import (
 )
 
 
-RAILWAY_ROOT = Path(r"F:\Desktop\Railway")
+RAILWAY_ROOT = Path(r"F:\Desktop\Blog\Map")
 SCRIPT_DIR = Path(__file__).resolve().parent
 TIMETABLE = SCRIPT_DIR / "timetable_2026-08-23.json"
 OUTPUT_DIR = RAILWAY_ROOT / "地图输出" / "全国专题图" / "K158路线图"

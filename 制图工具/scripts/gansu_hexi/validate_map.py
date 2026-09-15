@@ -9,7 +9,7 @@ from qgis.PyQt.QtGui import QImage
 from qgis.core import QgsApplication, QgsProject
 
 
-OUTPUT_DIR = Path(r"F:\Desktop\Railway\地图输出\区域线路图\走河西")
+OUTPUT_DIR = Path(r"F:\Desktop\Blog\Map\地图输出\区域线路图\走河西")
 PROJECT = OUTPUT_DIR / "走河西.qgz"
 IMAGE = OUTPUT_DIR / "走河西.png"
 

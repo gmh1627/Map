@@ -17,7 +17,7 @@ from qgis.core import (
 )
 
 
-DEFAULT_OUTPUT_ROOT = Path(r"F:\Desktop\Railway\地图输出\区域线路图")
+DEFAULT_OUTPUT_ROOT = Path(r"F:\Desktop\Blog\Map\地图输出\区域线路图")
 NO_CITY_CONTEXT_KEYS = {
     "home1",
     "home2_full",

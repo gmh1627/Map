@@ -36,7 +36,7 @@ from qgis.core import (
 )
 
 
-RAILWAY_ROOT = Path(r"F:\Desktop\Railway")
+RAILWAY_ROOT = Path(r"F:\Desktop\Blog\Map")
 COMMON_DIR = RAILWAY_ROOT / "制图工具" / "scripts" / "travel_history"
 sys.path.insert(0, str(COMMON_DIR))
 import build_maps as bm  # noqa: E402

@@ -51,7 +51,7 @@ from qgis.core import (
 )
 
 
-RAILWAY_ROOT = Path(r"F:\Desktop\Railway")
+RAILWAY_ROOT = Path(r"F:\Desktop\Blog\Map")
 DATA_ROOT = RAILWAY_ROOT / "制图工具" / "数据源"
 DEFAULT_OUTPUT_DIR = RAILWAY_ROOT / "地图输出" / "区域线路图" / "山陕漫游"
 OUTPUT_DIR = DEFAULT_OUTPUT_DIR

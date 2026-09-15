@@ -17,7 +17,7 @@ from qgis.core import (
 )
 
 
-DEFAULT_OUTPUT_DIR = Path(r"F:\Desktop\Railway\地图输出\区域线路图\山陕漫游")
+DEFAULT_OUTPUT_DIR = Path(r"F:\Desktop\Blog\Map\地图输出\区域线路图\山陕漫游")
 EXPECTED_COUNTS = {
     "实际铁路行程": 12,
     "公路行程": 2,

@@ -213,7 +213,7 @@
 整理后的目录：
 
 ```text
-F:\Desktop\Railway\
+F:\Desktop\Blog\Map\
 ├─ 制图工具\
 │  ├─ scripts\
 │  ├─ 数据源\
@@ -242,14 +242,14 @@ PowerShell 示例：
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Railway\制图工具\scripts\regional_overviews\build_overviews.py'
+  'F:\Desktop\Blog\Map\制图工具\scripts\regional_overviews\build_overviews.py'
 ```
 
 只重建一张区域图：
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Railway\制图工具\scripts\regional_overviews\build_overviews.py' `
+  'F:\Desktop\Blog\Map\制图工具\scripts\regional_overviews\build_overviews.py' `
   --only home3
 ```
 
@@ -257,44 +257,44 @@ PowerShell 示例：
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Railway\制图工具\scripts\flight_history\build_flight_map.py'
+  'F:\Desktop\Blog\Map\制图工具\scripts\flight_history\build_flight_map.py'
 ```
 
 “走河西”区域图：
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Railway\制图工具\scripts\gansu_hexi\build_map.py'
+  'F:\Desktop\Blog\Map\制图工具\scripts\gansu_hexi\build_map.py'
 ```
 
 “山陕漫游”和“甘肃行旅”使用各自脚本，但边界、标签和填色规则必须与通用区域图一致：
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Railway\制图工具\scripts\shanxi_shaanxi_redesign\build_redesign.py'
+  'F:\Desktop\Blog\Map\制图工具\scripts\shanxi_shaanxi_redesign\build_redesign.py'
 
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Railway\制图工具\scripts\gansu_itinerary\build_map.py'
+  'F:\Desktop\Blog\Map\制图工具\scripts\gansu_itinerary\build_map.py'
 ```
 
 上大学前去过的城市图：
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Railway\制图工具\scripts\pre_university\build_map.py'
+  'F:\Desktop\Blog\Map\制图工具\scripts\pre_university\build_map.py'
 ```
 
 K158 路线图依次构建路线、地图并校验；第一步需要本地全国铁路 OSM GeoPackage：
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Railway\制图工具\scripts\k158_planned\build_route.py'
+  'F:\Desktop\Blog\Map\制图工具\scripts\k158_planned\build_route.py'
 
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Railway\制图工具\scripts\k158_planned\build_map.py'
+  'F:\Desktop\Blog\Map\制图工具\scripts\k158_planned\build_map.py'
 
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Railway\制图工具\scripts\k158_planned\validate_map.py'
+  'F:\Desktop\Blog\Map\制图工具\scripts\k158_planned\validate_map.py'
 ```
 
 脚本导出后再运行同目录的 `validate_*.py`。校验至少覆盖：图层有效性、路线和站点数量、主图/南海插图数量、图例与比例尺位置、PNG 分辨率。区域图还要检查：
@@ -309,7 +309,7 @@ K158 路线图依次构建路线、地图并校验；第一步需要本地全国
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Railway\制图工具\scripts\validate_projects_openable.py'
+  'F:\Desktop\Blog\Map\制图工具\scripts\validate_projects_openable.py'
 ```
 
 如果打开旧工程时主画布看似空白，先打开“项目 > 布局管理器”查看已经保存的打印布局，或在图层面板右击“实际铁路行程”并选择“缩放到图层”。这通常不是数据丢失，而是旧脚本只保存了布局范围，没有保存 QGIS 主画布的默认范围。新版脚本会写入 `setDefaultViewExtent`、`setPresetFullExtent` 和项目主目录；数据源同时使用相对路径，移动整个输出文件夹后仍可正常读取。
