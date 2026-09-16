@@ -365,8 +365,100 @@ def remove_station_throat_detours(
     anchors: list[tuple[float, float]],
     protected_anchors: list[tuple[float, float]] | None = None,
 ) -> list[QgsPointXY]:
-    """Collapse short near-return loops around itinerary station anchors."""
+    """Collapse short near-return loops around itinerary station anchors.
+
+    OSM station points can sit at the end of a platform or a station throat.
+    The graph may consequently leave the point on a siding, travel through
+    the throat, and return to a nearby point on the main track.  Compare the
+    closure with the travelled distance so ordinary curves remain intact while
+    these endpoint hooks are removed.
+    """
     protected_anchors = protected_anchors or []
+
+    def remove_endpoint_spikes(
+        values: list[QgsPointXY],
+    ) -> list[QgsPointXY]:
+        """Remove a short, near-reversing spike at either route endpoint.
+
+        A station throat can be represented by two adjacent OSM edges which
+        leave the station in one direction and immediately turn back before
+        joining the through track.  There is no repeated vertex for the loop
+        cleaner to match, but the apex has an almost 180-degree turn.  Only
+        inspect the first/last 16 vertices.  A near-reversing apex is removed
+        when both legs are at least 15 m; a short (<100 m) orthogonal stub is
+        removed when it joins a substantially longer leg.  This keeps genuine
+        bends farther along the route intact while removing station-platform
+        hooks.
+        """
+        result = list(values)
+        changed = True
+        while changed and len(result) >= 3:
+            changed = False
+            endpoint_ranges = [
+                (range(1, min(16, len(result) - 1)), anchors[0]),
+                (
+                    range(max(1, len(result) - 16), len(result) - 1),
+                    anchors[-1],
+                ),
+            ]
+            for candidates, endpoint_anchor in endpoint_ranges:
+                for index in candidates:
+                    point = result[index]
+                    if approximate_distance_km(
+                        (point.x(), point.y()), endpoint_anchor
+                    ) > 3.0:
+                        continue
+                    if any(
+                        approximate_distance_km(
+                            (point.x(), point.y()), anchor
+                        )
+                        <= 2.0
+                        for anchor in protected_anchors
+                    ):
+                        continue
+                    before = result[index - 1]
+                    after = result[index + 1]
+                    latitude = math.radians(
+                        (before.y() + point.y() + after.y()) / 3.0
+                    )
+                    scale_x = 111.32 * math.cos(latitude)
+                    scale_y = 110.57
+                    incoming = (
+                        (point.x() - before.x()) * scale_x,
+                        (point.y() - before.y()) * scale_y,
+                    )
+                    outgoing = (
+                        (after.x() - point.x()) * scale_x,
+                        (after.y() - point.y()) * scale_y,
+                    )
+                    incoming_length = math.hypot(*incoming)
+                    outgoing_length = math.hypot(*outgoing)
+                    if incoming_length < 0.015 and outgoing_length >= 0.10:
+                        del result[index]
+                        changed = True
+                        break
+                    if incoming_length < 0.015 or outgoing_length < 0.015:
+                        continue
+                    cosine = (
+                        incoming[0] * outgoing[0]
+                        + incoming[1] * outgoing[1]
+                    ) / (incoming_length * outgoing_length)
+                    short_orthogonal_stub = (
+                        incoming_length < 0.10
+                        and outgoing_length >= 0.10
+                        and cosine < 0.75
+                    )
+                    if cosine < -0.35 or short_orthogonal_stub:
+                        del result[index]
+                        changed = True
+                        break
+                if changed:
+                    break
+        return result
+
+    # Do this before the distance-based cleaner: an endpoint spike may not
+    # return close enough to the station point to satisfy its closure test.
+    points = remove_endpoint_spikes(points)
     result: list[QgsPointXY] = []
     cumulative_km: list[float] = []
     for point in points:
@@ -380,14 +472,20 @@ def remove_station_throat_detours(
             route_position = cumulative_km[-1]
             for index in range(len(result) - 1, -1, -1):
                 traversed_km = route_position - cumulative_km[index]
-                if traversed_km > 3.0:
+                # Station yards can contain several kilometres of parallel
+                # throat geometry before the route rejoins the through line.
+                # Look farther back so endpoint hooks like Chuzhou North and
+                # Yulin are removed as well; protected reversal stations (for
+                # example Tongling on G7725/G7728) still opt out below.
+                if traversed_km > 8.0:
                     break
-                # Most vertices are nowhere near a possible closure. A cheap
-                # degree-space rejection avoids repeated trigonometry on dense
-                # OSM geometries.
-                dx = result[index].x() - point.x()
-                dy = result[index].y() - point.y()
-                if dx * dx + dy * dy > 0.000012:
+                # The former degree-space cutoff was about 0.35 km and missed
+                # valid closures at larger station throats.  Use a
+                # latitude-aware cutoff; the closure and detour-ratio checks
+                # below remain restrictive.
+                if approximate_distance_km(
+                    (result[index].x(), result[index].y()), point_coordinate
+                ) > 1.0:
                     continue
                 closure_km = haversine_km(
                     (result[index].x(), result[index].y()), point_coordinate
@@ -402,11 +500,25 @@ def remove_station_throat_detours(
                     <= 2.0
                     for anchor in protected_anchors
                 )
+                endpoint_return = any(
+                    min(
+                        approximate_distance_km(
+                            (result[index].x(), result[index].y()), anchor
+                        ),
+                        approximate_distance_km(point_coordinate, anchor),
+                    )
+                    <= 3.0
+                    for anchor in (anchors[0], anchors[-1])
+                )
+                closure_limit = 0.80 if endpoint_return else 0.35
+                minimum_detour = 0.12 if endpoint_return else 0.25
+                detour_ratio = 1.05 if endpoint_return else 2.5
                 if (
                     not protected
-                    and traversed_km >= 0.25
-                    and closure_km <= 0.35
-                    and traversed_km >= max(0.35, closure_km * 2.5)
+                    and traversed_km >= minimum_detour
+                    and closure_km <= closure_limit
+                    and traversed_km
+                    >= max(minimum_detour, closure_km * detour_ratio)
                 ):
                     loop_start = index
         if loop_start is None:
@@ -428,6 +540,68 @@ def remove_station_throat_detours(
                 )
             )
             result.append(point)
+    # The distance-based pass can expose a second, shorter apex after it
+    # removes the first part of a throat.  Run the endpoint-spike pass once
+    # more so the visible geometry is tested in its final form.
+    return remove_endpoint_spikes(result)
+
+
+def remove_global_short_returns(
+    points: list[QgsPointXY],
+    protected_anchors: list[tuple[float, float]] | None = None,
+    max_span_km: float = 1.5,
+    max_closure_km: float = 0.12,
+) -> list[QgsPointXY]:
+    """Collapse short sidings/loops even when no recorded station is nearby."""
+    protected_anchors = protected_anchors or []
+    result = list(points)
+    changed = True
+    while changed and len(result) >= 3:
+        changed = False
+        cumulative = [0.0]
+        for first, second in zip(result, result[1:]):
+            cumulative.append(
+                cumulative[-1]
+                + haversine_km((first.x(), first.y()), (second.x(), second.y()))
+            )
+        best = None
+        for end in range(1, len(result)):
+            for start in range(end - 1, -1, -1):
+                span = cumulative[end] - cumulative[start]
+                if span > max_span_km:
+                    break
+                if span < 0.15:
+                    continue
+                closure = haversine_km(
+                    (result[start].x(), result[start].y()),
+                    (result[end].x(), result[end].y()),
+                )
+                if closure > max_closure_km:
+                    continue
+                protected = any(
+                    min(
+                        approximate_distance_km(
+                            (result[start].x(), result[start].y()), anchor
+                        ),
+                        approximate_distance_km(
+                            (result[end].x(), result[end].y()), anchor
+                        ),
+                    )
+                    <= 2.0
+                    for anchor in protected_anchors
+                )
+                if protected:
+                    continue
+                candidate = (closure / max(span, 1e-9), closure, span, start, end)
+                if best is None or candidate < best:
+                    best = candidate
+        if best is None:
+            break
+        _, _, _, start, end = best
+        # Keep the two approach points and discard only the short detour between
+        # them; the surrounding railway geometry remains untouched.
+        result = result[: start + 1] + result[end:]
+        changed = True
     return result
 
 
@@ -481,6 +655,7 @@ def stitch_route_geometries(
         stitched = remove_station_throat_detours(
             stitched, required_points, protected_anchors
         )
+        stitched = remove_global_short_returns(stitched, protected_anchors)
     # A through route and a route terminating at the same station must use the
     # same visible anchor. Move only the nearest existing vertex to the station
     # point; unlike the former 5 km replacement, this retains the surrounding
@@ -1333,7 +1508,7 @@ def main() -> int:
                     ),
                     station_coords[control_names[-1]],
                 ],
-                clean_station_loops=True,
+                clean_station_loops=record["seq"] not in BRANCHED_ROUTE_SEQUENCES,
                 protected_anchors=(
                     [station_coords["铜陵"]]
                     if record["seq"] in BRANCHED_ROUTE_SEQUENCES

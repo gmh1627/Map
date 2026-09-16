@@ -99,14 +99,15 @@ class PoiSpec:
     card_w: float
     side: str
     theme: str = "simple"
+    chip_order: tuple[str, ...] = ()
 
 
 # Geographic coordinates remain editable in the GeoPackage. Pixel anchors and
 # card coordinates trace the supplied 531 x 712 reference composition.
 POIS = (
     PoiSpec("马蹄梁", 114.430, 39.635, "", "", "", 245, 251, 130, 207, 58, "left"),
-    PoiSpec("空中草原", 114.355, 39.585, "", "￥65/人 · ￥200/车", "", 181, 239, 59, 233, 111, "left", "price"),
-    PoiSpec("黄花梁", 114.495, 39.570, "徒步", "免费", "小尾寒羊、徒步、高山草甸、大片羊群", 247, 267, 77, 259, 137, "left", "dark"),
+    PoiSpec("空中草原", 114.355, 39.585, "", "￥65/人·￥200/车", "", 181, 239, 59, 233, 111, "left", "price", ("tag", "name")),
+    PoiSpec("黄花梁", 114.495, 39.570, "徒步", "免费", "小尾寒羊、徒步、高山草甸、大片羊群", 247, 267, 77, 259, 137, "left", "dark", ("name", "category", "tag")),
     PoiSpec("横岭子", 115.045, 39.650, "", "", "", 440, 239, 454, 229, 48, "right"),
     PoiSpec("乌龙沟长城", 115.015, 39.545, "长城", "免费", "保存较为完整，适合徒步", 410, 347, 418, 305, 112, "right", "wall"),
     PoiSpec("寨子沟明长城遗址", 114.955, 39.500, "长城", "免费", "明代长城遗存及敌台", 389, 377, 416, 343, 115, "right", "wall"),
@@ -114,21 +115,21 @@ POIS = (
     PoiSpec("白求恩战地手术室旧址", 114.836, 39.365, "", "", "", 411, 416, 442, 406, 89, "right"),
     PoiSpec("泰山宫", 114.674, 39.344, "唐代石狮", "免费", "保存文物石刻，近县城一并游览", 249, 411, 112, 367, 139, "left", "dark"),
     PoiSpec("阁院寺", 114.686, 39.366, "辽代", "免费", "中国八大辽构之一，皇家寺院", 249, 422, 126, 392, 125, "left", "dark"),
-    PoiSpec("兴文塔", 114.703, 39.355, "", "免费", "", 250, 432, 128, 418, 123, "left", "dark"),
+    PoiSpec("兴文塔", 114.703, 39.355, "", "免费", "", 250, 432, 128, 418, 123, "left", "dark", ("tag", "name")),
     PoiSpec("涞源博物馆", 114.710, 39.350, "辽代", "免费", "", 249, 444, 128, 440, 123, "left", "dark"),
     PoiSpec("七山滑雪度假区", 114.400, 39.355, "", "", "", 249, 455, 20, 448, 96, "left"),
-    PoiSpec("仙人峪", 114.505, 39.245, "", "￥35", "三十多公里的峡谷景观，石灰岩地貌", 156, 500, 20, 477, 101, "left", "price"),
-    PoiSpec("龙门飞狐", 114.440, 39.300, "", "免费", "深峡谷、山野景观，可徒步", 154, 545, 20, 515, 93, "left"),
-    PoiSpec("七亩地万花谷", 114.420, 39.265, "长城", "免费", "", 162, 553, 20, 547, 105, "left", "wall"),
+    PoiSpec("仙人峪", 114.505, 39.245, "", "￥35", "三十多公里的峡谷景观，石灰岩地貌", 156, 500, 20, 477, 101, "left", "price", ("name", "tag")),
+    PoiSpec("龙门飞狐", 114.440, 39.300, "", "免费", "深峡谷、山野景观，可徒步", 154, 545, 20, 515, 93, "left", "simple", ("name", "tag")),
+    PoiSpec("七亩地万花谷", 114.420, 39.265, "长城", "免费", "", 162, 553, 20, 547, 105, "left", "wall", ("name", "tag", "category")),
     PoiSpec("十瀑峡", 114.625, 39.255, "", "", "高山峡谷瀑布景观", 229, 533, 169, 528, 55, "left"),
     PoiSpec("七彩生态植物园", 114.780, 39.350, "", "", "", 267, 455, 370, 449, 110, "right"),
-    PoiSpec("白石口长城", 114.825, 39.315, "长城", "免费", "", 268, 483, 371, 477, 92, "right", "wall"),
-    PoiSpec("巨石阵", 114.810, 39.285, "徒步", "免费", "导航到感恩石，徒步1小时", 269, 508, 379, 501, 82, "right", "dark"),
+    PoiSpec("白石口长城", 114.825, 39.315, "长城", "免费", "", 268, 483, 371, 477, 92, "right", "wall", ("name", "category", "tag")),
+    PoiSpec("巨石阵", 114.810, 39.285, "徒步", "免费", "导航到感恩石，徒步1小时", 269, 508, 379, 501, 82, "right", "dark", ("name", "category", "tag")),
     PoiSpec("涞源抗战纪念馆", 114.825, 39.270, "", "", "", 269, 522, 379, 524, 89, "right"),
     PoiSpec("涞源县生态文明纪念区", 114.940, 39.170, "", "", "", 368, 551, 441, 557, 88, "right"),
     PoiSpec("天桥瀑布群", 114.785, 39.115, "", "", "", 302, 554, 304, 546, 83, "right"),
     PoiSpec("鹤望长廊", 114.735, 39.090, "", "", "白石山主要景点，沿悬崖栈道游览", 254, 552, 300, 577, 78, "right"),
-    PoiSpec("白石山", 114.700, 39.218, "景区", "￥135", "世界地质公园；东门索道上山，游览约 5—6 小时", 273, 608, 303, 610, 205, "right", "major"),
+    PoiSpec("白石山", 114.700, 39.218, "景区", "￥135", "中国唯一大理岩峰林景观，有“三顶、六台、九谷、八十一峰”\n北方第一奇山；徒步大环线8KM，5~6h；小环线5KM，3~4h", 273, 608, 303, 610, 205, "right", "major"),
     PoiSpec("白银坨", 114.870, 39.075, "", "", "", 369, 650, 305, 644, 61, "left"),
     PoiSpec("古北岳", 114.610, 39.090, "", "", "", 203, 658, 305, 677, 57, "right"),
 )
@@ -757,25 +758,25 @@ def add_poi_callout(
     # Reference leaders terminate on the first-line name/chip row, not in the
     # smaller explanatory text below it.
     card_center_y = card_y + mm_y(7.0)
-    if poi.side == "left":
-        edge_x = card_x + card_w
-        elbow_x = min(anchor.x() - mm_x(8), edge_x + mm_x(15))
-    else:
-        edge_x = card_x
-        elbow_x = max(anchor.x() + mm_x(8), edge_x - mm_x(15))
-    leader = add_polyline(
-        layout,
-        [
-            QPointF(anchor.x(), anchor.y()),
-            QPointF(elbow_x, anchor.y()),
-            QPointF(elbow_x, card_center_y),
-            QPointF(edge_x, card_center_y),
-        ],
-        "#3D463E",
-        0.27,
-        dashed=True,
-    )
-    leader.setId(f"引线_{poi.name}")
+
+    def add_leader(content_right: float) -> None:
+        # Leave a narrow breathing space at the rounded chip edge. Drawing the
+        # dashed line directly on the fill made several labels look misaligned.
+        edge_x = content_right + mm_x(1.5) if poi.side == "left" else card_x - mm_x(1.5)
+        elbow_x = min(anchor.x() - mm_x(8), edge_x + mm_x(15)) if poi.side == "left" else max(anchor.x() + mm_x(8), edge_x - mm_x(15))
+        leader = add_polyline(
+            layout,
+            [
+                QPointF(anchor.x(), anchor.y()),
+                QPointF(elbow_x, anchor.y()),
+                QPointF(elbow_x, card_center_y),
+                QPointF(edge_x, card_center_y),
+            ],
+            "#3D463E",
+            0.27,
+            dashed=True,
+        )
+        leader.setId(f"引线_{poi.name}")
 
     dot_fill = "#E9F000" if poi.theme == "major" else "#0A0E0B"
     dot = add_ellipse(
@@ -793,50 +794,68 @@ def add_poi_callout(
     cursor = card_x
     chip_h = mm_y(14)
     if poi.theme == "major":
-        add_shape(layout, card_x, card_y, card_w, mm_y(40), "255,255,255,232", "#D7DED5", 0.12, radius=0.7)
-        add_shape(layout, card_x, card_y, mm_x(5), mm_y(17), "#E7EF00", "255,255,255,0", 0.0)
-        add_label(layout, poi.name, card_x + mm_x(9), card_y, mm_x(52), mm_y(17), 6.4, FONT_SANS, "#111511", bold=True)
-        add_shape(layout, card_x + mm_x(66), card_y + mm_y(1), mm_x(29), mm_y(14), "#242B26", "255,255,255,0", 0.0, radius=1.0)
-        add_label(layout, "景区", card_x + mm_x(68), card_y + mm_y(1), mm_x(25), mm_y(14), 4.4, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
-        add_shape(layout, card_x + mm_x(99), card_y + mm_y(1), mm_x(37), mm_y(14), "#22B99B", "255,255,255,0", 0.0, radius=1.0)
-        add_label(layout, "推荐", card_x + mm_x(101), card_y + mm_y(1), mm_x(33), mm_y(14), 4.4, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
-        add_shape(layout, card_x + mm_x(140), card_y + mm_y(1), mm_x(43), mm_y(14), "#92D94F", "255,255,255,0", 0.0, radius=1.0)
-        add_label(layout, poi.tag, card_x + mm_x(142), card_y + mm_y(1), mm_x(39), mm_y(14), 4.4, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
-        add_label(layout, poi.note, card_x + mm_x(8), card_y + mm_y(17), card_w - mm_x(13), mm_y(21), 3.8, FONT_SANS, "#4E5750", False)
+        # The reference uses one black/yellow title chip followed by three
+        # tightly packed metadata chips. The map remains visible behind the
+        # two-line description instead of adding a large white panel.
+        add_shape(layout, card_x + mm_x(7), card_y, mm_x(76), mm_y(17), "#050706", "#050706", 0.0, radius=2.0)
+        add_label(layout, poi.name, card_x + mm_x(10), card_y, mm_x(70), mm_y(17), 6.1, FONT_SANS, "#E7EF00", bold=True, align=Qt.AlignCenter)
+        add_shape(layout, card_x + mm_x(86), card_y + mm_y(1), mm_x(29), mm_y(14), "#242B26", "255,255,255,0", 0.0, radius=1.0)
+        add_label(layout, "景区", card_x + mm_x(88), card_y + mm_y(1), mm_x(25), mm_y(14), 4.4, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
+        add_shape(layout, card_x + mm_x(117), card_y + mm_y(1), mm_x(37), mm_y(14), "#22B99B", "255,255,255,0", 0.0, radius=1.0)
+        add_label(layout, "推荐", card_x + mm_x(119), card_y + mm_y(1), mm_x(33), mm_y(14), 4.4, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
+        add_shape(layout, card_x + mm_x(156), card_y + mm_y(1), mm_x(43), mm_y(14), "#92D94F", "255,255,255,0", 0.0, radius=1.0)
+        add_label(layout, poi.tag, card_x + mm_x(158), card_y + mm_y(1), mm_x(39), mm_y(14), 4.4, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
+        add_label(layout, poi.note, card_x + mm_x(8), card_y + mm_y(18), card_w - mm_x(13), mm_y(24), 3.55, FONT_SANS, "#4E5750", False)
+        add_leader(card_x + card_w)
         return
-    elif poi.category:
-        badge_w = mm_x(max(24, 8 + 7 * len(poi.category)))
-        badge_color = "#22B99B" if poi.category in {"长城", "辽代", "唐代石狮", "徒步", "景区"} else "#7ED14D"
-        add_shape(layout, cursor, card_y, badge_w, chip_h, badge_color, "#FFFFFF", 0.10, radius=1.2)
-        add_label(layout, poi.category, cursor + mm_x(2), card_y, badge_w - mm_x(4), chip_h, 4.7, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
-        cursor += badge_w + mm_x(1.5)
 
-    if poi.theme == "price" and poi.name != "空中草原":
-        name_w = mm_x(max(42, len(poi.name) * 12 + 8))
-        add_shape(layout, cursor, card_y, name_w, chip_h, "#B6F48B", "#D6E8C7", 0.10, radius=1.4)
-        add_label(layout, poi.name, cursor + mm_x(3), card_y, name_w - mm_x(6), chip_h, 5.0, FONT_SANS, "#152214", bold=True, align=Qt.AlignCenter)
-        cursor += name_w + mm_x(1.5)
-
-    if poi.tag:
-        if poi.theme == "price" and poi.tag.startswith("￥"):
-            tag_w = mm_x(66 if poi.name == "空中草原" else 31)
+    order = poi.chip_order or tuple(
+        key for key, value in (("category", poi.category), ("tag", poi.tag), ("name", poi.name)) if value
+    )
+    gap = mm_x(1.5)
+    widths: dict[str, float] = {}
+    for key in order:
+        if key == "category":
+            widths[key] = mm_x(max(24, 8 + 7 * len(poi.category)))
+        elif key == "tag":
+            if poi.name == "空中草原":
+                widths[key] = mm_x(68)
+            elif poi.tag.startswith("￥"):
+                widths[key] = mm_x(31)
+            else:
+                widths[key] = mm_x(max(22, 8 + 6 * len(poi.tag)))
         else:
-            tag_w = mm_x(max(22, 8 + 6 * len(poi.tag)))
-        tag_fill = "#8FD950" if poi.tag.startswith("￥") else "#AEEA70"
-        add_shape(layout, cursor, card_y, tag_w, chip_h, tag_fill, "#FFFFFF", 0.10, radius=1.2)
-        add_label(layout, poi.tag, cursor + mm_x(2), card_y, tag_w - mm_x(4), chip_h, 4.5, FONT_SANS, "#FFFFFF" if poi.tag.startswith("￥") else "#304C25", bold=True, align=Qt.AlignCenter)
-        cursor += tag_w + mm_x(1.5)
+            widths[key] = mm_x(40 if poi.name == "空中草原" else max(31, len(poi.name) * 11 + 8))
 
-    remaining = max(mm_x(22), card_x + card_w - cursor)
-    if poi.theme == "dark":
-        name_fill, name_color = "#050706", "#FFFFFF"
-    else:
-        name_fill, name_color = "#B6F48B", "#152214"
-    if poi.theme != "major" and not (poi.theme == "price" and poi.name != "空中草原"):
-        desired = mm_x(max(31, len(poi.name) * 11 + 8))
-        name_w = min(remaining, desired)
-        add_shape(layout, cursor, card_y, name_w, chip_h, name_fill, "#D6E8C7", 0.10, radius=1.4)
-        add_label(layout, poi.name, cursor + mm_x(2), card_y, max(mm_x(18), name_w - mm_x(4)), chip_h, 4.7, FONT_SANS, name_color, bold=True, align=Qt.AlignCenter)
+    # Long names absorb any necessary compression while category and price
+    # chips retain the compact proportions visible in the reference.
+    available = card_w - gap * max(0, len(order) - 1)
+    overflow = sum(widths.values()) - available
+    if overflow > 0 and "name" in widths:
+        widths["name"] = max(mm_x(29), widths["name"] - overflow)
+
+    for index, key in enumerate(order):
+        width = widths[key]
+        if key == "category":
+            fill = "#22B99B" if poi.category in {"长城", "辽代", "唐代石狮", "徒步", "景区"} else "#7ED14D"
+            text, color, font_size = poi.category, "#FFFFFF", 4.7
+        elif key == "tag":
+            fill = "#8FD950" if poi.tag.startswith("￥") else "#AEEA70"
+            text = poi.tag
+            color = "#FFFFFF" if poi.tag.startswith("￥") else "#304C25"
+            font_size = 4.1 if poi.name == "空中草原" else 4.5
+        else:
+            fill = "#050706" if poi.theme == "dark" else "#B6F48B"
+            text = poi.name
+            color = "#FFFFFF" if poi.theme == "dark" else "#152214"
+            font_size = 4.5 if widths[key] <= mm_x(40) else 4.7
+        add_shape(layout, cursor, card_y, width, chip_h, fill, "#D6E8C7", 0.10, radius=1.2)
+        add_label(layout, text, cursor + mm_x(2), card_y, max(mm_x(18), width - mm_x(4)), chip_h, font_size, FONT_SANS, color, bold=True, align=Qt.AlignCenter)
+        cursor += width
+        if index < len(order) - 1:
+            cursor += gap
+
+    add_leader(cursor)
     if poi.note:
         note_y = card_y + mm_y(16.0) if poi.name == "巨石阵" else card_y + chip_h
         note_height = mm_y(12.0) if poi.name != "巨石阵" else mm_y(10.0)
@@ -846,26 +865,26 @@ def add_poi_callout(
 
 
 def add_legend(layout: QgsPrintLayout) -> None:
-    add_shape(layout, mm_x(24), mm_y(598), mm_x(122), mm_y(101), "239,247,232,222", "255,255,255,0", 0.0)
-    add_shape(layout, mm_x(24), mm_y(598), mm_x(122), mm_y(7), "#111512")
-    add_ellipse(layout, mm_x(29), mm_y(607), mm_x(30), mm_y(30), "#F7F8F6", "#59625C", 0.28)
+    add_shape(layout, mm_x(22), mm_y(598), mm_x(122), mm_y(102), "245,249,241,226", "#566158", 0.24)
+    add_shape(layout, mm_x(22), mm_y(598), mm_x(120), mm_y(6), "#111512")
+    add_ellipse(layout, mm_x(27), mm_y(607), mm_x(30), mm_y(30), "#F7F8F6", "#59625C", 0.28)
     add_ellipse(layout, mm_x(40), mm_y(611), mm_x(8), mm_y(8), "#535B56")
     add_shape(layout, mm_x(35), mm_y(620), mm_x(18), mm_y(11), "#747D77", radius=1.0)
-    add_label(layout, "冷三岁·注", mm_x(61), mm_y(606), mm_x(72), mm_y(26), 7.2, FONT_SANS, "#172017", bold=True)
+    add_label(layout, "冷三岁·注", mm_x(59), mm_y(606), mm_x(72), mm_y(26), 7.2, FONT_SANS, "#172017", bold=True)
     rows = (
         ("#E7EF00", "白石山", "必打卡", "#F4F500"),
         ("#070A08", "悦客公园", "推荐打卡", "#FFFFFF"),
         ("#184716", "仙人峪", "可打卡", "#183516"),
     )
     for index, (dot_color, label, note, label_color) in enumerate(rows):
-        y = 641 + index * 25
+        y = 640 + index * 22
         add_ellipse(layout, mm_x(34), mm_y(y), mm_x(12), mm_y(12), dot_color, "#EAF0E8", 0.16)
         if index in {0, 2}:
             add_ellipse(layout, mm_x(37), mm_y(y + 3), mm_x(6), mm_y(6), "#080B08")
         fill = "#050706" if index < 2 else "#B4F48A"
         add_shape(layout, mm_x(49), mm_y(y - 1), mm_x(57), mm_y(16), fill, "255,255,255,0", 0.0, radius=1.5)
-        add_label(layout, label, mm_x(51), mm_y(y - 1), mm_x(53), mm_y(16), 6.0, FONT_SANS, label_color, bold=True, align=Qt.AlignCenter)
-        add_label(layout, note, mm_x(113), mm_y(y - 1), mm_x(31), mm_y(16), 5.8, FONT_SANS, "#1E261F", bold=True)
+        add_label(layout, label, mm_x(51), mm_y(y - 1), mm_x(53), mm_y(16), 5.8, FONT_SANS, label_color, bold=True, align=Qt.AlignCenter)
+        add_label(layout, note, mm_x(111), mm_y(y - 1), mm_x(33), mm_y(16), 4.7, FONT_SANS, "#1E261F", bold=True, align=Qt.AlignCenter)
 
 
 def add_reference_linework(layout: QgsPrintLayout) -> None:
