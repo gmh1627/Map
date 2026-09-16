@@ -331,9 +331,17 @@ def build_river_layer(
 
 
 def build_osm_network_layers(
-    project: QgsProject, clip_layer: QgsVectorLayer
+    project: QgsProject, clip_layer: QgsVectorLayer | None
 ) -> tuple[QgsVectorLayer, QgsVectorLayer]:
     """Build a restrained real road/water network from the cached OSM extract."""
+    if clip_layer is None:
+        # Keep the published GeoPackage bounded to the map frame while still
+        # retaining roads and rivers outside the highlighted county.
+        clip_layer = memory_layer("Polygon", "map_extent", [])
+        extent_feature = QgsFeature(clip_layer.fields())
+        extent_feature.setGeometry(QgsGeometry.fromRect(QgsRectangle(*MAP_EXTENT)))
+        clip_layer.dataProvider().addFeature(extent_feature)
+        clip_layer.updateExtents()
     if not OSM_NETWORK.exists():
         return (
             build_line_layer(project, "道路骨架", "roads", ROADS, clip_layer),
@@ -353,12 +361,12 @@ def build_osm_network_layers(
             continue
         coordinates = tuple((float(point["lon"]), float(point["lat"])) for point in geometry)
         highway = tags.get("highway")
-        if highway in major_classes or (highway == "tertiary" and tags.get("name")):
+        if highway in major_classes:
             road_records.append(
                 (tags.get("name") or f"OSM {element.get('id')}", highway, coordinates)
             )
         waterway = tags.get("waterway")
-        if waterway in {"river", "stream"}:
+        if waterway == "river":
             river_records.append(
                 (tags.get("name") or f"OSM {element.get('id')}", waterway, coordinates)
             )
@@ -476,7 +484,7 @@ def style_roads(layer: QgsVectorLayer) -> None:
     for road_class, width in widths.items():
         symbol = QgsLineSymbol.createSimple(
             {
-                "line_color": "119,183,98,142",
+                "line_color": "119,183,98,72",
                 "line_width": str(width),
                 "line_width_unit": "MM",
                 "capstyle": "round",
@@ -490,7 +498,7 @@ def style_roads(layer: QgsVectorLayer) -> None:
 def style_rivers(layer: QgsVectorLayer) -> None:
     symbol = QgsLineSymbol.createSimple(
         {
-            "line_color": "129,202,193,150",
+            "line_color": "129,202,193,82",
             "line_width": "0.16",
             "line_width_unit": "MM",
             "capstyle": "round",
@@ -545,15 +553,9 @@ def style_context_labels(layer: QgsVectorLayer) -> None:
             QgsMarkerSymbol.createSimple({"name": "circle", "size": "0", "outline_style": "no"})
         )
     )
-    settings = QgsPalLayerSettings()
-    settings.enabled = True
-    settings.fieldName = "name"
-    settings.placement = Qgis.LabelPlacement.OverPoint
-    settings.displayAll = True
-    settings.obstacle = False
-    settings.setFormat(text_format(10.0, FONT_SANS, "#D7DDD7", bold=True))
-    layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
-    layer.setLabelsEnabled(True)
+    # These labels are added as layout annotations below. A map-layer label
+    # would be clipped at the map item's extent for counties just outside it.
+    layer.setLabelsEnabled(False)
 
 
 def add_shape(
@@ -915,6 +917,34 @@ def add_reference_linework(layout: QgsPrintLayout) -> None:
         item.setId(f"周边浅色线网_{index + 1}")
 
 
+def add_context_annotations(layout: QgsPrintLayout) -> None:
+    """Place surrounding county names in the page, including edge counties."""
+    # The source coordinates for 灵丘、涞水 and 唐县 fall outside the map
+    # extent. These page positions follow the reference and keep the names
+    # legible instead of letting QGIS clip them at the map frame.
+    labels = (
+        ("蔚县", 130, 174),
+        ("灵丘", 31, 323),
+        ("涞水", 476, 188),
+        ("易县", 476, 501),
+        ("唐县", 258, 682),
+    )
+    for name, x, y in labels:
+        add_label(
+            layout,
+            name,
+            mm_x(x),
+            mm_y(y),
+            mm_x(42),
+            mm_y(17),
+            10.0,
+            FONT_SANS,
+            "#D7DDD7",
+            bold=True,
+            align=Qt.AlignCenter,
+        )
+
+
 def add_minor_annotations(layout: QgsPrintLayout) -> None:
     # The summit block and secondary place labels are deliberately quieter than
     # attraction cards, matching the hierarchy of the reference infographic.
@@ -994,6 +1024,7 @@ def build_layout(project: QgsProject, layers: list[QgsVectorLayer]) -> QgsPrintL
     map_item.setKeepLayerSet(True)
 
     add_reference_linework(layout)
+    add_context_annotations(layout)
     add_header(layout)
     add_title(layout)
     add_city_badge(layout, project, map_item)
@@ -1019,7 +1050,10 @@ def main() -> int:
         project.setFilePathStorage(Qgis.FilePathType.Relative)
 
         context, shadow, focus = build_admin_layers(project)
-        roads, rivers = build_osm_network_layers(project, focus)
+        # Keep the real surrounding network. The map item clips it to the
+        # published extent; clipping to the focus county removed the faint
+        # roads and rivers visible around the map in the reference.
+        roads, rivers = build_osm_network_layers(project, None)
         pois = build_poi_layer(project)
         context_labels = build_context_label_layer(project)
 

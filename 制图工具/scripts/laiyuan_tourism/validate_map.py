@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from qgis.PyQt.QtGui import QImageReader
-from qgis.core import QgsApplication, QgsProject, QgsVectorLayer
+from qgis.core import QgsApplication, QgsGeometry, QgsProject, QgsRectangle, QgsVectorLayer
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -116,20 +116,19 @@ def main() -> int:
                 errors.append(f"PNG expected 531 x 712, got {image_size}")
 
         boundary_metrics = {}
-        focus_layer = QgsVectorLayer(f"{GPKG}|layername=laiyuan_county", "focus", "ogr")
-        if focus_layer.isValid():
-            focus_geometry = next(focus_layer.getFeatures()).geometry()
+        map_extent = QgsGeometry.fromRect(QgsRectangle(114.263, 38.99, 115.137, 39.92))
+        if map_extent is not None:
             for layer_name in ("roads", "rivers"):
                 line_layer = QgsVectorLayer(f"{GPKG}|layername={layer_name}", layer_name, "ogr")
                 outside_length = 0.0
                 for feature in line_layer.getFeatures():
-                    outside = feature.geometry().difference(focus_geometry)
+                    outside = feature.geometry().difference(map_extent)
                     if not outside.isNull():
                         outside_length += outside.length()
-                boundary_metrics[f"{layer_name}_outside_length"] = outside_length
+                boundary_metrics[f"{layer_name}_outside_map_extent_length"] = outside_length
                 if outside_length > 1e-7:
                     errors.append(
-                        f"{layer_name} extends outside Laiyuan boundary: {outside_length}"
+                        f"{layer_name} extends outside map extent: {outside_length}"
                     )
 
         report = {
