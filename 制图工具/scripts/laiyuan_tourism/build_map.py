@@ -123,7 +123,7 @@ POIS = (
     PoiSpec("十瀑峡", 114.625, 39.255, "", "", "高山峡谷瀑布景观", 229, 533, 169, 528, 55, "left"),
     PoiSpec("七彩生态植物园", 114.780, 39.350, "", "", "", 267, 455, 370, 449, 110, "right"),
     PoiSpec("白石口长城", 114.825, 39.315, "长城", "免费", "", 268, 483, 371, 477, 92, "right", "wall"),
-    PoiSpec("巨石阵", 114.810, 39.285, "徒步", "免费", "涞源南部奇石景观", 269, 508, 379, 501, 82, "right", "dark"),
+    PoiSpec("巨石阵", 114.810, 39.285, "徒步", "免费", "导航到感恩石，徒步1小时", 269, 508, 379, 501, 82, "right", "dark"),
     PoiSpec("涞源抗战纪念馆", 114.825, 39.270, "", "", "", 269, 522, 379, 524, 89, "right"),
     PoiSpec("涞源县生态文明纪念区", 114.940, 39.170, "", "", "", 368, 551, 441, 557, 88, "right"),
     PoiSpec("天桥瀑布群", 114.785, 39.115, "", "", "", 302, 554, 304, 546, 83, "right"),
@@ -698,7 +698,7 @@ def add_header(layout: QgsPrintLayout) -> None:
     bar.setId("刊头_黑条")
     add_shape(layout, mm_x(14), mm_y(11), mm_x(17), mm_y(16), "#FFFFFF", "#B8C0BA", 0.16)
     add_label(layout, "【北京周边系列】", mm_x(39), mm_y(7), mm_x(119), mm_y(22), 6.8, color="#FFFFFF", bold=True)
-    add_label(layout, "之保定 · 小城", mm_x(155), mm_y(7), mm_x(94), mm_y(22), 6.8, color="#EFFF20", bold=True)
+    add_label(layout, " 之保定 · 小城", mm_x(155), mm_y(7), mm_x(101), mm_y(22), 6.8, color="#EFFF20", bold=True)
     add_label(layout, "#第2-005期/100", mm_x(310), mm_y(7), mm_x(96), mm_y(22), 6.5, color="#FFFFFF", bold=True, align=Qt.AlignCenter)
     add_ellipse(layout, mm_x(416), mm_y(8), mm_x(21), mm_y(20), "#F7F8F7", "#657069", 0.24)
     add_ellipse(layout, mm_x(423), mm_y(11), mm_x(7), mm_y(7), "#4D5550")
@@ -754,7 +754,9 @@ def add_poi_callout(
     card_y = mm_y(poi.card_y)
     card_w = mm_x(poi.card_w)
     card_h = mm_y(24.0 if poi.note else 15.0)
-    card_center_y = card_y + card_h / 2.0
+    # Reference leaders terminate on the first-line name/chip row, not in the
+    # smaller explanatory text below it.
+    card_center_y = card_y + mm_y(7.0)
     if poi.side == "left":
         edge_x = card_x + card_w
         elbow_x = min(anchor.x() - mm_x(8), edge_x + mm_x(15))
