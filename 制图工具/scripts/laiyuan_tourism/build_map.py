@@ -698,7 +698,7 @@ def add_header(layout: QgsPrintLayout) -> None:
     bar.setId("刊头_黑条")
     add_shape(layout, mm_x(14), mm_y(11), mm_x(17), mm_y(16), "#FFFFFF", "#B8C0BA", 0.16)
     add_label(layout, "【北京周边系列】", mm_x(39), mm_y(7), mm_x(119), mm_y(22), 6.8, color="#FFFFFF", bold=True)
-    add_label(layout, "之保定 · 小城", mm_x(161), mm_y(7), mm_x(95), mm_y(22), 6.8, color="#EFFF20", bold=True)
+    add_label(layout, " 之保定 · 小城", mm_x(127), mm_y(7), mm_x(110), mm_y(22), 6.8, color="#EFFF20", bold=True)
     add_label(layout, "#第2-005期/100", mm_x(310), mm_y(7), mm_x(96), mm_y(22), 6.5, color="#FFFFFF", bold=True, align=Qt.AlignCenter)
     add_ellipse(layout, mm_x(416), mm_y(8), mm_x(21), mm_y(20), "#F7F8F7", "#657069", 0.24)
     add_ellipse(layout, mm_x(423), mm_y(11), mm_x(7), mm_y(7), "#4D5550")
