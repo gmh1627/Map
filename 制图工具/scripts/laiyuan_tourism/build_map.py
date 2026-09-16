@@ -698,7 +698,7 @@ def add_header(layout: QgsPrintLayout) -> None:
     bar.setId("刊头_黑条")
     add_shape(layout, mm_x(14), mm_y(11), mm_x(17), mm_y(16), "#FFFFFF", "#B8C0BA", 0.16)
     add_label(layout, "【北京周边系列】", mm_x(39), mm_y(7), mm_x(119), mm_y(22), 6.8, color="#FFFFFF", bold=True)
-    add_label(layout, " 之保定 · 小城", mm_x(155), mm_y(7), mm_x(101), mm_y(22), 6.8, color="#EFFF20", bold=True)
+    add_label(layout, "之保定 · 小城", mm_x(161), mm_y(7), mm_x(95), mm_y(22), 6.8, color="#EFFF20", bold=True)
     add_label(layout, "#第2-005期/100", mm_x(310), mm_y(7), mm_x(96), mm_y(22), 6.5, color="#FFFFFF", bold=True, align=Qt.AlignCenter)
     add_ellipse(layout, mm_x(416), mm_y(8), mm_x(21), mm_y(20), "#F7F8F7", "#657069", 0.24)
     add_ellipse(layout, mm_x(423), mm_y(11), mm_x(7), mm_y(7), "#4D5550")
@@ -722,7 +722,7 @@ def add_title(layout: QgsPrintLayout) -> None:
         "#050705",
         bold=True,
         buffer_color="#FFF500",
-        buffer_size=0.68,
+        buffer_size=1.25,
     )
     add_label(layout, "保定各区县旅游·第01/21", mm_x(323), mm_y(123), mm_x(194), mm_y(31), 9.2, FONT_SANS, "#111511", bold=True, align=Qt.AlignCenter)
     add_label(layout, "北", mm_x(42), mm_y(174), mm_x(20), mm_y(17), 6.4, FONT_SANS, "#151A16", bold=True, align=Qt.AlignCenter)
@@ -838,7 +838,11 @@ def add_poi_callout(
         add_shape(layout, cursor, card_y, name_w, chip_h, name_fill, "#D6E8C7", 0.10, radius=1.4)
         add_label(layout, poi.name, cursor + mm_x(2), card_y, max(mm_x(18), name_w - mm_x(4)), chip_h, 4.7, FONT_SANS, name_color, bold=True, align=Qt.AlignCenter)
     if poi.note:
-        add_label(layout, poi.note, card_x, card_y + chip_h, card_w, mm_y(12), 3.7, FONT_SANS, "#59635A", False)
+        note_y = card_y + mm_y(16.0) if poi.name == "巨石阵" else card_y + chip_h
+        note_height = mm_y(12.0) if poi.name != "巨石阵" else mm_y(10.0)
+        note_size = 3.7 if poi.name != "巨石阵" else 4.2
+        note_color = "#4E5750" if poi.name == "巨石阵" else "#59635A"
+        add_label(layout, poi.note, card_x, note_y, card_w, note_height, note_size, FONT_SANS, note_color, False)
 
 
 def add_legend(layout: QgsPrintLayout) -> None:
