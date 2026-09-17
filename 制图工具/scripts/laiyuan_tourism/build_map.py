@@ -130,7 +130,7 @@ POIS = (
     PoiSpec("天桥瀑布群", 114.785, 39.115, "", "", "", 302, 554, 304, 546, 83, "right"),
     PoiSpec("鹤望长廊", 114.735, 39.090, "", "", "白石山主要景点，沿悬崖栈道游览", 254, 552, 300, 577, 78, "right"),
     PoiSpec("白石山", 114.700, 39.218, "景区", "￥135", "中国唯一大理岩峰林景观，有“三顶、六台、九谷、八十一峰”\n北方第一奇山；徒步大环线8KM，5~6h；小环线5KM，3~4h", 273, 608, 303, 610, 205, "right", "major"),
-    PoiSpec("白银坨", 114.870, 39.075, "", "", "", 369, 650, 305, 644, 61, "left"),
+    PoiSpec("白银坨", 114.870, 39.075, "", "", "", 369, 667, 305, 660, 61, "left"),
     PoiSpec("古北岳", 114.610, 39.090, "", "", "", 203, 658, 305, 677, 57, "right"),
 )
 
@@ -867,12 +867,12 @@ def add_poi_callout(
 
 
 def add_legend(layout: QgsPrintLayout) -> None:
-    add_shape(layout, mm_x(22), mm_y(598), mm_x(122), mm_y(102), "245,249,241,226", "#566158", 0.24)
-    add_shape(layout, mm_x(22), mm_y(598), mm_x(120), mm_y(6), "#111512")
-    add_ellipse(layout, mm_x(27), mm_y(607), mm_x(30), mm_y(30), "#F7F8F6", "#59625C", 0.28)
-    add_ellipse(layout, mm_x(40), mm_y(611), mm_x(8), mm_y(8), "#535B56")
-    add_shape(layout, mm_x(35), mm_y(620), mm_x(18), mm_y(11), "#747D77", radius=1.0)
-    add_label(layout, "冷三岁·注", mm_x(59), mm_y(606), mm_x(72), mm_y(26), 7.2, FONT_SANS, "#172017", bold=True)
+    add_shape(layout, mm_x(16), mm_y(598), mm_x(146), mm_y(102), "235,246,226,190", "255,255,255,0", 0.0)
+    add_shape(layout, mm_x(16), mm_y(598), mm_x(143), mm_y(6), "#111512")
+    add_ellipse(layout, mm_x(24), mm_y(607), mm_x(30), mm_y(30), "#F7F8F6", "#59625C", 0.28)
+    add_ellipse(layout, mm_x(35), mm_y(611), mm_x(8), mm_y(8), "#535B56")
+    add_shape(layout, mm_x(30), mm_y(620), mm_x(18), mm_y(11), "#747D77", radius=1.0)
+    add_label(layout, "冷三岁·注", mm_x(57), mm_y(606), mm_x(76), mm_y(26), 7.2, FONT_SANS, "#172017", bold=True)
     rows = (
         ("#E7EF00", "白石山", "必打卡", "#F4F500"),
         ("#070A08", "悦客公园", "推荐打卡", "#FFFFFF"),
@@ -884,9 +884,9 @@ def add_legend(layout: QgsPrintLayout) -> None:
         if index in {0, 2}:
             add_ellipse(layout, mm_x(37), mm_y(y + 3), mm_x(6), mm_y(6), "#080B08")
         fill = "#050706" if index < 2 else "#B4F48A"
-        add_shape(layout, mm_x(49), mm_y(y - 1), mm_x(57), mm_y(16), fill, "255,255,255,0", 0.0, radius=1.5)
-        add_label(layout, label, mm_x(51), mm_y(y - 1), mm_x(53), mm_y(16), 5.8, FONT_SANS, label_color, bold=True, align=Qt.AlignCenter)
-        add_label(layout, note, mm_x(111), mm_y(y - 1), mm_x(33), mm_y(16), 4.7, FONT_SANS, "#1E261F", bold=True, align=Qt.AlignCenter)
+        add_shape(layout, mm_x(49), mm_y(y - 1), mm_x(60), mm_y(16), fill, "255,255,255,0", 0.0, radius=1.5)
+        add_label(layout, label, mm_x(51), mm_y(y - 1), mm_x(56), mm_y(16), 5.8, FONT_SANS, label_color, bold=True, align=Qt.AlignCenter)
+        add_label(layout, note, mm_x(115), mm_y(y - 1), mm_x(44), mm_y(16), 5.2, FONT_SANS, "#1E261F", bold=True, align=Qt.AlignCenter)
 
 
 def add_reference_linework(layout: QgsPrintLayout) -> None:

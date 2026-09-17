@@ -159,8 +159,8 @@
     $("routeList").innerHTML = rows.map((feature) => {
       const p = feature.properties;
       const id = Number(p.seq);
-      const details = [p.date || "日期未录入", p.time || "时间未录入", `${p.table_km || 0} km`].filter(Boolean).join(" · ");
-      return `<label class="route-option"><input type="checkbox" data-route-id="${id}"${selectedRouteIds.has(id) ? " checked" : ""}><span class="route-option-main"><strong>${p.train} · ${p.origin}—${p.destination}</strong><small>${details}</small></span></label>`;
+      const details = [p.date || "日期未录入", p.time || "时间未录入", `${p.table_km || 0} km`];
+      return `<label class="route-option"><input type="checkbox" data-route-id="${id}"${selectedRouteIds.has(id) ? " checked" : ""}><span class="route-option-main"><strong><span class="route-train">${p.train}</span><span class="route-journey">${p.origin}—${p.destination}</span></strong><small class="route-meta">${details.map((value) => `<span>${value}</span>`).join("")}</small></span></label>`;
     }).join("") || '<div class="note">没有匹配的路线</div>';
   }
   Promise.all([load("provinces"), load("city_boundaries"), load("province_boundaries"), load("rail_visited_cities"), load("rail_city_labels"), load("other_visited_cities"), load("other_city_labels")]).then(([provinces, cityBoundaries, provinceBoundaries, railCities, railCityLabels, otherCities, otherCityLabels]) => {

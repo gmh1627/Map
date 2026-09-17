@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
-  <link rel="stylesheet" href="styles.css?v=20260915-8">
+  <link rel="stylesheet" href="styles.css?v=20260917-1">
 </head>
 <body>
   <main class="shell">
@@ -35,17 +35,25 @@
           <div class="summary-breakdown"><span>普铁 22,472 km</span><span>高铁 / 动车 33,334 km</span></div>
           <div class="summary-foot"><strong>66</strong> 个城市 <i>·</i> <strong>131</strong> 座车站</div>
         </section>
-        <h2>显示图层</h2>
-        <label class="switch"><input id="visited" type="checkbox" checked><span>铁路行程</span></label>
-        <label class="switch"><input id="network" type="checkbox"><span>全国铁路底图</span></label>
-        <label class="switch"><input id="visitedHighspeed" type="checkbox"><span>高铁 / 动车行程</span></label>
-        <label class="switch"><input id="visitedConventional" type="checkbox"><span>普速铁路行程</span></label>
-        <label class="switch"><input id="speedNetwork" type="checkbox"><span>按设计速度着色</span></label>
+        <section class="control-section">
+          <h2>显示图层</h2>
+          <div class="control-grid">
+            <label class="switch"><input id="visited" type="checkbox" checked><span>铁路行程</span></label>
+            <label class="switch"><input id="network" type="checkbox"><span>全国铁路底图</span></label>
+            <label class="switch"><input id="visitedHighspeed" type="checkbox"><span>高铁 / 动车行程</span></label>
+            <label class="switch"><input id="visitedConventional" type="checkbox"><span>普速铁路行程</span></label>
+            <label class="switch"><input id="speedNetwork" type="checkbox"><span>按设计速度着色</span></label>
+          </div>
+        </section>
         <hr>
-        <h2>地图要素</h2>
-        <label class="switch"><input id="cityBounds" type="checkbox" checked><span>地级市边界</span></label>
-        <label class="switch"><input id="visitedCities" type="checkbox" checked><span>铁路到达城市</span></label>
-        <label class="switch"><input id="otherVisitedCities" type="checkbox"><span>其他到访城市</span></label>
+        <section class="control-section">
+          <h2>地图要素</h2>
+          <div class="control-grid">
+            <label class="switch"><input id="cityBounds" type="checkbox" checked><span>地级市边界</span></label>
+            <label class="switch"><input id="visitedCities" type="checkbox" checked><span>铁路到达城市</span></label>
+            <label class="switch"><input id="otherVisitedCities" type="checkbox"><span>其他到访城市</span></label>
+          </div>
+        </section>
         <hr>
         <div class="route-list-heading"><h2>路线附表</h2></div>
         <input id="routeSearch" class="route-search" type="search" placeholder="搜索车次、起点或终点" autocomplete="off">
@@ -59,6 +67,6 @@
     </section>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=20260915-8"></script>
+  <script src="app.js?v=20260917-1"></script>
 </body>
 </html>

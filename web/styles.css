@@ -33,6 +33,7 @@ button:hover { background: #eef5f1; }
 .workspace { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 0; flex: 1; }
 .panel { overflow: auto; padding: 20px 17px; background: var(--panel); border-right: 1px solid var(--line); box-shadow: 2px 0 10px rgba(41,63,55,.05); }
 .panel h2 { color: #394943; font-size: 13px; letter-spacing: .08em; margin-bottom: 10px; }
+.control-section, .control-grid { display: block; }
 .switch { display: flex; align-items: center; gap: 9px; min-height: 34px; padding: 2px 6px; border-radius: 5px; cursor: pointer; transition: background .15s; }
 .switch:hover { background: #edf4f0; }
 .switch input { width: 16px; height: 16px; accent-color: #2f7d73; }
@@ -49,8 +50,12 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 17px 0; }
 .route-option:last-child { border-bottom: 0; }
 .route-option input { margin-top: 3px; accent-color: #2f7d73; }
 .route-option-main { min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
-.route-option-main strong { font-weight: 650; }
+.route-option-main strong { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 6px; font-weight: 650; }
+.route-train { flex: 0 0 auto; color: #2f6f64; }
+.route-journey { min-width: 0; overflow-wrap: anywhere; }
 .route-option-main small { color: var(--muted); overflow-wrap: anywhere; }
+.route-meta { display: flex; flex-wrap: wrap; gap: 1px 6px; }
+.route-meta span + span::before { content: "·"; margin-right: 6px; color: #adb8b3; }
 .legend-title { color: var(--muted); font-size: 12px; margin-bottom: 7px; }
 .speed-legend-title { margin-top: 15px; }
 .legend-row { display: flex; align-items: center; gap: 7px; margin: 5px 0; color: var(--muted); font-size: 12px; }
@@ -72,4 +77,47 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 17px 0; }
 .city-label { color: #3d514a; font-size: 13px !important; font-weight: 600; }
 .other-city-label { color: #8a9892; font-size: 10px; }
 .station-label { color: #243630; font-size: 10px !important; font-weight: 400; }
-@media (max-width: 720px) { .topbar { gap: 10px; padding: 12px 14px; } h1 { font-size: 21px; } .topbar-actions { flex: 0 0 auto; gap: 5px; } .topbar-actions button, .button-link { padding: 5px 8px; font-size: 12px; } .workspace { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); } .panel { max-height: 240px; border-right: 0; border-bottom: 1px solid var(--line); } #map { min-height: 420px; } }
+@media (max-width: 720px) {
+  .shell { height: 100svh; }
+  .topbar { gap: 8px; padding: 10px 12px; }
+  h1 { font-size: 20px; }
+  .topbar p { font-size: 11px; }
+  .topbar-actions { flex: 0 0 auto; gap: 5px; }
+  .topbar-actions button, .button-link { padding: 5px 8px; font-size: 12px; white-space: nowrap; }
+  .workspace { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .panel { max-height: min(43svh, 365px); padding: 12px; border-right: 0; border-bottom: 1px solid var(--line); box-shadow: 0 2px 8px rgba(41,63,55,.05); }
+  .map-summary { width: 100%; margin-bottom: 13px; padding: 11px 12px 10px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 16px; }
+  .summary-label { grid-column: 1 / -1; margin-bottom: 8px; }
+  .summary-total { grid-column: 1; grid-row: 2; padding: 2px 0 7px; border-bottom: 0; }
+  .summary-total strong { font-size: 23px; }
+  .summary-counts { grid-column: 1; grid-row: 3; grid-template-columns: auto auto; gap: 12px; padding: 2px 0 5px; }
+  .summary-counts strong { font-size: 16px; }
+  .summary-mileage { grid-column: 2; grid-row: 2; justify-content: flex-start; gap: 9px; padding: 3px 0 7px; border-top: 0; }
+  .summary-mileage strong { width: auto; font-size: 15px; }
+  .summary-breakdown { grid-column: 2; grid-row: 3; padding: 2px 0 5px; }
+  .summary-foot { grid-column: 1 / -1; margin-top: 5px; padding-top: 7px; }
+  .panel h2 { margin-bottom: 6px; font-size: 12px; }
+  .control-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 8px; }
+  .switch { min-height: 31px; gap: 7px; padding: 1px 4px; font-size: 12px; }
+  .switch input { flex: 0 0 auto; width: 15px; height: 15px; }
+  hr { margin: 12px 0; }
+  .route-search { width: 100%; }
+  .route-actions { margin: 6px 0; }
+  .route-list { max-height: 215px; }
+  .route-option { gap: 8px; padding: 8px 9px; }
+  .route-option-main { gap: 2px; line-height: 1.35; }
+  .route-option-main strong { gap: 1px 7px; font-size: 12px; }
+  .route-meta { gap: 1px 8px; font-size: 10px; }
+  .route-meta span + span::before { margin-right: 8px; }
+  .legend { margin-top: 14px; padding-top: 10px; }
+  #map { min-height: 380px; }
+}
+
+@media (max-width: 390px) {
+  .topbar { padding-inline: 10px; }
+  h1 { font-size: 18px; }
+  .map-summary { column-gap: 10px; }
+  .summary-total span, .summary-mileage span { font-size: 10px; }
+  .summary-counts { gap: 7px; }
+  .summary-counts span, .summary-breakdown { font-size: 9px; }
+}
