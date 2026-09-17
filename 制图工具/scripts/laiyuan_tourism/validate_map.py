@@ -112,8 +112,8 @@ def main() -> int:
         if PNG.exists():
             size = QImageReader(str(PNG)).size()
             image_size = [size.width(), size.height()]
-            if image_size != [531, 712]:
-                errors.append(f"PNG expected 531 x 712, got {image_size}")
+            if image_size != [1062, 1424]:
+                errors.append(f"PNG expected 1062 x 1424, got {image_size}")
 
         boundary_metrics = {}
         map_extent = QgsGeometry.fromRect(QgsRectangle(114.263, 38.99, 115.137, 39.92))

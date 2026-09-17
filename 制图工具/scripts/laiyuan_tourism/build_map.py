@@ -76,6 +76,7 @@ MAP_EXTENT = (114.263, 38.99, 115.137, 39.92)
 REFERENCE_PIXELS = (531.0, 712.0)
 PX_X = PAGE[0] / REFERENCE_PIXELS[0]
 PX_Y = PAGE[1] / REFERENCE_PIXELS[1]
+OUTPUT_DPI = 240
 FOCUS_NAME = "涞源县"
 MAX_IMAGE_BYTES = 4_000_000
 
@@ -130,7 +131,7 @@ POIS = (
     PoiSpec("天桥瀑布群", 114.785, 39.115, "", "", "", 302, 554, 304, 546, 83, "right"),
     PoiSpec("鹤望长廊", 114.735, 39.090, "", "", "白石山主要景点，沿悬崖栈道游览", 254, 552, 300, 577, 78, "right"),
     PoiSpec("白石山", 114.700, 39.218, "景区", "￥135", "中国唯一大理岩峰林景观，有“三顶、六台、九谷、八十一峰”\n北方第一奇山；徒步大环线8KM，5~6h；小环线5KM，3~4h", 273, 608, 303, 610, 205, "right", "major"),
-    PoiSpec("白银坨", 114.870, 39.075, "", "", "", 369, 645, 305, 637, 61, "left"),
+    PoiSpec("白银坨", 114.870, 39.075, "", "", "", 369, 654, 305, 647, 61, "left"),
     PoiSpec("古北岳", 114.610, 39.090, "", "", "", 203, 658, 305, 677, 57, "right"),
 )
 
@@ -534,6 +535,7 @@ def text_format(
     font = QFont(family)
     font.setPointSizeF(size)
     font.setBold(bold)
+    font.setStyleStrategy(QFont.PreferAntialias)
     fmt.setFont(font)
     fmt.setSize(size)
     fmt.setColor(QColor(color))
@@ -765,6 +767,26 @@ def add_poi_callout(
         # Leave a narrow breathing space at the rounded chip edge. Drawing the
         # dashed line directly on the fill made several labels look misaligned.
         edge_x = content_right + mm_x(1.5) if poi.side == "left" else card_x - mm_x(1.5)
+        if poi.name == "白石山":
+            leader = add_polyline(
+                layout,
+                [anchor, QPointF(card_x + mm_x(5.5), card_y + mm_y(8.5))],
+                "#3D463E",
+                0.27,
+                dashed=True,
+            )
+            leader.setId(f"引线_{poi.name}")
+            return
+        if poi.name == "白求恩战地手术室旧址":
+            leader = add_polyline(
+                layout,
+                [anchor, QPointF(edge_x, card_center_y)],
+                "#3D463E",
+                0.27,
+                dashed=True,
+            )
+            leader.setId(f"引线_{poi.name}")
+            return
         # 白银坨的锚点和标签在同一条水平线上，直接连接可避免通用折线
         # 在两者高度只差一个像素时产生可见的小突起。
         if poi.name == "白银坨":
@@ -819,7 +841,20 @@ def add_poi_callout(
         add_label(layout, "推荐", card_x + mm_x(119), card_y + mm_y(1), mm_x(33), mm_y(14), 4.4, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
         add_shape(layout, card_x + mm_x(156), card_y + mm_y(1), mm_x(43), mm_y(14), "#92D94F", "255,255,255,0", 0.0, radius=1.0)
         add_label(layout, poi.tag, card_x + mm_x(158), card_y + mm_y(1), mm_x(39), mm_y(14), 4.4, FONT_SANS, "#FFFFFF", bold=True, align=Qt.AlignCenter)
-        add_label(layout, poi.note, card_x + mm_x(8), card_y + mm_y(18), card_w - mm_x(13), mm_y(24), 3.55, FONT_SANS, "#4E5750", False)
+        note_lines = poi.note.splitlines()
+        for index, line in enumerate(note_lines):
+            add_label(
+                layout,
+                line,
+                card_x + mm_x(8),
+                card_y + mm_y(17 + index * 10),
+                card_w - mm_x(13),
+                mm_y(9),
+                3.55,
+                FONT_SANS,
+                "#4E5750",
+                False,
+            )
         add_leader(card_x + card_w)
         return
 
@@ -839,7 +874,12 @@ def add_poi_callout(
             else:
                 widths[key] = mm_x(max(22, 8 + 6 * len(poi.tag)))
         else:
-            widths[key] = mm_x(40 if poi.name == "空中草原" else max(31, len(poi.name) * 11 + 8))
+            if poi.name == "空中草原":
+                widths[key] = mm_x(40)
+            elif poi.name == "白银坨":
+                widths[key] = mm_x(45)
+            else:
+                widths[key] = mm_x(max(31, len(poi.name) * 11 + 8))
 
     # Long names absorb any necessary compression while category and price
     # chips retain the compact proportions visible in the reference.
@@ -1099,7 +1139,7 @@ def main() -> int:
             raise RuntimeError(f"Unable to write project: {OUTPUT_QGZ}")
 
         settings = QgsLayoutExporter.ImageExportSettings()
-        settings.dpi = 120
+        settings.dpi = OUTPUT_DPI
         OUTPUT_PNG.unlink(missing_ok=True)
         result = QgsLayoutExporter(layout).exportToImage(str(OUTPUT_PNG), settings)
         if result != QgsLayoutExporter.Success:
