@@ -130,7 +130,7 @@ POIS = (
     PoiSpec("天桥瀑布群", 114.785, 39.115, "", "", "", 302, 554, 304, 546, 83, "right"),
     PoiSpec("鹤望长廊", 114.735, 39.090, "", "", "白石山主要景点，沿悬崖栈道游览", 254, 552, 300, 577, 78, "right"),
     PoiSpec("白石山", 114.700, 39.218, "景区", "￥135", "中国唯一大理岩峰林景观，有“三顶、六台、九谷、八十一峰”\n北方第一奇山；徒步大环线8KM，5~6h；小环线5KM，3~4h", 273, 608, 303, 610, 205, "right", "major"),
-    PoiSpec("白银坨", 114.870, 39.075, "", "", "", 369, 667, 305, 660, 61, "left"),
+    PoiSpec("白银坨", 114.870, 39.075, "", "", "", 369, 645, 305, 637, 61, "left"),
     PoiSpec("古北岳", 114.610, 39.090, "", "", "", 203, 658, 305, 677, 57, "right"),
 )
 
@@ -765,6 +765,18 @@ def add_poi_callout(
         # Leave a narrow breathing space at the rounded chip edge. Drawing the
         # dashed line directly on the fill made several labels look misaligned.
         edge_x = content_right + mm_x(1.5) if poi.side == "left" else card_x - mm_x(1.5)
+        # 白银坨的锚点和标签在同一条水平线上，直接连接可避免通用折线
+        # 在两者高度只差一个像素时产生可见的小突起。
+        if poi.name == "白银坨":
+            leader = add_polyline(
+                layout,
+                [QPointF(anchor.x(), anchor.y()), QPointF(edge_x, anchor.y())],
+                "#3D463E",
+                0.27,
+                dashed=True,
+            )
+            leader.setId(f"引线_{poi.name}")
+            return
         elbow_x = min(anchor.x() - mm_x(8), edge_x + mm_x(15)) if poi.side == "left" else max(anchor.x() + mm_x(8), edge_x - mm_x(15))
         leader = add_polyline(
             layout,
@@ -867,7 +879,8 @@ def add_poi_callout(
 
 
 def add_legend(layout: QgsPrintLayout) -> None:
-    add_shape(layout, mm_x(16), mm_y(598), mm_x(146), mm_y(102), "235,246,226,190", "255,255,255,0", 0.0)
+    # 参考图的底板只提供轻微的浅绿色衬底，地图线网应透过底板可见。
+    add_shape(layout, mm_x(16), mm_y(598), mm_x(146), mm_y(102), "235,246,226,110", "255,255,255,0", 0.0)
     add_shape(layout, mm_x(16), mm_y(598), mm_x(143), mm_y(6), "#111512")
     add_ellipse(layout, mm_x(24), mm_y(607), mm_x(30), mm_y(30), "#F7F8F6", "#59625C", 0.28)
     add_ellipse(layout, mm_x(35), mm_y(611), mm_x(8), mm_y(8), "#535B56")
