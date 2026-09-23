@@ -7,7 +7,7 @@
   "province_boundaries": 35,
   "city_boundaries": 476,
   "source": "F:\\Desktop\\Blog\\Map\\制图工具\\数据源\\GeoPackage\\travel_map_home2_min_gan.gpkg",
-  "railway_simplify_degrees": 0.0025,
+  "railway_simplify_degrees": 0.005,
   "route_simplify_degrees": 0.0,
   "administrative_simplify_degrees": 0.0
 }

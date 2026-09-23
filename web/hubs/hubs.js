@@ -60,9 +60,8 @@
     layers.stations = L.geoJSON(datasets.stations, { filter: (feature) => stationNames.has(feature.properties.name), pointToLayer: (_, latlng) => L.circleMarker(latlng, { pane: "stations", radius: 3.4, color: "#2e7d83", fillColor: "#fff", fillOpacity: 1, weight: 1.2 }), onEachFeature: (feature, layer) => layer.bindTooltip(feature.properties.name, { permanent: true, direction: "right", offset: [5, 0], className: "hub-station-label" }) });
     layers.cityLabels = L.geoJSON(datasets.cityLabels, { filter: (feature) => hub.cities.includes(feature.properties.display), pointToLayer: (_, latlng) => L.circleMarker(latlng, { radius: 0, opacity: 0, fillOpacity: 0 }), onEachFeature: (feature, layer) => layer.bindTooltip(feature.properties.display || "", { permanent: true, direction: "right", offset: [4, 0], className: "hub-city-label" }) });
     applyVisibility();
-    $("routeCount").textContent = routes.length;
-    $("stationCount").textContent = stationNames.size;
-    $("routeList").innerHTML = routes.slice().sort((a, b) => Number(a.properties.seq) - Number(b.properties.seq)).map((feature) => { const p = feature.properties; return `<div class="hub-route hub-route--${p.service}"><strong>${p.train || ""} · ${p.origin || ""}—${p.destination || ""}</strong><small>${p.date || "日期未录入"} · ${p.table_km || 0} km${p.time ? ` · ${p.time}` : ""}</small></div>`; }).join("") || '<div class="hub-route">当前范围没有相关行程</div>';
+    $("routeHeading").textContent = `${routes.length} 段相关行程`;
+    $("routeList").innerHTML = routes.slice().sort((a, b) => Number(a.properties.seq) - Number(b.properties.seq)).map((feature) => { const p = feature.properties; return `<div class="hub-route"><strong>${p.train || ""} · ${p.origin || ""}—${p.destination || ""}</strong><small>${p.date || "日期未录入"} · ${p.table_km || 0} km${p.time ? ` · ${p.time}` : ""}</small></div>`; }).join("") || '<div class="hub-route">当前范围没有相关行程</div>';
     $("status").textContent = "选择枢纽查看局部铁路行程";
   }
   function applyVisibility() {

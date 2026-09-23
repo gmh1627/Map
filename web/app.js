@@ -35,19 +35,18 @@
       : { pane: "tripRoutes", color: "#fffdf7", weight: 1.55, opacity: .98, lineCap: "round", lineJoin: "round" };
   };
 
-  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260915-7`, { cache: "no-store" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
+  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260923-3`, { cache: "no-store" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
   function geojson(data, options) { return L.geoJSON(data, options); }
   let networkLoadPromise = null;
+  let networkStationsLoadPromise = null;
   async function ensureNetworkLayers() {
     if (layers.network) return;
     if (!networkLoadPromise) {
       const toggles = [$("network"), $("speedNetwork")];
       toggles.forEach((toggle) => { toggle.disabled = true; });
-      networkLoadPromise = Promise.all([load("railway_network"), load("network_stations")])
-        .then(([network, networkStations]) => {
+      networkLoadPromise = load("railway_network")
+        .then((network) => {
           layers.network = geojson(network, { style: (feature) => ({ pane: "railNetwork", color: speedColors[feature.properties.speed_class] || speedColors.unknown, weight: 1.05, opacity: .7 }) });
-          layers.networkStations = addStations(networkStations, null, false);
-          layers.networkStationLabels = addStations(networkStations, null, true, false);
         })
         .catch((error) => {
           networkLoadPromise = null;
@@ -56,6 +55,19 @@
         .finally(() => { toggles.forEach((toggle) => { toggle.disabled = false; }); });
     }
     await networkLoadPromise;
+  }
+  async function ensureNetworkStations() {
+    if (layers.networkStations) return;
+    if (!networkStationsLoadPromise) {
+      networkStationsLoadPromise = load("network_stations").then((networkStations) => {
+        layers.networkStations = addStations(networkStations, null, false);
+        layers.networkStationLabels = addStations(networkStations, null, true, false);
+      }).catch((error) => {
+        networkStationsLoadPromise = null;
+        throw error;
+      });
+    }
+    await networkStationsLoadPromise;
   }
   function addCityLabels(data, className = "city-label", filter = undefined) {
     return geojson(data, { filter, pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 2.8, color: "#477b91", fillColor: "#477b91", fillOpacity: .9, weight: 0.6 }), onEachFeature: (feature, layer) => layer.bindTooltip(feature.properties.display || "", { permanent: true, direction: "right", className, offset: [4, 0] }) });
@@ -114,6 +126,9 @@
   }
   function updateZoomDependentLayers() {
     const zoom = map.getZoom();
+    if (($('network').checked || $('speedNetwork').checked) && zoom >= 9 && !layers.networkStations) {
+      ensureNetworkStations().then(updateZoomDependentLayers).catch((error) => console.error(error));
+    }
     [layers.railCities, layers.railCityLabels, layers.otherCities, layers.otherCityLabels, layers.networkStations, layers.networkStationLabels, layers.highspeedStations, layers.conventionalStations].forEach((layer) => { if (layer) map.removeLayer(layer); });
     if ($("visitedCities").checked && zoom >= 5 && layers.railCities) {
       layers.railCities.addTo(map);

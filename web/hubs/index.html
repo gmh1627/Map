@@ -6,7 +6,7 @@
   <title>铁路枢纽图</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="hubs.css?v=20260923-1">
+  <link rel="stylesheet" href="hubs.css?v=20260923-2">
 </head>
 <body>
   <main class="hub-shell">
@@ -30,12 +30,8 @@
           <label class="switch"><input id="showStations" type="checkbox" checked><span>重点车站</span></label>
           <label class="switch"><input id="showLabels" type="checkbox" checked><span>城市名称</span></label>
         </section>
-        <section class="hub-section hub-stats" aria-label="当前枢纽统计">
-          <div><strong id="routeCount">0</strong><span>条相关行程</span></div>
-          <div><strong id="stationCount">0</strong><span>座重点车站</span></div>
-        </section>
         <section class="hub-section">
-          <h3>相关行程</h3>
+          <h3 id="routeHeading">相关行程</h3>
           <div id="routeList" class="hub-route-list"></div>
         </section>
         <div class="hub-legend" aria-label="线路图例">
@@ -50,6 +46,6 @@
     </section>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="hubs.js?v=20260923-1"></script>
+  <script src="hubs.js?v=20260923-2"></script>
 </body>
 </html>
