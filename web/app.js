@@ -8,6 +8,14 @@
   let railCityLabelsData = null;
   let visitedStationsData = null;
   const selectedRouteIds = new Set();
+  let activeHub = "all";
+  let activeHubRouteIds = null;
+  const hubDefinitions = {
+    all: { label: "全部线路", bounds: null },
+    beijing: { label: "北京", bounds: L.latLngBounds([[39.25, 115.15], [41.35, 117.85]]) },
+    hefei: { label: "合肥", bounds: L.latLngBounds([[30.65, 116.35], [32.45, 118.35]]) },
+    guangzhou: { label: "广州", bounds: L.latLngBounds([[22.35, 112.35], [24.35, 114.55]]) },
+  };
   const speedColors = { "300+": "#9b2c52", "250-299": "#d06b3c", "200-249": "#d59c32", "160-199": "#6a9b55", "120-159": "#3b8b87", "0-119": "#6a7895", unknown: "#aeb9b6" };
   const speedLabels = { "300+": "≥ 300 km/h", "250-299": "250–299 km/h", "200-249": "200–249 km/h", "160-199": "160–199 km/h", "120-159": "120–159 km/h", "0-119": "≤ 119 km/h", unknown: "未标注速度" };
   const $ = (id) => document.getElementById(id);
@@ -34,6 +42,38 @@
       ? { pane: "tripRoutes", color: "#283237", weight: 4.2, opacity: .96, lineCap: "round", lineJoin: "round" }
       : { pane: "tripRoutes", color: "#fffdf7", weight: 1.55, opacity: .98, lineCap: "round", lineJoin: "round" };
   };
+
+  function routeEndpoints(feature) {
+    const geometry = feature.geometry || {};
+    const lines = geometry.type === "LineString" ? [geometry.coordinates] : (geometry.coordinates || []);
+    const firstLine = lines.find((line) => Array.isArray(line) && line.length) || [];
+    const lastLine = [...lines].reverse().find((line) => Array.isArray(line) && line.length) || [];
+    return [firstLine[0], lastLine[lastLine.length - 1]].filter((point) => Array.isArray(point) && point.length >= 2);
+  }
+  function getHubRouteIds(key) {
+    if (!routeData || key === "all") return routeData ? new Set(routeData.features.map((feature) => Number(feature.properties.seq))) : null;
+    const hubBounds = hubDefinitions[key]?.bounds;
+    if (!hubBounds) return new Set();
+    return new Set(routeData.features.filter((feature) => routeEndpoints(feature).some(([lon, lat]) => hubBounds.contains([lat, lon]))).map((feature) => Number(feature.properties.seq)));
+  }
+  function applyHubSelection(key, zoom = true) {
+    activeHub = hubDefinitions[key] ? key : "all";
+    activeHubRouteIds = getHubRouteIds(activeHub);
+    document.querySelectorAll(".hub-filter").forEach((button) => {
+      button.setAttribute("aria-selected", String(button.dataset.hub === activeHub));
+    });
+    if (activeHubRouteIds) {
+      selectedRouteIds.clear();
+      activeHubRouteIds.forEach((id) => selectedRouteIds.add(id));
+    }
+    renderRouteList();
+    refresh();
+    if (zoom) {
+      const target = hubDefinitions[activeHub].bounds;
+      if (target) map.fitBounds(target, { padding: [24, 24], maxZoom: 8 });
+      else map.fitBounds(bounds, { padding: [12, 12] });
+    }
+  }
 
   async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260923-3`, { cache: "no-store" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
   function geojson(data, options) { return L.geoJSON(data, options); }
@@ -106,7 +146,8 @@
     const showHighspeedRoutes = showAllRoutes || $("visitedHighspeed").checked;
     const showConventionalRoutes = showAllRoutes || $("visitedConventional").checked;
     const visibleRoute = (feature) => {
-      if (!selectedRouteIds.has(Number(feature.properties.seq))) return false;
+      const id = Number(feature.properties.seq);
+      if (!selectedRouteIds.has(id) || (activeHubRouteIds && !activeHubRouteIds.has(id))) return false;
       return (feature.properties.service === "highspeed" && showHighspeedRoutes)
         || (feature.properties.service === "conventional" && showConventionalRoutes);
     };
@@ -164,6 +205,7 @@
     const showConventionalRoutes = showAllRoutes || $("visitedConventional").checked;
     const visibleRoutes = (routeData?.features || []).filter((feature) =>
       selectedRouteIds.has(Number(feature.properties.seq))
+      && (!activeHubRouteIds || activeHubRouteIds.has(Number(feature.properties.seq)))
       && ((feature.properties.service === "highspeed" && showHighspeedRoutes)
         || (feature.properties.service === "conventional" && showConventionalRoutes))
     );
@@ -190,8 +232,10 @@
     const query = $("routeSearch").value.trim().toLowerCase();
     const rows = routeData.features.filter((feature) => {
       const p = feature.properties;
-      return `${p.train} ${p.origin} ${p.destination}`.toLowerCase().includes(query);
+      return (!activeHubRouteIds || activeHubRouteIds.has(Number(p.seq)))
+        && `${p.train} ${p.origin} ${p.destination}`.toLowerCase().includes(query);
     });
+    $("routeListHeading").textContent = `${rows.length} 段相关行程`;
     $("routeList").innerHTML = rows.map((feature) => {
       const p = feature.properties;
       const id = Number(p.seq);
@@ -220,10 +264,8 @@
     if (!routePayload) return;
     const [routes, stations] = routePayload;
     routeData = routes;
-    routeData.features.forEach((feature) => selectedRouteIds.add(Number(feature.properties.seq)));
     visitedStationsData = stations;
-    refresh();
-    renderRouteList();
+    applyHubSelection(activeHub, false);
   }).catch((error) => { console.error(error); });
   ["visited", "visitedHighspeed", "visitedConventional", "cityBounds", "visitedCities", "otherVisitedCities"].forEach((id) => $(id).addEventListener("change", refresh));
   ["network", "speedNetwork"].forEach((id) => $(id).addEventListener("change", async (event) => {
@@ -237,10 +279,11 @@
     }
     refresh();
   }));
-  $("reset").addEventListener("click", () => map.fitBounds(bounds, { padding: [12, 12] }));
+  document.querySelectorAll(".hub-filter").forEach((button) => button.addEventListener("click", () => applyHubSelection(button.dataset.hub)));
+  $("reset").addEventListener("click", () => applyHubSelection("all"));
   $("routeSearch").addEventListener("input", renderRouteList);
   $("routeList").addEventListener("change", (event) => { const id = Number(event.target.dataset.routeId); if (!Number.isFinite(id)) return; if (event.target.checked) selectedRouteIds.add(id); else selectedRouteIds.delete(id); renderRouteList(); refresh(); });
-  $("selectAllRoutes").addEventListener("click", () => { routeData?.features.forEach((feature) => selectedRouteIds.add(Number(feature.properties.seq))); renderRouteList(); refresh(); });
+  $("selectAllRoutes").addEventListener("click", () => { routeData?.features.filter((feature) => !activeHubRouteIds || activeHubRouteIds.has(Number(feature.properties.seq))).forEach((feature) => selectedRouteIds.add(Number(feature.properties.seq))); renderRouteList(); refresh(); });
   $("clearRoutes").addEventListener("click", () => { selectedRouteIds.clear(); renderRouteList(); refresh(); });
   map.on("zoomend", updateZoomDependentLayers);
 })();

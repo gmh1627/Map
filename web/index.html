@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
-  <link rel="stylesheet" href="styles.css?v=20260923-2">
+  <link rel="stylesheet" href="styles.css?v=20260923-3">
 </head>
 <body>
   <main class="shell">
@@ -18,7 +18,6 @@
         <p id="status"></p>
       </div>
       <div class="topbar-actions">
-        <a class="button-link hub-link" href="hubs/">铁路枢纽图</a>
         <a id="blogHome" class="button-link" href="/" hidden>返回主页</a>
         <button id="reset" type="button">重置视图</button>
       </div>
@@ -56,7 +55,16 @@
           </div>
         </section>
         <hr>
-        <div class="route-list-heading"><h2>路线附表</h2></div>
+        <section class="hub-filter-section" aria-label="枢纽筛选">
+          <div class="route-list-heading"><h2>枢纽视图</h2></div>
+          <div id="hubFilters" class="hub-filters" role="tablist" aria-label="选择枢纽视图">
+            <button class="hub-filter" type="button" data-hub="all" aria-selected="true">全部</button>
+            <button class="hub-filter" type="button" data-hub="beijing" aria-selected="false">北京</button>
+            <button class="hub-filter" type="button" data-hub="hefei" aria-selected="false">合肥</button>
+            <button class="hub-filter" type="button" data-hub="guangzhou" aria-selected="false">广州</button>
+          </div>
+        </section>
+        <div class="route-list-heading"><h2 id="routeListHeading">相关行程</h2></div>
         <input id="routeSearch" class="route-search" type="search" placeholder="搜索车次、起点或终点" autocomplete="off">
         <div class="route-actions"><button id="selectAllRoutes" type="button">全选</button><button id="clearRoutes" type="button">全不选</button></div>
         <div id="routeList" class="route-list" aria-label="铁路行程列表"></div>
@@ -68,6 +76,6 @@
     </section>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=20260923-2"></script>
+  <script src="app.js?v=20260923-3"></script>
 </body>
 </html>
