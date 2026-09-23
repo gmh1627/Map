@@ -228,8 +228,8 @@ SPECS = (
         visited_cities=("合肥市", "杭州市", "宁波市", "南昌市", "郴州市", "韶关市", "湛江市"),
         end_city="湛江市",
         city_labels=("合肥市", "杭州市", "宁波市", "南昌市", "郴州市", "韶关市", "湛江市"),
-        # 广州南站标签避开线路与站点，向右半个字宽、向下一个字高。
-        station_labels=(("广州南", 113.334, 22.921),),
+        # 广州南站标签避开线路与站点；在原偏移基础上再向右约两个字宽。
+        station_labels=(("广州南", 113.62, 22.921),),
         area_labels=(("慈溪", 121.266, 30.170),),
         focus_areas=(
             FocusSpec(RAILWAY_ROOT / "city" / "ningbo.geojson", ("慈溪市",)),
@@ -255,7 +255,12 @@ SPECS = (
             FocusSpec(RAILWAY_ROOT / "city" / "longyan.geojson", ("上杭县", "长汀县")),
             FocusSpec(RAILWAY_ROOT / "city" / "ganzhou.geojson", ("瑞金市", "于都县")),
         ),
-        station_labels=(("瑞金", 116.05, 25.77), ("赣州西", 114.69, 25.92)),
+        # 广州南站向右半个字宽、向下一个字高，避免压住南部线路。
+        station_labels=(
+            ("瑞金", 116.05, 25.77),
+            ("赣州西", 114.69, 25.92),
+            ("广州南", 113.334, 22.861),
+        ),
         scale_segment_km=200,
     ),
     MapSpec(
