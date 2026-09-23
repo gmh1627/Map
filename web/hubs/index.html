@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>铁路枢纽图</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="hubs.css?v=20260923-1">
+</head>
+<body>
+  <main class="hub-shell">
+    <header class="hub-topbar">
+      <div>
+        <h1>铁路枢纽图</h1>
+        <p id="status">正在加载枢纽数据…</p>
+      </div>
+      <nav class="hub-actions" aria-label="地图导航">
+        <a href="../" class="button-link">全国铁路图</a>
+        <button id="reset" type="button">重置视图</button>
+      </nav>
+    </header>
+    <section class="hub-workspace">
+      <aside class="hub-panel" aria-label="枢纽图控制">
+        <section class="hub-intro">
+          <div class="eyebrow">铁路足迹 · 局部枢纽</div>
+          <h2 id="hubTitle">北京及周边</h2>
+          <p id="hubDescription"></p>
+        </section>
+        <div id="hubTabs" class="hub-tabs" role="tablist" aria-label="枢纽选择"></div>
+        <section class="hub-section">
+          <h3>地图要素</h3>
+          <label class="switch"><input id="showRoutes" type="checkbox" checked><span>到过的铁路线路</span></label>
+          <label class="switch"><input id="showCities" type="checkbox" checked><span>地级市边界</span></label>
+          <label class="switch"><input id="showStations" type="checkbox" checked><span>重点车站</span></label>
+          <label class="switch"><input id="showLabels" type="checkbox" checked><span>城市名称</span></label>
+        </section>
+        <section class="hub-section hub-stats" aria-label="当前枢纽统计">
+          <div><strong id="routeCount">0</strong><span>条相关行程</span></div>
+          <div><strong id="stationCount">0</strong><span>座重点车站</span></div>
+        </section>
+        <section class="hub-section">
+          <h3>相关行程</h3>
+          <div id="routeList" class="hub-route-list"></div>
+        </section>
+        <div class="hub-legend" aria-label="线路图例">
+          <div class="legend-row"><i class="line-swatch line-swatch--highspeed"></i><span>高铁 / 动车</span></div>
+          <div class="legend-row"><i class="line-swatch line-swatch--conventional"></i><span>普速铁路</span></div>
+          <div class="legend-row"><i class="dot-swatch"></i><span>重点车站</span></div>
+        </div>
+      </aside>
+      <section class="hub-map-stage">
+        <div id="map" role="application" aria-label="铁路枢纽交互地图"></div>
+      </section>
+    </section>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="hubs.js?v=20260923-1"></script>
+</body>
+</html>
