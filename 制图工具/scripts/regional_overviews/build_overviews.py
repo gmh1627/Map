@@ -255,11 +255,11 @@ SPECS = (
             FocusSpec(RAILWAY_ROOT / "city" / "longyan.geojson", ("上杭县", "长汀县")),
             FocusSpec(RAILWAY_ROOT / "city" / "ganzhou.geojson", ("瑞金市", "于都县")),
         ),
-        # 广州南站向右半个字宽、向下一个字高，避免压住南部线路。
+        # 广州南站在此前下移一个字高的基础上，再向右约两个字宽。
         station_labels=(
             ("瑞金", 116.05, 25.77),
             ("赣州西", 114.69, 25.92),
-            ("广州南", 113.334, 22.861),
+            ("广州南", 113.62, 22.861),
         ),
         scale_segment_km=200,
     ),
