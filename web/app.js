@@ -1,6 +1,7 @@
 (() => {
   const map = L.map("map", { zoomControl: true, preferCanvas: true, attributionControl: true }).setView([35.5, 105.5], 4);
   const bounds = L.latLngBounds([[3.0, 73.5], [53.6, 135.2]]);
+  const overviewBounds = L.latLngBounds([[17.5, 73.5], [53.6, 135.2]]);
   map.setMaxBounds(bounds.pad(0.08));
   const layers = {};
   let routeData = null;
@@ -11,7 +12,7 @@
   let activeHub = "all";
   let activeHubRouteIds = null;
   const hubDefinitions = {
-    all: { label: "全部线路", bounds: null },
+    all: { label: "全部线路", bounds: overviewBounds },
     beijing: { label: "北京", bounds: L.latLngBounds([[39.25, 115.15], [41.35, 117.85]]) },
     hefei: { label: "合肥", bounds: L.latLngBounds([[30.65, 116.35], [32.45, 118.35]]) },
     guangzhou: { label: "广州", bounds: L.latLngBounds([[22.35, 112.35], [24.35, 114.55]]) },
@@ -71,7 +72,7 @@
     if (zoom) {
       const target = hubDefinitions[activeHub].bounds;
       if (target) map.fitBounds(target, { padding: [24, 24], maxZoom: 8 });
-      else map.fitBounds(bounds, { padding: [12, 12] });
+      else map.fitBounds(overviewBounds, { padding: [12, 12] });
     }
   }
 
@@ -251,7 +252,7 @@
     layers.provinces.addTo(map);
     addSpeedLegend();
     refresh();
-    map.fitBounds(bounds, { padding: [12, 12] });
+    map.fitBounds(overviewBounds, { padding: [12, 12] });
     renderRouteList();
     Promise.all([load("city_boundaries"), load("other_visited_cities"), load("other_city_labels")]).then(([cityBoundaries, otherCities, otherCityLabels]) => {
       layers.cities = geojson(cityBoundaries, { style: styleCities });
