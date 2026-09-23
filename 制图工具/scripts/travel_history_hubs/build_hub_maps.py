@@ -958,7 +958,7 @@ def create_layout(
     add_legend(layout, spec)
     add_label(
         layout,
-        "数据截至 2026.08",
+        "数据截至 2026.09",
         spec.page_width - 65.0,
         7.0,
         54,

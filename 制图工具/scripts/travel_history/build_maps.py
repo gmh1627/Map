@@ -63,6 +63,10 @@ OUTPUT_PROJECT = OUTPUT_DIR / "全国足迹.qgz"
 VISIT_IMAGE = OUTPUT_DIR / "去过的省市.png"
 RAIL_IMAGE = OUTPUT_DIR / "铁路路线.png"
 
+STATION_COORDINATE_FALLBACKS = {
+    "八达岭长城": (116.005052, 40.360328),
+}
+
 PAGE_SIZE = (430.0, 330.0)
 MAP_FRAME = (12.0, 40.0, 406.0, 248.0)
 INSET_FRAME = (350.0, 208.0, 68.0, 80.0)
@@ -294,12 +298,19 @@ def build_station_layer(project: QgsProject, matches: dict, records: list) -> Qg
     memory.updateFields()
     features = []
     for name in counts:
-        value = matches[name]
+        value = matches.get(name)
+        if value is None:
+            coordinate = STATION_COORDINATE_FALLBACKS.get(name)
+            if coordinate is None:
+                raise KeyError(name)
+            lon, lat = coordinate
+        else:
+            lon, lat = float(value["lon"]), float(value["lat"])
         feature = QgsFeature(memory.fields())
         feature.setGeometry(
             __import__("qgis.core", fromlist=["QgsGeometry"]).QgsGeometry.fromPointXY(
                 __import__("qgis.core", fromlist=["QgsPointXY"]).QgsPointXY(
-                    float(value["lon"]), float(value["lat"])
+                    lon, lat
                 )
             )
         )
@@ -855,7 +866,7 @@ def main() -> int:
             project,
             "铁路路线",
             "坐火车走过的地方",
-            "135 段乘车记录｜普铁 45 次 · 高铁/动车 90 次\n总里程 55,806 km（其中普铁 22,472 km，高铁/动车 33,334 km）｜抵达 66 个城市的 131 座车站",
+            "137 段乘车记录｜普铁 45 次 · 高铁/动车 92 次\n总里程 55,896 km（其中普铁 22,472 km，高铁/动车 33,424 km）｜抵达 66 个城市的 132 座车站",
             rail_layers,
             RAIL_IMAGE,
             rail_legend=True,

@@ -239,11 +239,11 @@
       ]
     }
   ],
-  "rail_record_count": 135,
-  "station_count": 131,
+  "rail_record_count": 137,
+  "station_count": 132,
   "service_counts": {
     "conventional": 45,
-    "highspeed": 90
+    "highspeed": 92
   },
   "stations": [
     "上海",
@@ -255,6 +255,7 @@
     "信阳",
     "信阳东",
     "全椒",
+    "八达岭长城",
     "六安",
     "兰州",
     "兰州西",
@@ -1640,7 +1641,7 @@
     },
     {
       "seq": 134,
-      "date": "2026.9",
+      "date": "2026.9.2",
       "origin": "合肥",
       "destination": "德州",
       "train": "K1036",
@@ -1654,11 +1655,29 @@
     },
     {
       "seq": 135,
-      "date": "2026.9",
+      "date": "2026.9.2",
       "origin": "德州东",
       "destination": "北京南",
       "train": "G816",
       "distance_km": 314,
+      "service_class": "highspeed"
+    },
+    {
+      "seq": 136,
+      "date": "2026.9.21",
+      "origin": "清河",
+      "destination": "八达岭长城",
+      "train": "D1091",
+      "distance_km": 45,
+      "service_class": "highspeed"
+    },
+    {
+      "seq": 137,
+      "date": "2026.9.21",
+      "origin": "八达岭长城",
+      "destination": "清河",
+      "train": "D1036",
+      "distance_km": 45,
       "service_class": "highspeed"
     }
   ]

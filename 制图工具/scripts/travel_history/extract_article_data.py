@@ -11,8 +11,8 @@ from pathlib import Path
 DEFAULT_ARTICLE = Path(r"F:\Desktop\Blog\source\_posts\行旅杂记.md")
 EXPECTED_PROVINCES = 21
 EXPECTED_CITIES = 88
-EXPECTED_RAIL_TRIPS = 135
-EXPECTED_RAIL_DISTANCE_KM = 55806
+EXPECTED_RAIL_TRIPS = 137
+EXPECTED_RAIL_DISTANCE_KM = 55896
 
 
 def parse_args() -> argparse.Namespace:
@@ -142,7 +142,7 @@ def main() -> int:
     actual = (province_count, city_count, len(records), distance_km)
     if actual != expected:
         raise RuntimeError(f"Article totals do not match: expected {expected}, got {actual}")
-    if class_counts != {"conventional": 45, "high_speed_emu": 90}:
+    if class_counts != {"conventional": 45, "high_speed_emu": 92}:
         raise RuntimeError(f"Rail class totals do not match article: {class_counts}")
 
     warnings = []

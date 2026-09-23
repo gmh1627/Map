@@ -143,6 +143,9 @@ WAYPOINT_COORDS = {
 # should use the shared through track. These coordinates are projections onto
 # the corresponding physical corridor, not fabricated straight-line controls.
 STATION_ROUTE_COORD_OVERRIDES = {
+    # The local station-match report predates this trip and does not contain
+    # 八达岭长城; use the canonical station point from the exported network.
+    "八达岭长城": (116.005052, 40.360328),
     "泾县": (118.3831055, 30.6605472),
     "芜湖": (118.3855308, 31.3495891),
     "宣城": (118.7692115, 30.9495847),
@@ -801,6 +804,8 @@ def main() -> int:
         for name, value in station_matches.items()
     }
     for name, coordinate in WAYPOINT_COORDS.items():
+        station_coords.setdefault(name, coordinate)
+    for name, coordinate in STATION_ROUTE_COORD_OVERRIDES.items():
         station_coords.setdefault(name, coordinate)
     route_station_coords = {**station_coords, **STATION_ROUTE_COORD_OVERRIDES}
     min_lon = min(value[0] for value in station_coords.values()) - NETWORK_MARGIN_DEGREES

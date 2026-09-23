@@ -23,7 +23,7 @@ PROJECT_PATH = OUTPUT_DIR / "铁路枢纽局部图.qgz"
 REPORT_PATH = OUTPUT_DIR / "构建报告.json"
 VALIDATION_PATH = OUTPUT_DIR / "校验报告.json"
 EXPECTED = {
-    "北京及周边铁路行迹": 9,
+    "北京及周边铁路行迹": 10,
     "合肥及周边铁路行迹": 10,
     "广州及周边铁路行迹": 11,
 }
@@ -56,8 +56,8 @@ def main() -> int:
 
         route_layers = project.mapLayersByName("铁路行程轨迹")
         route_count = route_layers[0].featureCount() if route_layers else None
-        if route_count != 133:
-            errors.append(f"Expected 133 railway routes, got {route_count}")
+        if route_count != 137:
+            errors.append(f"Expected 137 railway routes, got {route_count}")
         elif route_layers:
             service_counts = {"conventional": 0, "highspeed": 0}
             d901_service = None
@@ -67,7 +67,7 @@ def main() -> int:
                     service_counts[service] += 1
                 if str(feature["train"]) == "D901":
                     d901_service = service
-            if service_counts != {"conventional": 44, "highspeed": 89}:
+            if service_counts != {"conventional": 45, "highspeed": 92}:
                 errors.append(f"Unexpected route service counts: {service_counts}")
             if d901_service != "highspeed":
                 errors.append(f"D901 should use the EMU style, got {d901_service}")
