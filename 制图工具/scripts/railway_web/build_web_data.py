@@ -68,7 +68,7 @@ def speed_class(tags: str) -> tuple[str, int | None]:
     return "0-119", speed
 
 
-def export_rail_network(output: Path) -> int:
+def export_rail_network(output: Path, min_span: float = 0.0) -> int:
     layer = QgsVectorLayer(f"{SOURCE.as_posix()}|layername=china_railwayosm__lines", "railway", "ogr")
     if not layer.isValid():
         raise RuntimeError("Invalid railway source layer")
@@ -81,11 +81,15 @@ def export_rail_network(output: Path) -> int:
         geometry = feature.geometry()
         if geometry.isNull() or geometry.isEmpty():
             continue
+        if min_span:
+            bounds = geometry.boundingBox()
+            if max(bounds.width(), bounds.height()) < min_span:
+                continue
         klass, speed = speed_class(str(feature["other_tags"] or ""))
         # The national web layer is viewed at small scales first. A slightly
         # coarser simplification keeps the first network load responsive while
         # preserving the corridor shape at national and regional zoom levels.
-        grouped.setdefault(klass, []).append(geometry.simplify(0.005))
+        grouped.setdefault(klass, []).append(geometry.simplify(0.02))
         if speed is not None:
             speed_values.setdefault(klass, []).append(speed)
         count += 1
@@ -380,6 +384,7 @@ def main() -> int:
     app.initQgis()
     try:
         rail_segments = export_rail_network(DATA / "railway_network.geojson")
+        overview_segments = export_rail_network(DATA / "railway_network_overview.geojson", min_span=0.02)
         (
             province_boundary_count,
             city_boundary_count,
@@ -395,7 +400,7 @@ def main() -> int:
         station_count = export_station_layer(DATA / "visited_stations.geojson")
         network_station_count = export_network_stations(DATA / "network_stations.geojson")
         rail_city_count = export_rail_cities(DATA / "rail_visited_cities.geojson", DATA / "visited_cities.geojson")
-        metadata = {"rail_segments": rail_segments, "route_count": route_count, "station_count": station_count, "network_station_count": network_station_count, "rail_city_count": rail_city_count, "province_boundaries": province_boundary_count, "city_boundaries": city_boundary_count, "source": str(SOURCE), "railway_simplify_degrees": 0.005, "route_simplify_degrees": 0.0, "administrative_simplify_degrees": 0.0}
+        metadata = {"rail_segments": rail_segments, "rail_overview_segments": overview_segments, "route_count": route_count, "station_count": station_count, "network_station_count": network_station_count, "rail_city_count": rail_city_count, "province_boundaries": province_boundary_count, "city_boundaries": city_boundary_count, "source": str(SOURCE), "railway_simplify_degrees": 0.02, "railway_overview_min_span_degrees": 0.02, "route_simplify_degrees": 0.0, "administrative_simplify_degrees": 0.0}
         (DATA / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(metadata, ensure_ascii=False))
         return 0

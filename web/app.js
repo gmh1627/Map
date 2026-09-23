@@ -38,15 +38,17 @@
   async function load(name) { const response = await fetch(`data/${name}.geojson?v=20260923-3`, { cache: "no-store" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
   function geojson(data, options) { return L.geoJSON(data, options); }
   let networkLoadPromise = null;
+  let fullNetworkLoadPromise = null;
   let networkStationsLoadPromise = null;
   async function ensureNetworkLayers() {
     if (layers.network) return;
     if (!networkLoadPromise) {
       const toggles = [$("network"), $("speedNetwork")];
       toggles.forEach((toggle) => { toggle.disabled = true; });
-      networkLoadPromise = load("railway_network")
+      networkLoadPromise = load("railway_network_overview")
         .then((network) => {
-          layers.network = geojson(network, { style: (feature) => ({ pane: "railNetwork", color: speedColors[feature.properties.speed_class] || speedColors.unknown, weight: 1.05, opacity: .7 }) });
+          layers.networkOverview = geojson(network, { style: (feature) => ({ pane: "railNetwork", color: speedColors[feature.properties.speed_class] || speedColors.unknown, weight: 1.05, opacity: .7 }) });
+          layers.network = layers.networkOverview;
         })
         .catch((error) => {
           networkLoadPromise = null;
@@ -55,6 +57,22 @@
         .finally(() => { toggles.forEach((toggle) => { toggle.disabled = false; }); });
     }
     await networkLoadPromise;
+  }
+  async function ensureFullNetwork() {
+    if (layers.networkFull) return;
+    if (!fullNetworkLoadPromise) {
+      fullNetworkLoadPromise = load("railway_network").then((network) => {
+        const full = geojson(network, { style: (feature) => ({ pane: "railNetwork", color: speedColors[feature.properties.speed_class] || speedColors.unknown, weight: 1.05, opacity: .7 }) });
+        if (layers.networkOverview && map.hasLayer(layers.networkOverview)) map.removeLayer(layers.networkOverview);
+        layers.networkFull = full;
+        layers.network = full;
+        refresh();
+      }).catch((error) => {
+        fullNetworkLoadPromise = null;
+        throw error;
+      });
+    }
+    await fullNetworkLoadPromise;
   }
   async function ensureNetworkStations() {
     if (layers.networkStations) return;
@@ -126,6 +144,9 @@
   }
   function updateZoomDependentLayers() {
     const zoom = map.getZoom();
+    if (($('network').checked || $('speedNetwork').checked) && zoom >= 7 && !layers.networkFull) {
+      ensureFullNetwork().catch((error) => console.error(error));
+    }
     if (($('network').checked || $('speedNetwork').checked) && zoom >= 9 && !layers.networkStations) {
       ensureNetworkStations().then(updateZoomDependentLayers).catch((error) => console.error(error));
     }

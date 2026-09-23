@@ -1,5 +1,6 @@
 {
   "rail_segments": 401017,
+  "rail_overview_segments": 30829,
   "route_count": 137,
   "station_count": 132,
   "network_station_count": 5518,
@@ -7,7 +8,8 @@
   "province_boundaries": 35,
   "city_boundaries": 476,
   "source": "F:\\Desktop\\Blog\\Map\\制图工具\\数据源\\GeoPackage\\travel_map_home2_min_gan.gpkg",
-  "railway_simplify_degrees": 0.005,
+  "railway_simplify_degrees": 0.02,
+  "railway_overview_min_span_degrees": 0.02,
   "route_simplify_degrees": 0.0,
   "administrative_simplify_degrees": 0.0
 }
