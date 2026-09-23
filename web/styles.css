@@ -30,6 +30,7 @@ button:hover { background: #eef5f1; }
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
 .button-link { border: 1px solid #b5c4bd; border-radius: 5px; background: #fff; padding: 6px 12px; color: var(--ink); line-height: 1.5; text-decoration: none; }
 .button-link:hover { background: #eef5f1; }
+.hub-link { border-color: #91bdb1; color: #245f56; font-weight: 650; }
 .workspace { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 0; flex: 1; }
 .panel { overflow: auto; padding: 20px 17px; background: var(--panel); border-right: 1px solid var(--line); box-shadow: 2px 0 10px rgba(41,63,55,.05); }
 .panel h2 { color: #394943; font-size: 13px; letter-spacing: .08em; margin-bottom: 10px; }

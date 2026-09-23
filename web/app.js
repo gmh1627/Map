@@ -82,8 +82,8 @@
     };
     Object.values(layers).forEach((layer) => map.removeLayer(layer));
     layers.provinces.addTo(map);
-    if ($("cityBounds").checked) layers.cities.addTo(map);
-    layers.provinceBoundaries.addTo(map);
+    if ($("cityBounds").checked && layers.cities) layers.cities.addTo(map);
+    if (layers.provinceBoundaries) layers.provinceBoundaries.addTo(map);
     if (routeData) {
       const routeCities = new Set((routeData?.features || []).filter(visibleRoute).flatMap((feature) => [feature.properties.origin_city, feature.properties.destination_city]).filter(Boolean));
       layers.railCities = geojson(railCitiesData, { filter: (feature) => routeCities.has(feature.properties.display), style: styleVisitedCity });
@@ -119,7 +119,7 @@
       layers.railCities.addTo(map);
       layers.railCityLabels.addTo(map);
     }
-    if ($("otherVisitedCities").checked && zoom >= 5) {
+    if ($("otherVisitedCities").checked && zoom >= 5 && layers.otherCities && layers.otherCityLabels) {
       layers.otherCities.addTo(map);
       layers.otherCityLabels.addTo(map);
     }
@@ -163,19 +163,22 @@
       return `<label class="route-option"><input type="checkbox" data-route-id="${id}"${selectedRouteIds.has(id) ? " checked" : ""}><span class="route-option-main"><strong><span class="route-train">${p.train}</span><span class="route-journey">${p.origin}—${p.destination}</span></strong><small class="route-meta">${details.map((value) => `<span>${value}</span>`).join("")}</small></span></label>`;
     }).join("") || '<div class="note">没有匹配的路线</div>';
   }
-  Promise.all([load("provinces"), load("city_boundaries"), load("province_boundaries"), load("rail_visited_cities"), load("rail_city_labels"), load("other_visited_cities"), load("other_city_labels")]).then(([provinces, cityBoundaries, provinceBoundaries, railCities, railCityLabels, otherCities, otherCityLabels]) => {
+  Promise.all([load("provinces"), load("province_boundaries"), load("rail_visited_cities"), load("rail_city_labels")]).then(([provinces, provinceBoundaries, railCities, railCityLabels]) => {
     layers.provinces = geojson(provinces, { style: styleProvince });
-    layers.cities = geojson(cityBoundaries, { style: styleCities });
     layers.provinceBoundaries = geojson(provinceBoundaries, { style: styleProvinceBoundary });
     railCitiesData = railCities;
     railCityLabelsData = railCityLabels;
-    layers.otherCities = geojson(otherCities, { style: styleOtherVisitedCity });
-    layers.otherCityLabels = addCityLabels(otherCityLabels, "other-city-label");
     layers.provinces.addTo(map);
     addSpeedLegend();
     refresh();
     map.fitBounds(bounds, { padding: [12, 12] });
     renderRouteList();
+    Promise.all([load("city_boundaries"), load("other_visited_cities"), load("other_city_labels")]).then(([cityBoundaries, otherCities, otherCityLabels]) => {
+      layers.cities = geojson(cityBoundaries, { style: styleCities });
+      layers.otherCities = geojson(otherCities, { style: styleOtherVisitedCity });
+      layers.otherCityLabels = addCityLabels(otherCityLabels, "other-city-label");
+      refresh();
+    });
     return Promise.all([load("visited_routes"), load("visited_stations")]);
   }).then((routePayload) => {
     if (!routePayload) return;
