@@ -6,14 +6,14 @@
     54.9865751
   ],
   "network_features": 299997,
-  "graph_nodes": 373277,
-  "graph_edges": 834686,
-  "topology_connectors": 536974,
+  "graph_nodes": 373279,
+  "graph_edges": 834691,
+  "topology_connectors": 536977,
   "station_component_connectors": 6,
-  "largest_component_nodes": 326427,
+  "largest_component_nodes": 326429,
   "max_station_snap_km": 0.078,
   "review_count": 0,
-  "elapsed_seconds": 27.7,
+  "elapsed_seconds": 33.4,
   "routes": [
     {
       "seq": 1,
@@ -108,16 +108,19 @@
       "origin": "白城",
       "destination": "海拉尔",
       "train": "K4259",
-      "distance_km": 609,
+      "distance_km": 771,
       "service_class": "conventional",
-      "control_points": [],
+      "control_points": [
+        "大雁",
+        "牙克石"
+      ],
       "preferred_network": "conventional",
-      "route_km": 623.2,
-      "ratio": 1.023,
-      "edge_count": 226,
+      "route_km": 771.3,
+      "ratio": 1.0,
+      "edge_count": 1134,
       "track_counts": {
-        "connector": 2,
-        "conventional": 224
+        "connector": 4,
+        "conventional": 1130
       },
       "status": "ok",
       "origin_snap_km": 0.003,

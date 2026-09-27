@@ -10,15 +10,15 @@
     {"category": "province", "province": "辽宁", "province_full": "辽宁省", "cities": []}
   ],
   "rail_record_count": 8,
-  "station_count": 11,
+  "station_count": 13,
   "service_counts": {"conventional": 7, "highspeed": 1},
-  "stations": ["北京丰台", "赤峰南", "通辽", "乌兰浩特", "白城", "海拉尔", "满归", "漠河", "哈尔滨东", "哈尔滨西", "北京朝阳"],
+  "stations": ["北京丰台", "赤峰南", "通辽", "乌兰浩特", "白城", "大雁", "牙克石", "海拉尔", "满归", "漠河", "哈尔滨东", "哈尔滨西", "北京朝阳"],
   "rail_records": [
     {"seq": 1, "date": "2026.09.30", "origin": "北京丰台", "destination": "赤峰南", "train": "K1456", "distance_km": 477, "service_class": "conventional", "control_points": []},
     {"seq": 2, "date": "2026.10.02", "origin": "赤峰南", "destination": "通辽", "train": "K1457", "distance_km": 344, "service_class": "conventional", "control_points": []},
     {"seq": 3, "date": "2026.10.02", "origin": "通辽", "destination": "乌兰浩特", "train": "K957", "distance_km": 358, "service_class": "conventional", "control_points": ["白城"]},
     {"seq": 4, "date": "2026.10.03", "origin": "乌兰浩特", "destination": "白城", "train": "C508", "distance_km": 103, "service_class": "highspeed", "control_points": []},
-    {"seq": 5, "date": "2026.10.03", "origin": "白城", "destination": "海拉尔", "train": "K4259", "distance_km": 609, "service_class": "conventional", "control_points": []},
+    {"seq": 5, "date": "2026.10.03", "origin": "白城", "destination": "海拉尔", "train": "K4259", "distance_km": 771, "service_class": "conventional", "control_points": ["大雁", "牙克石"]},
     {"seq": 6, "date": "2026.10.04", "origin": "海拉尔", "destination": "满归", "train": "4184", "distance_km": 518, "service_class": "conventional", "control_points": []},
     {"seq": 7, "date": "2026.10.06", "origin": "漠河", "destination": "哈尔滨东", "train": "K7040", "distance_km": 1189, "service_class": "conventional", "control_points": []},
     {"seq": 8, "date": "2026.10.08", "origin": "哈尔滨西", "destination": "北京朝阳", "train": "G102", "distance_km": 1241, "service_class": "highspeed", "control_points": []}

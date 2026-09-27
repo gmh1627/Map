@@ -25,6 +25,14 @@
       "adcode": "150500"
     },
     {
+      "source_name": "兴安",
+      "full_name": "兴安盟",
+      "province": "内蒙古自治区",
+      "source": "city",
+      "fid": 63,
+      "adcode": "152200"
+    },
+    {
       "source_name": "白城",
       "full_name": "白城市",
       "province": "吉林省",
@@ -41,6 +49,14 @@
       "adcode": "230100"
     },
     {
+      "source_name": "大兴安岭",
+      "full_name": "大兴安岭地区",
+      "province": "黑龙江省",
+      "source": "city",
+      "fid": 101,
+      "adcode": "232700"
+    },
+    {
       "source_name": "呼伦贝尔",
       "full_name": "呼伦贝尔市",
       "province": "黑龙江省",
@@ -49,10 +65,7 @@
       "adcode": "150700"
     }
   ],
-  "missing_cities": [
-    "兴安盟",
-    "大兴安岭地区"
-  ],
+  "missing_cities": [],
   "ambiguous_cities": [],
   "station_matches": {
     "北京丰台": {
@@ -111,6 +124,13 @@
       "tags": "\"operator\"=>\"中国铁路沈阳局集团有限公司 白城车务段\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"56081\"",
       "score": 6
     },
+    "牙克石": {
+      "fid": 123561,
+      "lon": 120.73118450000001,
+      "lat": 49.2770342,
+      "tags": "\"alt_name\"=>\"牙克石站;牙克石火车站;Yakeshi Railway Station\",\"name:en\"=>\"Yakeshi\",\"name:ru\"=>\"Якэши\",\"name:zh\"=>\"牙克石\",\"operator\"=>\"中国铁路哈尔滨局集团有限公司 海拉尔车务段\",\"railway\"=>\"station\",\"railway:ref\"=>\"57749\",\"train\"=>\"yes\",\"wikidata\"=>\"Q17036346\",\"wikipedia\"=>\"zh:牙克石站\"",
+      "score": 5
+    },
     "满归": {
       "fid": 123567,
       "lon": 122.06741860000001,
@@ -131,6 +151,13 @@
       "lat": 49.2287551,
       "tags": "\"name:en\"=>\"Hailaer\",\"name:fr\"=>\"Gare de Hailaer\",\"name:ru\"=>\"Хайлар\",\"operator\"=>\"中国铁路哈尔滨局集团有限公司 海拉尔车务段\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"57785\",\"start_date\"=>\"1903\",\"train\"=>\"yes\",\"wikidata\"=>\"Q11150806\",\"wikipedia\"=>\"zh:海拉尔站\"",
       "score": 7
+    },
+    "大雁": {
+      "fid": 124042,
+      "lon": 120.5454079,
+      "lat": 49.229627300000004,
+      "tags": "\"operator\"=>\"中国铁路哈尔滨局集团有限公司 海拉尔车务段\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"57761\",\"wikidata\"=>\"Q10938438\",\"wikipedia\"=>\"zh:大雁站\"",
+      "score": 6
     }
   },
   "missing_stations": [],

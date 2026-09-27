@@ -11,6 +11,8 @@
     {"type":"Feature","properties":{"name":"漠河"},"geometry":{"type":"Point","coordinates":[122.4977008,52.9865751]}},
     {"type":"Feature","properties":{"name":"哈尔滨东"},"geometry":{"type":"Point","coordinates":[126.7056057,45.7865776]}},
     {"type":"Feature","properties":{"name":"哈尔滨西"},"geometry":{"type":"Point","coordinates":[126.5723242,45.7051442]}},
+    {"type":"Feature","properties":{"name":"大雁"},"geometry":{"type":"Point","coordinates":[120.5454079,49.2296273]}},
+    {"type":"Feature","properties":{"name":"牙克石"},"geometry":{"type":"Point","coordinates":[120.7311845,49.2770342]}},
     {"type":"Feature","properties":{"name":"北京朝阳"},"geometry":{"type":"Point","coordinates":[116.5024181,39.9433162]}}
   ]
 }

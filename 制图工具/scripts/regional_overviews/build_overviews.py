@@ -70,17 +70,17 @@ MUNICIPALITY_NAMES = {"北京市", "天津市", "上海市", "重庆市"}
 
 
 CITY_POINTS = {
-    "北京市": (116.41, 39.90),
-    "赤峰市": (118.96, 42.28),
-    "通辽市": (122.26, 43.62),
-    "白城市": (122.84, 45.62),
-    "呼伦贝尔市": (119.76, 49.22),
-    "哈尔滨市": (126.64, 45.76),
-    "兴安盟": (122.07, 46.08),
-    "乌兰浩特市": (122.093, 46.072),
-    "大兴安岭地区": (124.71, 52.34),
-    "漠河市": (122.54, 52.97),
-    "海拉尔区": (119.76, 49.22),
+    "北京市": (116.25, 40.20),
+    "赤峰市": (119.25, 42.45),
+    "通辽市": (122.00, 43.85),
+    "白城市": (122.60, 45.90),
+    "呼伦贝尔市": (118.90, 49.65),
+    "哈尔滨市": (126.95, 46.05),
+    "兴安盟": (121.65, 46.75),
+    "乌兰浩特市": (122.13, 46.17),
+    "大兴安岭地区": (124.75, 51.85),
+    "漠河市": (122.64, 52.90),
+    "海拉尔区": (119.86, 49.34),
     "根河市": (121.52, 50.78),
     "合肥市": (117.30, 31.72),
     "滁州市": (118.31, 32.30),
@@ -130,6 +130,7 @@ class FocusSpec:
     source: Path
     names: tuple[str, ...]
     filter_field: str = "name"
+    kind: str = "focus"
 
 
 @dataclass(frozen=True)
@@ -531,20 +532,29 @@ SPECS = (
             "满归", "漠河", "哈尔滨东", "哈尔滨西", "北京朝阳",
         ),
         visited_cities=(
-            "北京市", "赤峰市", "通辽市", "兴安盟", "乌兰浩特市", "白城市",
-            "呼伦贝尔市", "海拉尔区", "根河市", "大兴安岭地区", "漠河市", "哈尔滨市",
+            "北京市", "赤峰市", "通辽市", "兴安盟", "白城市",
+            "呼伦贝尔市", "大兴安岭地区", "哈尔滨市",
         ),
         city_labels=(
-            "北京市", "赤峰市", "通辽市", "兴安盟", "乌兰浩特市", "白城市",
-            "呼伦贝尔市", "海拉尔区", "根河市", "大兴安岭地区", "漠河市", "哈尔滨市",
+            "北京市", "赤峰市", "通辽市", "兴安盟", "白城市",
+            "呼伦贝尔市", "大兴安岭地区", "哈尔滨市",
         ),
-        area_labels=(("乌兰浩特市", 122.10, 46.45), ("漠河市", 122.50, 52.99), ("根河市满归镇", 122.07, 52.20)),
+        area_labels=(),
+        station_labels=(
+            ("北京丰台", 116.10, 39.72),
+            ("赤峰南", 118.78, 42.12),
+            ("通辽", 122.45, 43.48),
+            ("乌兰浩特", 121.92, 45.90),
+            ("白城", 123.02, 45.48),
+            ("海拉尔", 119.48, 49.10),
+            ("满归", 122.20, 51.98),
+            ("漠河", 122.32, 53.16),
+            ("哈尔滨东", 126.86, 45.62),
+            ("哈尔滨西", 126.38, 45.82),
+            ("北京朝阳", 116.72, 40.02),
+        ),
         focus_areas=(
-            FocusSpec(
-                COUNTY_SOURCE,
-                ("Wulanhaoteshi", "Hailaershi", "Geermushi", "Mohexian"),
-                "shapeName",
-            ),
+            FocusSpec(COUNTY_SOURCE, ("Mohexian",), "shapeName", "county"),
         ),
         start_city="北京市",
         end_city="北京市",
@@ -553,8 +563,8 @@ SPECS = (
         station_layer="",
         highlighted_provinces=(110000, 130000, 150000, 210000, 220000, 230000),
         province_labels=(
-            ("北京市", 116.41, 40.25),
-            ("河北省", 115.30, 39.60),
+            ("北京市", 116.35, 40.48),
+            ("河北省", 115.20, 38.85),
             ("内蒙古自治区", 111.80, 45.20),
             ("辽宁省", 122.50, 41.50),
             ("吉林省", 126.10, 43.80),
@@ -1035,13 +1045,20 @@ def build_station_labels(project: QgsProject, spec: MapSpec, gpkg: Path) -> QgsV
     settings = QgsPalLayerSettings()
     settings.enabled = True
     settings.fieldName = "name"
-    settings.placement = Qgis.LabelPlacement.OverPoint
+    settings.placement = (
+        QgsPalLayerSettings.OrderedPositionsAroundPoint
+        if spec.key == "northeast"
+        else Qgis.LabelPlacement.OverPoint
+    )
     settings.priority = 10
-    settings.displayAll = True
+    settings.displayAll = spec.key != "northeast"
+    if spec.key == "northeast":
+        settings.dist = 0.45
+        settings.distUnits = Qgis.RenderUnit.Millimeters
     settings.obstacle = False
     settings.setFormat(
         text_format(
-            8.2,
+            7.2 if spec.key == "northeast" else 8.2,
             "#202020",
             "思源黑体 CN",
             0.28,
@@ -1073,7 +1090,7 @@ def build_city_labels(project: QgsProject, spec: MapSpec, gpkg: Path, first: boo
     settings.enabled = True
     settings.fieldName = "display"
     settings.placement = QgsPalLayerSettings.OrderedPositionsAroundPoint
-    settings.priority = 7
+    settings.priority = 12
     settings.displayAll = True
     settings.obstacle = False
     settings.setFormat(text_format(10.8, "#263335", "华文新魏", 0.42))
@@ -1104,10 +1121,10 @@ def build_province_labels(project: QgsProject, spec: MapSpec, gpkg: Path) -> Qgs
     settings.enabled = True
     settings.fieldName = "name"
     settings.placement = Qgis.LabelPlacement.OverPoint
-    settings.priority = 6
+    settings.priority = 20
     settings.displayAll = True
     settings.obstacle = False
-    settings.setFormat(text_format(8.8, "#657476", "思源黑体 CN", 0.28, weight=QFont.Medium))
+    settings.setFormat(text_format(11.2, "#4C5E5D", "思源黑体 CN", 0.34, weight=QFont.Bold))
     layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
     layer.setLabelsEnabled(True)
     return layer
@@ -1334,13 +1351,37 @@ def build_place_labels(project: QgsProject, spec: MapSpec, gpkg: Path) -> QgsVec
     return layer
 
 
-def style_focus_area(layer: QgsVectorLayer) -> None:
-    symbol = fill_symbol("#70A390", 155, "#2F6257", 0.0)
+def style_focus_area(
+    layer: QgsVectorLayer, emphasis: bool = False, county: bool = False
+) -> None:
+    if county:
+        symbol = fill_symbol(
+            "#5F9A86" if emphasis else "#E6D7A9",
+            195 if emphasis else 112,
+            "255,255,255,0",
+            0.0,
+        )
+        outline = QgsSimpleLineSymbolLayer.create(
+            {
+                "line_color": "#2F6257",
+                "line_width": "0.34" if emphasis else "0.18",
+                "line_width_unit": "MM",
+            }
+        )
+        symbol.appendSymbolLayer(outline)
+        layer.setRenderer(QgsSingleSymbolRenderer(symbol))
+        return
+    symbol = fill_symbol(
+        "#5F9A86" if emphasis else "#70A390",
+        195 if emphasis else 155,
+        "#2F6257",
+        0.0,
+    )
     symbol.symbolLayer(0).setStrokeStyle(Qt.NoPen)
     outline = QgsSimpleLineSymbolLayer.create(
         {
             "line_color": "#2F6257",
-            "line_width": "0.18",
+            "line_width": "0.34" if emphasis else "0.18",
             "line_width_unit": "MM",
         }
     )
@@ -1608,7 +1649,11 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             "重点县区：" + "、".join(focus.names),
             subset=f'"{focus.filter_field}" IN ({sql_strings(focus.names)})',
         )
-        style_focus_area(focus_layer)
+        style_focus_area(
+            focus_layer,
+            emphasis=spec.key == "northeast",
+            county=focus.kind == "county",
+        )
         focus_layers.append(focus_layer)
 
     map_layers = [stations]
