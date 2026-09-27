@@ -1,0 +1,16 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type":"Feature","properties":{"name":"北京丰台"},"geometry":{"type":"Point","coordinates":[116.2953417,39.8499954]}},
+    {"type":"Feature","properties":{"name":"赤峰南"},"geometry":{"type":"Point","coordinates":[118.9536202,42.2548316]}},
+    {"type":"Feature","properties":{"name":"通辽"},"geometry":{"type":"Point","coordinates":[122.2658074,43.6016685]}},
+    {"type":"Feature","properties":{"name":"乌兰浩特"},"geometry":{"type":"Point","coordinates":[122.0565391,46.0687386]}},
+    {"type":"Feature","properties":{"name":"白城"},"geometry":{"type":"Point","coordinates":[122.8591067,45.6156263]}},
+    {"type":"Feature","properties":{"name":"海拉尔"},"geometry":{"type":"Point","coordinates":[119.7356021,49.2287551]}},
+    {"type":"Feature","properties":{"name":"满归"},"geometry":{"type":"Point","coordinates":[122.0674186,52.0349302]}},
+    {"type":"Feature","properties":{"name":"漠河"},"geometry":{"type":"Point","coordinates":[122.4977008,52.9865751]}},
+    {"type":"Feature","properties":{"name":"哈尔滨东"},"geometry":{"type":"Point","coordinates":[126.7056057,45.7865776]}},
+    {"type":"Feature","properties":{"name":"哈尔滨西"},"geometry":{"type":"Point","coordinates":[126.5723242,45.7051442]}},
+    {"type":"Feature","properties":{"name":"北京朝阳"},"geometry":{"type":"Point","coordinates":[116.5024181,39.9433162]}}
+  ]
+}
