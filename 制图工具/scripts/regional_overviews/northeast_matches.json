@@ -89,6 +89,20 @@
       "tags": "\"alt_name\"=>\"通辽站;通辽火车站;Tongliao Railway Station\",\"name:en\"=>\"Tongliao\",\"name:zh\"=>\"通辽\",\"operator\"=>\"中国铁路沈阳局集团有限公司 通辽站\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"53363\"",
       "score": 6
     },
+    "齐齐哈尔": {
+      "fid": 107058,
+      "lon": 123.990047,
+      "lat": 47.3384973,
+      "tags": "\"addr:city\"=>\"站前街道\",\"addr:district\"=>\"齐齐哈尔市\",\"addr:province\"=>\"黑龙江省\",\"alt_name\"=>\"齐齐哈尔站;齐齐哈尔火车站;Qiqiha'er Railway Station\",\"name:en\"=>\"Qiqiha'er\",\"name:zh\"=>\"齐齐哈尔\",\"operator\"=>\"中国铁路哈尔滨局集团有限公司 齐齐哈尔站\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"56675\",\"train\"=>\"yes\"",
+      "score": 6
+    },
+    "免渡河": {
+      "fid": 4632,
+      "lon": 121.0529533,
+      "lat": 49.0910704,
+      "tags": "\"alt_name\"=>\"免渡河站;免渡河火车站;Mianduhe Railway Station\",\"name:en\"=>\"Mianduhe\",\"name:zh\"=>\"免渡河\",\"operator\"=>\"中国铁路哈尔滨局集团有限公司 海拉尔车务段\",\"railway\"=>\"station\",\"railway:ref\"=>\"57722\",\"train\"=>\"yes\"",
+      "score": 6
+    },
     "白城": {
       "fid": 6260,
       "lon": 122.85910670000001,

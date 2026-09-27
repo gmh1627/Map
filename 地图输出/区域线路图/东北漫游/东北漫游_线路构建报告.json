@@ -6,14 +6,14 @@
     54.9865751
   ],
   "network_features": 299997,
-  "graph_nodes": 373279,
-  "graph_edges": 834691,
-  "topology_connectors": 536977,
+  "graph_nodes": 373281,
+  "graph_edges": 834696,
+  "topology_connectors": 536980,
   "station_component_connectors": 6,
-  "largest_component_nodes": 326429,
+  "largest_component_nodes": 326431,
   "max_station_snap_km": 0.078,
   "review_count": 0,
-  "elapsed_seconds": 33.4,
+  "elapsed_seconds": 32.9,
   "routes": [
     {
       "seq": 1,
@@ -111,16 +111,17 @@
       "distance_km": 771,
       "service_class": "conventional",
       "control_points": [
-        "大雁",
+        "齐齐哈尔",
+        "免渡河",
         "牙克石"
       ],
       "preferred_network": "conventional",
-      "route_km": 771.3,
-      "ratio": 1.0,
-      "edge_count": 1134,
+      "route_km": 721.1,
+      "ratio": 0.935,
+      "edge_count": 4802,
       "track_counts": {
-        "connector": 4,
-        "conventional": 1130
+        "conventional": 4793,
+        "connector": 9
       },
       "status": "ok",
       "origin_snap_km": 0.003,
@@ -134,14 +135,16 @@
       "train": "4184",
       "distance_km": 518,
       "service_class": "conventional",
-      "control_points": [],
+      "control_points": [
+        "牙克石"
+      ],
       "preferred_network": "conventional",
-      "route_km": 517.8,
+      "route_km": 518.0,
       "ratio": 1.0,
-      "edge_count": 241,
+      "edge_count": 5419,
       "track_counts": {
-        "conventional": 239,
-        "connector": 2
+        "conventional": 5416,
+        "connector": 3
       },
       "status": "ok",
       "origin_snap_km": 0.003,
@@ -159,9 +162,9 @@
       "preferred_network": "conventional",
       "route_km": 1200.6,
       "ratio": 1.01,
-      "edge_count": 567,
+      "edge_count": 568,
       "track_counts": {
-        "conventional": 560,
+        "conventional": 561,
         "connector": 7
       },
       "status": "ok",

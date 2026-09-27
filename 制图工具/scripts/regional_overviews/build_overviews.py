@@ -78,7 +78,7 @@ CITY_POINTS = {
     "哈尔滨市": (126.95, 46.05),
     "兴安盟": (121.65, 46.75),
     "乌兰浩特市": (122.13, 46.17),
-    "大兴安岭地区": (124.75, 51.85),
+    "大兴安岭地区": (124.10, 52.15),
     "漠河市": (122.64, 52.90),
     "海拉尔区": (119.86, 49.34),
     "根河市": (121.52, 50.78),
@@ -546,7 +546,7 @@ SPECS = (
             ("通辽", 122.45, 43.48),
             ("乌兰浩特", 121.92, 45.90),
             ("白城", 123.02, 45.48),
-            ("海拉尔", 119.48, 49.10),
+            ("海拉尔", 118.45, 49.10),
             ("满归", 122.20, 51.98),
             ("漠河", 122.32, 53.16),
             ("哈尔滨东", 126.86, 45.62),
@@ -561,14 +561,12 @@ SPECS = (
         route_source=DEFAULT_OUTPUT_ROOT / "东北漫游" / "东北漫游_路线源.gpkg",
         station_source=RAILWAY_ROOT / "制图工具" / "数据源" / "GeoPackage" / "northeast_stations.geojson",
         station_layer="",
-        highlighted_provinces=(110000, 130000, 150000, 210000, 220000, 230000),
+        highlighted_provinces=(110000, 150000, 210000, 220000, 230000),
         province_labels=(
-            ("北京市", 116.35, 40.48),
-            ("河北省", 115.20, 38.85),
-            ("内蒙古自治区", 111.80, 45.20),
-            ("辽宁省", 122.50, 41.50),
-            ("吉林省", 126.10, 43.80),
-            ("黑龙江省", 127.20, 49.50),
+            ("内蒙古自治区", 115.70, 44.20),
+            ("辽宁省", 122.60, 41.40),
+            ("吉林省", 126.15, 43.55),
+            ("黑龙江省", 127.60, 47.90),
         ),
         visited_only_context=True,
         scale_segment_km=250,
@@ -902,6 +900,7 @@ def build_highlighted_city_boundaries(
     gpkg: Path,
     city_names: set[str],
     *,
+    mask_geometries: tuple[QgsGeometry, ...] = (),
     layer_name: str = "highlighted_city_boundaries",
     display_name: str = "高亮城市边界",
 ) -> QgsVectorLayer:
@@ -917,6 +916,15 @@ def build_highlighted_city_boundaries(
     if not boundaries:
         raise RuntimeError("No highlighted city boundaries found")
     geometry = QgsGeometry.unaryUnion(boundaries)
+    for mask in mask_geometries:
+        # Leave the focus outline as the single visible edge in the masked
+        # area.  This prevents a second simplified parent border from peeking
+        # out beside the county boundary.
+        geometry = geometry.difference(mask.buffer(0.02, 8))
+        if geometry.isNull() or geometry.isEmpty():
+            break
+    if geometry.isNull() or geometry.isEmpty():
+        raise RuntimeError("No highlighted city boundary remains after masking")
     geometry.convertToMultiType()
     memory = QgsVectorLayer(
         f"MultiLineString?crs={cities.crs().authid()}", display_name, "memory"
@@ -945,6 +953,44 @@ def build_highlighted_city_boundaries(
     )
     layer.setLabelsEnabled(False)
     return layer
+
+
+def clip_focus_layer_to_parent(
+    focus_layer: QgsVectorLayer,
+    parent_geometry: QgsGeometry,
+    gpkg: Path,
+    layer_name: str,
+) -> QgsVectorLayer:
+    """Use the same parent boundary for a county fill and its outline.
+
+    The county reference source and the city source are simplified from
+    different boundary datasets.  Clipping the county to its visited parent
+    removes the small slivers that otherwise show as a second border.
+    """
+    geometry_type = QgsWkbTypes.displayString(focus_layer.wkbType())
+    memory = QgsVectorLayer(
+        f"{geometry_type}?crs={focus_layer.crs().authid()}",
+        focus_layer.name(),
+        "memory",
+    )
+    memory.dataProvider().addAttributes(focus_layer.fields())
+    memory.updateFields()
+    features = []
+    for source_feature in focus_layer.getFeatures():
+        clipped = source_feature.geometry().intersection(parent_geometry)
+        if clipped.isNull() or clipped.isEmpty():
+            continue
+        feature = QgsFeature(memory.fields())
+        feature.setAttributes(source_feature.attributes())
+        feature.setGeometry(clipped)
+        features.append(feature)
+    if not features:
+        raise RuntimeError(f"No focus geometry remains after clipping {focus_layer.name()}")
+    memory.dataProvider().addFeatures(features)
+    memory.updateExtents()
+    saved = write_layer(memory, gpkg, layer_name)
+    saved.setName(focus_layer.name())
+    return saved
 
 
 def trip_route_symbol(highspeed: bool) -> QgsLineSymbol:
@@ -1124,7 +1170,10 @@ def build_province_labels(project: QgsProject, spec: MapSpec, gpkg: Path) -> Qgs
     settings.priority = 20
     settings.displayAll = True
     settings.obstacle = False
-    settings.setFormat(text_format(11.2, "#4C5E5D", "思源黑体 CN", 0.34, weight=QFont.Bold))
+    # Province names are the highest-level labels on a regional map.  Keep
+    # them visibly larger and heavier than city names, with a quiet light
+    # buffer so they remain legible over the province tint.
+    settings.setFormat(text_format(13.8, "#405255", "华文楷体", 0.36, weight=QFont.DemiBold))
     layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
     layer.setLabelsEnabled(True)
     return layer
@@ -1590,6 +1639,43 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     highlighted_provinces = build_highlighted_provinces(
         cities, gpkg, spec.highlighted_provinces
     )
+    focus_layers = []
+    parent_focus_geometry = None
+    if spec.key == "northeast":
+        parent_focus_geometry = next(
+            (
+                feature.geometry()
+                for feature in cities.getFeatures()
+                if str(feature["name"]) == "大兴安岭地区"
+            ),
+            None,
+        )
+    for index, focus in enumerate(spec.focus_areas, 1):
+        source_focus_layer = add_layer(
+            project,
+            focus.source,
+            "重点县区：" + "、".join(focus.names),
+            subset=f'"{focus.filter_field}" IN ({sql_strings(focus.names)})',
+        )
+        focus_layer = source_focus_layer
+        if (
+            spec.key == "northeast"
+            and focus.kind == "county"
+            and parent_focus_geometry is not None
+        ):
+            focus_layer = clip_focus_layer_to_parent(
+                source_focus_layer,
+                parent_focus_geometry,
+                gpkg,
+                f"focus_area_{index}",
+            )
+            project.removeMapLayer(source_focus_layer.id())
+        style_focus_area(
+            focus_layer,
+            emphasis=spec.key == "northeast",
+            county=focus.kind == "county",
+        )
+        focus_layers.append(focus_layer)
     internal_admin = (
         build_internal_admin_boundaries(project, cities, gpkg, spec.extent)
         if show_city_context and not visited_only_context
@@ -1602,6 +1688,15 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             set(spec.visited_cities)
             | ({spec.start_city} if spec.start_city else set())
             | ({spec.end_city} if spec.end_city else set()),
+            mask_geometries=(
+                tuple(
+                    feature.geometry()
+                    for layer in focus_layers
+                    for feature in layer.getFeatures()
+                )
+                if spec.key == "northeast"
+                else ()
+            ),
         )
         if visited_only_context or not show_city_context
         else None
@@ -1641,20 +1736,6 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     roads, arrows = None, None
     places = build_place_labels(project, spec, gpkg)
     area_labels = build_area_labels(project, spec, gpkg)
-    focus_layers = []
-    for index, focus in enumerate(spec.focus_areas, 1):
-        focus_layer = add_layer(
-            project,
-            focus.source,
-            "重点县区：" + "、".join(focus.names),
-            subset=f'"{focus.filter_field}" IN ({sql_strings(focus.names)})',
-        )
-        style_focus_area(
-            focus_layer,
-            emphasis=spec.key == "northeast",
-            county=focus.kind == "county",
-        )
-        focus_layers.append(focus_layer)
 
     map_layers = [stations]
     if station_labels:
@@ -1671,9 +1752,12 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         map_layers.append(unvisited_city_labels)
     if roads:
         map_layers.append(roads)
-    map_layers.extend([route, *focus_layers])
+    map_layers.append(route)
     if highlighted_city_boundaries:
         map_layers.append(highlighted_city_boundaries)
+    # The clipped county highlight must sit above the parent boundary so the
+    # shared edge is rendered once instead of as two slightly different lines.
+    map_layers.extend(focus_layers)
     if start:
         map_layers.append(start)
     if end:
