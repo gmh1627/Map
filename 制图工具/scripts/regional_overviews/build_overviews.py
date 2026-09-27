@@ -71,12 +71,12 @@ MUNICIPALITY_NAMES = {"北京市", "天津市", "上海市", "重庆市"}
 
 CITY_POINTS = {
     "北京市": (116.25, 40.20),
-    "赤峰市": (119.25, 42.62),
-    "通辽市": (121.75, 43.85),
-    "白城市": (122.60, 45.90),
+    "赤峰市": (118.75, 43.12),
+    "通辽市": (121.50, 43.85),
+    "白城市": (122.85, 45.90),
     "呼伦贝尔市": (118.90, 49.65),
     "哈尔滨市": (126.95, 46.05),
-    "兴安盟": (121.65, 46.75),
+    "兴安盟": (121.15, 46.25),
     "乌兰浩特市": (122.13, 46.17),
     "大兴安岭地区": (124.10, 52.15),
     "漠河市": (122.70, 52.70),
@@ -537,12 +537,12 @@ SPECS = (
         ),
         city_labels=(
             "北京市", "赤峰市", "通辽市", "兴安盟", "白城市",
-            "呼伦贝尔市", "大兴安岭地区", "哈尔滨市", "漠河市",
+            "呼伦贝尔市", "大兴安岭地区", "哈尔滨市",
         ),
-        area_labels=(),
+        area_labels=(("漠河市", 122.42, 52.68),),
         station_labels=(
             ("北京丰台", 115.85, 39.50),
-            ("赤峰南", 118.78, 42.12),
+            ("赤峰南", 118.78, 41.90),
             ("通辽", 122.45, 43.48),
             ("乌兰浩特", 121.92, 45.90),
             ("白城", 123.02, 45.48),
@@ -920,7 +920,7 @@ def build_highlighted_city_boundaries(
         # Leave the focus outline as the single visible edge in the masked
         # area.  This prevents a second simplified parent border from peeking
         # out beside the county boundary.
-        geometry = geometry.difference(mask.buffer(0.02, 8))
+        geometry = geometry.difference(mask.makeValid().buffer(0.03, 8))
         if geometry.isNull() or geometry.isEmpty():
             break
     if geometry.isNull() or geometry.isEmpty():
@@ -975,9 +975,10 @@ def clip_focus_layer_to_parent(
     )
     memory.dataProvider().addAttributes(focus_layer.fields())
     memory.updateFields()
+    parent_geometry = parent_geometry.makeValid()
     features = []
     for source_feature in focus_layer.getFeatures():
-        clipped = source_feature.geometry().intersection(parent_geometry)
+        clipped = source_feature.geometry().makeValid().intersection(parent_geometry)
         if clipped.isNull() or clipped.isEmpty():
             continue
         feature = QgsFeature(memory.fields())
@@ -1012,15 +1013,26 @@ def trip_route_symbol(highspeed: bool) -> QgsLineSymbol:
 
 
 def style_trip_routes(layer: QgsVectorLayer) -> None:
-    layer.setRenderer(
-        QgsCategorizedSymbolRenderer(
-            "service",
-            [
-                QgsRendererCategory("highspeed", trip_route_symbol(True), "高铁/动车（含城际、市郊）"),
-                QgsRendererCategory("conventional", trip_route_symbol(False), "普铁"),
-            ],
+    renderer = QgsCategorizedSymbolRenderer(
+        "service",
+        [
+            QgsRendererCategory("highspeed", trip_route_symbol(True), "高铁/动车（含城际、市郊）"),
+            QgsRendererCategory("conventional", trip_route_symbol(False), "普铁"),
+        ],
+    )
+    # Draw conventional features first and high-speed features last.  When a
+    # trip shares a short rail segment, the high-speed colour remains visible
+    # instead of inheriting the conventional line's dark outer stroke.
+    renderer.setOrderBy(
+        QgsFeatureRequest.OrderBy(
+            [QgsFeatureRequest.OrderByClause(
+                "CASE WHEN \"service\" = 'highspeed' THEN 1 ELSE 0 END",
+                True,
+            )]
         )
     )
+    renderer.setOrderByEnabled(True)
+    layer.setRenderer(renderer)
 
 
 def style_background_rail(layer: QgsVectorLayer) -> None:
@@ -1406,7 +1418,7 @@ def style_focus_area(
     if county:
         symbol = fill_symbol(
             "#5F9A86" if emphasis else "#E6D7A9",
-            195 if emphasis else 112,
+            255 if emphasis else 112,
             "255,255,255,0",
             0.0,
         )
