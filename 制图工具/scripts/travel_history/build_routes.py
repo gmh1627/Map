@@ -39,11 +39,12 @@ from qgis.core import (
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-RAILWAY_ROOT = SCRIPT_DIR.parents[2]
 PARSED = SCRIPT_DIR / "parsed_source.json"
 MATCH_REPORT = SCRIPT_DIR / "source_match_report.json"
-RAIL_GPKG = RAILWAY_ROOT / "制图工具" / "数据源" / "GeoPackage" / "travel_map_home2_min_gan.gpkg"
-DEFAULT_OUTPUT_DIR = RAILWAY_ROOT / "地图输出" / "全国专题图" / "全国足迹"
+RAIL_GPKG = Path(
+    r"F:\Desktop\Railway\制图工具\数据源\GeoPackage\travel_map_home2_min_gan.gpkg"
+)
+DEFAULT_OUTPUT_DIR = Path(r"F:\Desktop\Railway\地图输出\全国专题图\全国足迹")
 OUTPUT_DIR = DEFAULT_OUTPUT_DIR
 OUTPUT_GPKG = OUTPUT_DIR / "铁路轨迹.gpkg"
 ROUTE_REPORT = OUTPUT_DIR / "线路构建报告.json"
@@ -66,7 +67,6 @@ WAYPOINT_COORDS = {
     "桐城南": (116.9593385, 30.8752543),
     "铜陵北": (118.0160809, 31.0157065),
     "无为": (117.9639065, 31.3063668),
-    "繁昌西": (118.1530398, 31.0733641),
     "常平": (114.0003801, 22.9871798),
     "樟木头": (114.0626375, 22.9043667),
     "平湖": (114.1195271, 22.6948818),
@@ -138,27 +138,6 @@ WAYPOINT_COORDS = {
     "保定": (115.4731670, 38.8627726),
     "高碑店": (115.8527002, 39.3278413),
 }
-
-# Some OSM station nodes sit on a platform siding while the cartographic route
-# should use the shared through track. These coordinates are projections onto
-# the corresponding physical corridor, not fabricated straight-line controls.
-STATION_ROUTE_COORD_OVERRIDES = {
-    # The local station-match report predates this trip and does not contain
-    # 八达岭长城; use the canonical station point from the exported network.
-    "八达岭长城": (116.005052, 40.360328),
-    "泾县": (118.3831055, 30.6605472),
-    "芜湖": (118.3855308, 31.3495891),
-    "宣城": (118.7692115, 30.9495847),
-}
-CARTOGRAPHIC_STATION_ANCHORS = {
-    "泾县",
-    "黄山北",
-    "无为",
-    "铜陵",
-    "繁昌西",
-    "芜湖",
-    "宣城",
-}
 ROUTE_WAYPOINTS = {
     8: ["江门"],
     9: ["江门"],
@@ -170,7 +149,7 @@ ROUTE_WAYPOINTS = {
     33: ["江门"],
     34: ["商丘", "开封"],
     38: ["兰考南", "亳州南"],
-    39: ["无为", "铜陵", "繁昌西"],
+    39: ["无为", "铜陵"],
     42: ["舒城东", "庐江西", "桐城南"],
     44: ["铜陵北", "无为"],
     45: ["江门"],
@@ -202,14 +181,6 @@ ROUTE_WAYPOINTS = {
 # Extra points used only to keep a route on the intended physical railway.
 # They do not appear as principal itinerary controls in the route report.
 ROUTE_SHAPING_WAYPOINTS = {
-    # Reuse one canonical station-to-station geometry wherever separate travel
-    # records share the same southern-Anhui railway. These anchors are for
-    # cartographic topology only and are not reported as timetable stops.
-    21: ["泾县"],
-    22: ["泾县"],
-    28: ["芜湖", "宣城"],
-    41: ["芜湖"],
-    59: ["黄山北"],
     65: [
         "龙南东",
         "龙川西",
@@ -241,19 +212,6 @@ ROUTE_SHAPING_WAYPOINTS = {
 # so each section follows its actual railway.
 PREFERRED_NETWORK_OVERRIDES: dict[str, str] = {}
 
-# G7725 changes direction at Tongling (and continues as G7728). Its traversal
-# legitimately revisits the same station access track; preserve that ordered
-# branch rather than applying the generic station-loop cleaner.
-BRANCHED_ROUTE_SEQUENCES = {39}
-
-# G7725/G7728 leaves Tongling on the Nanjing-Anqing passenger line. The
-# parallel conventional Wuhu-Tongling railway is slightly shorter in the raw
-# OSM graph and otherwise creates a false station spur at Fanchang West.
-ROUTE_SECTION_LINE_KEYWORDS = {
-    (39, "铜陵", "繁昌西"): "宁安客专",
-    (39, "繁昌西", "芜湖"): "宁安客专",
-}
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -272,14 +230,6 @@ def haversine_km(a: tuple[float, float], b: tuple[float, float]) -> float:
     dlat = lat2 - lat1
     value = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
     return 6371.0088 * 2 * math.asin(min(1.0, math.sqrt(value)))
-
-
-def approximate_distance_km(a: tuple[float, float], b: tuple[float, float]) -> float:
-    """Fast local distance used only for broad station-throat thresholds."""
-    mean_lat = math.radians((a[1] + b[1]) * 0.5)
-    dx = (a[0] - b[0]) * math.cos(mean_lat) * 111.32
-    dy = (a[1] - b[1]) * 110.57
-    return math.hypot(dx, dy)
 
 
 def geometry_length_km(points: list[QgsPointXY]) -> float:
@@ -314,308 +264,8 @@ def feature_polylines(geometry: QgsGeometry) -> list[list[QgsPointXY]]:
     return [line] if len(line) >= 2 else []
 
 
-def remove_revisited_loops(
-    points: list[QgsPointXY],
-    protected_anchors: list[tuple[float, float]] | None = None,
-) -> list[QgsPointXY]:
-    """Remove station-throat detours which leave and revisit the same vertex."""
-    protected_anchors = protected_anchors or []
-    result: list[QgsPointXY] = []
-    positions: dict[tuple[float, float], int] = {}
-    protected_flags: list[bool] = []
-    protected_prefix = [0]
-    for point in points:
-        key = (round(point.x(), 5), round(point.y(), 5))
-        previous = positions.get(key)
-        point_protected = any(
-            approximate_distance_km((point.x(), point.y()), anchor) <= 2.0
-            for anchor in protected_anchors
-        )
-        protected = (
-            point_protected or protected_flags[previous]
-            if previous is not None
-            else False
-        )
-        removed_contains_protected = (
-            bool(protected_prefix[len(result)] - protected_prefix[previous + 1])
-            if previous is not None and protected_anchors
-            else False
-        )
-        if (
-            previous is not None
-            and len(result) - previous > 1
-            and not protected
-            and not removed_contains_protected
-        ):
-            removed = result[previous + 1 :]
-            result = result[: previous + 1]
-            for old in removed:
-                old_key = (round(old.x(), 5), round(old.y(), 5))
-                if positions.get(old_key, -1) > previous:
-                    positions.pop(old_key, None)
-            protected_flags = protected_flags[: previous + 1]
-            protected_prefix = protected_prefix[: previous + 2]
-            continue
-        positions[key] = len(result)
-        result.append(point)
-        protected_flags.append(point_protected)
-        protected_prefix.append(protected_prefix[-1] + int(point_protected))
-    return result
-
-
-def remove_station_throat_detours(
-    points: list[QgsPointXY],
-    anchors: list[tuple[float, float]],
-    protected_anchors: list[tuple[float, float]] | None = None,
-) -> list[QgsPointXY]:
-    """Collapse short near-return loops around itinerary station anchors.
-
-    OSM station points can sit at the end of a platform or a station throat.
-    The graph may consequently leave the point on a siding, travel through
-    the throat, and return to a nearby point on the main track.  Compare the
-    closure with the travelled distance so ordinary curves remain intact while
-    these endpoint hooks are removed.
-    """
-    protected_anchors = protected_anchors or []
-
-    def remove_endpoint_spikes(
-        values: list[QgsPointXY],
-    ) -> list[QgsPointXY]:
-        """Remove a short, near-reversing spike at either route endpoint.
-
-        A station throat can be represented by two adjacent OSM edges which
-        leave the station in one direction and immediately turn back before
-        joining the through track.  There is no repeated vertex for the loop
-        cleaner to match, but the apex has an almost 180-degree turn.  Only
-        inspect the first/last 16 vertices.  A near-reversing apex is removed
-        when both legs are at least 15 m; a short (<100 m) orthogonal stub is
-        removed when it joins a substantially longer leg.  This keeps genuine
-        bends farther along the route intact while removing station-platform
-        hooks.
-        """
-        result = list(values)
-        changed = True
-        while changed and len(result) >= 3:
-            changed = False
-            endpoint_ranges = [
-                (range(1, min(16, len(result) - 1)), anchors[0]),
-                (
-                    range(max(1, len(result) - 16), len(result) - 1),
-                    anchors[-1],
-                ),
-            ]
-            for candidates, endpoint_anchor in endpoint_ranges:
-                for index in candidates:
-                    point = result[index]
-                    if approximate_distance_km(
-                        (point.x(), point.y()), endpoint_anchor
-                    ) > 3.0:
-                        continue
-                    if any(
-                        approximate_distance_km(
-                            (point.x(), point.y()), anchor
-                        )
-                        <= 2.0
-                        for anchor in protected_anchors
-                    ):
-                        continue
-                    before = result[index - 1]
-                    after = result[index + 1]
-                    latitude = math.radians(
-                        (before.y() + point.y() + after.y()) / 3.0
-                    )
-                    scale_x = 111.32 * math.cos(latitude)
-                    scale_y = 110.57
-                    incoming = (
-                        (point.x() - before.x()) * scale_x,
-                        (point.y() - before.y()) * scale_y,
-                    )
-                    outgoing = (
-                        (after.x() - point.x()) * scale_x,
-                        (after.y() - point.y()) * scale_y,
-                    )
-                    incoming_length = math.hypot(*incoming)
-                    outgoing_length = math.hypot(*outgoing)
-                    if incoming_length < 0.015 and outgoing_length >= 0.10:
-                        del result[index]
-                        changed = True
-                        break
-                    if incoming_length < 0.015 or outgoing_length < 0.015:
-                        continue
-                    cosine = (
-                        incoming[0] * outgoing[0]
-                        + incoming[1] * outgoing[1]
-                    ) / (incoming_length * outgoing_length)
-                    short_orthogonal_stub = (
-                        incoming_length < 0.10
-                        and outgoing_length >= 0.10
-                        and cosine < 0.75
-                    )
-                    if cosine < -0.35 or short_orthogonal_stub:
-                        del result[index]
-                        changed = True
-                        break
-                if changed:
-                    break
-        return result
-
-    # Do this before the distance-based cleaner: an endpoint spike may not
-    # return close enough to the station point to satisfy its closure test.
-    points = remove_endpoint_spikes(points)
-    result: list[QgsPointXY] = []
-    cumulative_km: list[float] = []
-    for point in points:
-        loop_start = None
-        point_coordinate = (point.x(), point.y())
-        near_anchor = any(
-            approximate_distance_km(point_coordinate, anchor) <= 2.0
-            for anchor in anchors
-        )
-        if result and near_anchor:
-            route_position = cumulative_km[-1]
-            for index in range(len(result) - 1, -1, -1):
-                traversed_km = route_position - cumulative_km[index]
-                # Station yards can contain several kilometres of parallel
-                # throat geometry before the route rejoins the through line.
-                # Look farther back so endpoint hooks like Chuzhou North and
-                # Yulin are removed as well; protected reversal stations (for
-                # example Tongling on G7725/G7728) still opt out below.
-                if traversed_km > 8.0:
-                    break
-                # The former degree-space cutoff was about 0.35 km and missed
-                # valid closures at larger station throats.  Use a
-                # latitude-aware cutoff; the closure and detour-ratio checks
-                # below remain restrictive.
-                if approximate_distance_km(
-                    (result[index].x(), result[index].y()), point_coordinate
-                ) > 1.0:
-                    continue
-                closure_km = haversine_km(
-                    (result[index].x(), result[index].y()), point_coordinate
-                )
-                protected = any(
-                    min(
-                        approximate_distance_km(
-                            (result[index].x(), result[index].y()), anchor
-                        ),
-                        approximate_distance_km(point_coordinate, anchor),
-                    )
-                    <= 2.0
-                    for anchor in protected_anchors
-                )
-                endpoint_return = any(
-                    min(
-                        approximate_distance_km(
-                            (result[index].x(), result[index].y()), anchor
-                        ),
-                        approximate_distance_km(point_coordinate, anchor),
-                    )
-                    <= 3.0
-                    for anchor in (anchors[0], anchors[-1])
-                )
-                closure_limit = 0.80 if endpoint_return else 0.35
-                minimum_detour = 0.12 if endpoint_return else 0.25
-                detour_ratio = 1.05 if endpoint_return else 2.5
-                if (
-                    not protected
-                    and traversed_km >= minimum_detour
-                    and closure_km <= closure_limit
-                    and traversed_km
-                    >= max(minimum_detour, closure_km * detour_ratio)
-                ):
-                    loop_start = index
-        if loop_start is None:
-            previous_km = cumulative_km[-1] if cumulative_km else 0.0
-            if result:
-                previous_km += haversine_km(
-                    (result[-1].x(), result[-1].y()), point_coordinate
-                )
-            result.append(point)
-            cumulative_km.append(previous_km)
-            continue
-        result = result[: loop_start + 1]
-        cumulative_km = cumulative_km[: loop_start + 1]
-        if result[-1].distance(point) > 0.00005:
-            cumulative_km.append(
-                cumulative_km[-1]
-                + haversine_km(
-                    (result[-1].x(), result[-1].y()), point_coordinate
-                )
-            )
-            result.append(point)
-    # The distance-based pass can expose a second, shorter apex after it
-    # removes the first part of a throat.  Run the endpoint-spike pass once
-    # more so the visible geometry is tested in its final form.
-    return remove_endpoint_spikes(result)
-
-
-def remove_global_short_returns(
-    points: list[QgsPointXY],
-    protected_anchors: list[tuple[float, float]] | None = None,
-    max_span_km: float = 1.5,
-    max_closure_km: float = 0.12,
-) -> list[QgsPointXY]:
-    """Collapse short sidings/loops even when no recorded station is nearby."""
-    protected_anchors = protected_anchors or []
-    result = list(points)
-    changed = True
-    while changed and len(result) >= 3:
-        changed = False
-        cumulative = [0.0]
-        for first, second in zip(result, result[1:]):
-            cumulative.append(
-                cumulative[-1]
-                + haversine_km((first.x(), first.y()), (second.x(), second.y()))
-            )
-        best = None
-        for end in range(1, len(result)):
-            for start in range(end - 1, -1, -1):
-                span = cumulative[end] - cumulative[start]
-                if span > max_span_km:
-                    break
-                if span < 0.15:
-                    continue
-                closure = haversine_km(
-                    (result[start].x(), result[start].y()),
-                    (result[end].x(), result[end].y()),
-                )
-                if closure > max_closure_km:
-                    continue
-                protected = any(
-                    min(
-                        approximate_distance_km(
-                            (result[start].x(), result[start].y()), anchor
-                        ),
-                        approximate_distance_km(
-                            (result[end].x(), result[end].y()), anchor
-                        ),
-                    )
-                    <= 2.0
-                    for anchor in protected_anchors
-                )
-                if protected:
-                    continue
-                candidate = (closure / max(span, 1e-9), closure, span, start, end)
-                if best is None or candidate < best:
-                    best = candidate
-        if best is None:
-            break
-        _, _, _, start, end = best
-        # Keep the two approach points and discard only the short detour between
-        # them; the surrounding railway geometry remains untouched.
-        result = result[: start + 1] + result[end:]
-        changed = True
-    return result
-
-
-def stitch_route_geometries(
-    geometries: list[QgsGeometry],
-    required_points: list[tuple[float, float]],
-    clean_station_loops: bool = True,
-    protected_anchors: list[tuple[float, float]] | None = None,
-    internal_display_points: list[tuple[float, float]] | None = None,
-) -> QgsGeometry:
-    """Join path edges and terminate on the projected station-track points."""
+def stitch_route_geometries(geometries: list[QgsGeometry]) -> QgsGeometry:
+    """Join ordered path edges and discard detached branch fragments."""
     stitched: list[QgsPointXY] = []
     for geometry in geometries:
         candidates = feature_polylines(geometry)
@@ -633,51 +283,7 @@ def stitch_route_geometries(
             if stitched[-1].distance(chosen[-1]) < stitched[-1].distance(chosen[0]):
                 chosen = list(reversed(chosen))
         stitched.extend(chosen if not stitched else chosen[1:])
-    if len(stitched) < 2:
-        return QgsGeometry.collectGeometry(geometries)
-    origin_point = QgsPointXY(*required_points[0])
-    destination_point = QgsPointXY(*required_points[-1])
-    forward = stitched[0].distance(origin_point) + stitched[-1].distance(destination_point)
-    reverse = stitched[-1].distance(origin_point) + stitched[0].distance(destination_point)
-    if reverse < forward:
-        stitched.reverse()
-    # The routed sections already pass through each projected control station.
-    # Replacing several kilometres around every control with two straight
-    # segments creates visible V-shaped hooks at through stations (notably
-    # Tongling) and makes otherwise shared routes diverge. Keep the physical
-    # OSM alignment intact and constrain only the two route endpoints.
-    stitched[0] = origin_point
-    stitched[-1] = destination_point
-    # Endpoint replacement can itself expose a pre-existing station-throat
-    # out-and-back. Clean only after the route has its final orientation and
-    # endpoint coordinates, then restore those endpoints once more. A route
-    # which is known to reverse at a station (G7725 at Tongling) opts out and
-    # keeps the retraced branch in its ordered geometry.
-    if clean_station_loops:
-        stitched = remove_revisited_loops(stitched, protected_anchors)
-        stitched = remove_station_throat_detours(
-            stitched, required_points, protected_anchors
-        )
-        stitched = remove_global_short_returns(stitched, protected_anchors)
-    # A through route and a route terminating at the same station must use the
-    # same visible anchor. Move only the nearest existing vertex to the station
-    # point; unlike the former 5 km replacement, this retains the surrounding
-    # OSM alignment and cannot create a branch.
-    search_start = 1
-    for coordinate in internal_display_points or []:
-        if search_start >= len(stitched) - 1:
-            break
-        nearest = min(
-            range(search_start, len(stitched) - 1),
-            key=lambda index: haversine_km(
-                (stitched[index].x(), stitched[index].y()), coordinate
-            ),
-        )
-        stitched[nearest] = QgsPointXY(*coordinate)
-        search_start = nearest + 1
-    stitched[0] = origin_point
-    stitched[-1] = destination_point
-    return QgsGeometry.fromPolylineXY(stitched)
+    return QgsGeometry.fromPolylineXY(stitched) if len(stitched) >= 2 else QgsGeometry.collectGeometry(geometries)
 
 
 def project_onto_polyline(
@@ -803,11 +409,7 @@ def main() -> int:
         name: (float(value["lon"]), float(value["lat"]))
         for name, value in station_matches.items()
     }
-    for name, coordinate in WAYPOINT_COORDS.items():
-        station_coords.setdefault(name, coordinate)
-    for name, coordinate in STATION_ROUTE_COORD_OVERRIDES.items():
-        station_coords.setdefault(name, coordinate)
-    route_station_coords = {**station_coords, **STATION_ROUTE_COORD_OVERRIDES}
+    station_coords.update(WAYPOINT_COORDS)
     min_lon = min(value[0] for value in station_coords.values()) - NETWORK_MARGIN_DEGREES
     min_lat = min(value[1] for value in station_coords.values()) - NETWORK_MARGIN_DEGREES
     max_lon = max(value[0] for value in station_coords.values()) + NETWORK_MARGIN_DEGREES
@@ -912,7 +514,7 @@ def main() -> int:
         station_nodes: dict[str, int] = {}
         station_snap_km: dict[str, float] = {}
         placement_groups: dict[tuple[int, int], dict] = {}
-        for station_name, station_coordinate in route_station_coords.items():
+        for station_name, station_coordinate in station_coords.items():
             best = None
             for search_radius in (0.02, 0.06, 0.15):
                 station_request = QgsFeatureRequest().setFilterRect(
@@ -956,8 +558,7 @@ def main() -> int:
             projected_node = node_id(QgsPointXY(*best["projected"]))
             station_nodes[station_name] = projected_node
             station_snap_km[station_name] = haversine_km(
-                station_coords.get(station_name, station_coordinate),
-                best["projected"],
+                station_coordinate, best["projected"]
             )
             group_key = (best["fid"], best["part"])
             group = placement_groups.setdefault(
@@ -1148,14 +749,7 @@ def main() -> int:
                     [QgsPointXY(*coordinate) for coordinate in detail["coordinates"]]
                 )
             if fid not in feature_cache:
-                feature = next(rail.getFeatures(QgsFeatureRequest(fid)), None)
-                if feature is None:
-                    return QgsGeometry.fromPolylineXY(
-                        [
-                            QgsPointXY(*coordinate)
-                            for coordinate in detail["coordinates"]
-                        ]
-                    )
+                feature = next(rail.getFeatures(QgsFeatureRequest(fid)))
                 feature_cache[fid] = feature.geometry()
             geometry = feature_cache[fid]
             parts = feature_polylines(geometry)
@@ -1174,23 +768,17 @@ def main() -> int:
         dense_path_cache = {}
 
         def dense_section_details(
-            start_name: str,
-            end_name: str,
-            preferred: str,
-            line_keyword: str | None = None,
+            start_name: str, end_name: str, preferred: str
         ) -> list[dict]:
-            cache_key = (start_name, end_name, preferred, line_keyword)
-            reverse_key = (end_name, start_name, preferred, line_keyword)
+            cache_key = (start_name, end_name, preferred)
+            reverse_key = (end_name, start_name, preferred)
             if cache_key in dense_path_cache:
                 return dense_path_cache[cache_key]
             if reverse_key in dense_path_cache:
                 return list(reversed(dense_path_cache[reverse_key]))
 
-            # Work from the station's projection on the physical railway. Raw
-            # OSM station points can sit beside a platform or in the station
-            # building; joining a route to those points produces short hooks.
-            start_coordinate = node_coordinates[station_nodes[start_name]]
-            end_coordinate = node_coordinates[station_nodes[end_name]]
+            start_coordinate = station_coords[start_name]
+            end_coordinate = station_coords[end_name]
             span = max(
                 abs(start_coordinate[0] - end_coordinate[0]),
                 abs(start_coordinate[1] - end_coordinate[1]),
@@ -1221,8 +809,6 @@ def main() -> int:
             for feature in rail.getFeatures(request):
                 name = str(feature["name"] or "")
                 tags = str(feature["other_tags"] or "")
-                if line_keyword and line_keyword not in name and line_keyword not in tags:
-                    continue
                 highspeed = is_highspeed(name, tags)
                 penalty = service_penalty(tags)
                 for points in feature_polylines(feature.geometry()):
@@ -1271,11 +857,6 @@ def main() -> int:
                                 local_details[(min(start, end), max(start, end), "conventional")] = detail.copy()
 
             coordinates_array = np.asarray(local_coordinates)
-            if not len(coordinates_array):
-                raise RuntimeError(
-                    f"No {line_keyword or preferred} railway near "
-                    f"{start_name}-{end_name}"
-                )
             local_tree = cKDTree(coordinates_array)
             _, start_position = local_tree.query(np.asarray(start_coordinate), k=1)
             _, end_position = local_tree.query(np.asarray(end_coordinate), k=1)
@@ -1334,11 +915,6 @@ def main() -> int:
                 except nx.NetworkXNoPath:
                     continue
             if path is None:
-                if line_keyword:
-                    raise RuntimeError(
-                        f"No connected {line_keyword} path for "
-                        f"{start_name}-{end_name}"
-                    )
                 global_path = corridor_path(
                     station_nodes[start_name], station_nodes[end_name], preferred
                 )
@@ -1461,17 +1037,9 @@ def main() -> int:
             details = []
             if reported_waypoints:
                 for control_start, control_end in zip(control_names, control_names[1:]):
-                    line_keyword = ROUTE_SECTION_LINE_KEYWORDS.get(
-                        (record["seq"], control_start, control_end)
-                    ) or ROUTE_SECTION_LINE_KEYWORDS.get(
-                        (record["seq"], control_end, control_start)
-                    )
                     details.extend(
                         dense_section_details(
-                            control_start,
-                            control_end,
-                            preferred_network,
-                            line_keyword,
+                            control_start, control_end, preferred_network
                         )
                     )
             else:
@@ -1502,37 +1070,15 @@ def main() -> int:
                 ]
 
             geometries = [feature_geometry(detail) for detail in details]
-            track_counts = Counter(detail["track_class"] for detail in details)
-            collected = stitch_route_geometries(
-                geometries,
-                [
-                    station_coords[control_names[0]],
-                    *(
-                        node_coordinates[station_nodes[name]]
-                        for name in control_names[1:-1]
-                    ),
-                    station_coords[control_names[-1]],
-                ],
-                clean_station_loops=record["seq"] not in BRANCHED_ROUTE_SEQUENCES,
-                protected_anchors=(
-                    [station_coords["铜陵"]]
-                    if record["seq"] in BRANCHED_ROUTE_SEQUENCES
-                    else []
-                ),
-                internal_display_points=[
-                    station_coords[name]
-                    for name in control_names[1:-1]
-                    if name in CARTOGRAPHIC_STATION_ANCHORS
-                ],
-            )
-            collected_parts = feature_polylines(collected)
-            route_km = sum(geometry_length_km(part) for part in collected_parts)
+            route_km = sum(detail["length_km"] for detail in details)
             ratio = route_km / record["distance_km"] if record["distance_km"] else None
             status = (
                 "unchecked"
                 if ratio is None
                 else "ok" if 0.72 <= ratio <= 1.18 else "review"
             )
+            track_counts = Counter(detail["track_class"] for detail in details)
+            collected = stitch_route_geometries(geometries)
             output = QgsFeature()
             output.setGeometry(collected)
             output.setAttributes(

@@ -1,0 +1,191 @@
+{
+  "network_extent": [
+    108.253795,
+    19.4008526,
+    128.7056057,
+    54.9865751
+  ],
+  "network_features": 299997,
+  "graph_nodes": 373277,
+  "graph_edges": 834686,
+  "topology_connectors": 536974,
+  "station_component_connectors": 6,
+  "largest_component_nodes": 326427,
+  "max_station_snap_km": 0.078,
+  "review_count": 0,
+  "elapsed_seconds": 27.7,
+  "routes": [
+    {
+      "seq": 1,
+      "date": "2026.09.30",
+      "origin": "北京丰台",
+      "destination": "赤峰南",
+      "train": "K1456",
+      "distance_km": 477,
+      "service_class": "conventional",
+      "control_points": [],
+      "preferred_network": "conventional",
+      "route_km": 488.6,
+      "ratio": 1.024,
+      "edge_count": 1014,
+      "track_counts": {
+        "conventional": 1009,
+        "connector": 5
+      },
+      "status": "ok",
+      "origin_snap_km": 0.003,
+      "destination_snap_km": 0.039
+    },
+    {
+      "seq": 2,
+      "date": "2026.10.02",
+      "origin": "赤峰南",
+      "destination": "通辽",
+      "train": "K1457",
+      "distance_km": 344,
+      "service_class": "conventional",
+      "control_points": [],
+      "preferred_network": "conventional",
+      "route_km": 351.0,
+      "ratio": 1.02,
+      "edge_count": 96,
+      "track_counts": {
+        "conventional": 93,
+        "connector": 3
+      },
+      "status": "ok",
+      "origin_snap_km": 0.039,
+      "destination_snap_km": 0.004
+    },
+    {
+      "seq": 3,
+      "date": "2026.10.02",
+      "origin": "通辽",
+      "destination": "乌兰浩特",
+      "train": "K957",
+      "distance_km": 358,
+      "service_class": "conventional",
+      "control_points": [
+        "白城"
+      ],
+      "preferred_network": "conventional",
+      "route_km": 357.9,
+      "ratio": 1.0,
+      "edge_count": 699,
+      "track_counts": {
+        "highspeed": 6,
+        "connector": 5,
+        "conventional": 688
+      },
+      "status": "ok",
+      "origin_snap_km": 0.004,
+      "destination_snap_km": 0.013
+    },
+    {
+      "seq": 4,
+      "date": "2026.10.03",
+      "origin": "乌兰浩特",
+      "destination": "白城",
+      "train": "C508",
+      "distance_km": 103,
+      "service_class": "highspeed",
+      "control_points": [],
+      "preferred_network": "highspeed",
+      "route_km": 86.6,
+      "ratio": 0.841,
+      "edge_count": 29,
+      "track_counts": {
+        "conventional": 28,
+        "connector": 1
+      },
+      "status": "ok",
+      "origin_snap_km": 0.013,
+      "destination_snap_km": 0.003
+    },
+    {
+      "seq": 5,
+      "date": "2026.10.03",
+      "origin": "白城",
+      "destination": "海拉尔",
+      "train": "K4259",
+      "distance_km": 609,
+      "service_class": "conventional",
+      "control_points": [],
+      "preferred_network": "conventional",
+      "route_km": 623.2,
+      "ratio": 1.023,
+      "edge_count": 226,
+      "track_counts": {
+        "connector": 2,
+        "conventional": 224
+      },
+      "status": "ok",
+      "origin_snap_km": 0.003,
+      "destination_snap_km": 0.003
+    },
+    {
+      "seq": 6,
+      "date": "2026.10.04",
+      "origin": "海拉尔",
+      "destination": "满归",
+      "train": "4184",
+      "distance_km": 518,
+      "service_class": "conventional",
+      "control_points": [],
+      "preferred_network": "conventional",
+      "route_km": 517.8,
+      "ratio": 1.0,
+      "edge_count": 241,
+      "track_counts": {
+        "conventional": 239,
+        "connector": 2
+      },
+      "status": "ok",
+      "origin_snap_km": 0.003,
+      "destination_snap_km": 0.002
+    },
+    {
+      "seq": 7,
+      "date": "2026.10.06",
+      "origin": "漠河",
+      "destination": "哈尔滨东",
+      "train": "K7040",
+      "distance_km": 1189,
+      "service_class": "conventional",
+      "control_points": [],
+      "preferred_network": "conventional",
+      "route_km": 1200.6,
+      "ratio": 1.01,
+      "edge_count": 567,
+      "track_counts": {
+        "conventional": 560,
+        "connector": 7
+      },
+      "status": "ok",
+      "origin_snap_km": 0.0,
+      "destination_snap_km": 0.004
+    },
+    {
+      "seq": 8,
+      "date": "2026.10.08",
+      "origin": "哈尔滨西",
+      "destination": "北京朝阳",
+      "train": "G102",
+      "distance_km": 1241,
+      "service_class": "highspeed",
+      "control_points": [],
+      "preferred_network": "highspeed",
+      "route_km": 1205.0,
+      "ratio": 0.971,
+      "edge_count": 709,
+      "track_counts": {
+        "conventional": 2,
+        "connector": 3,
+        "highspeed": 704
+      },
+      "status": "ok",
+      "origin_snap_km": 0.007,
+      "destination_snap_km": 0.004
+    }
+  ]
+}

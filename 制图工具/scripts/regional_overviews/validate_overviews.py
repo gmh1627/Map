@@ -17,7 +17,7 @@ from qgis.core import (
 )
 
 
-DEFAULT_OUTPUT_ROOT = Path(r"F:\Desktop\Blog\Map\地图输出\区域线路图")
+DEFAULT_OUTPUT_ROOT = Path(r"F:\Desktop\Railway\地图输出\区域线路图")
 NO_CITY_CONTEXT_KEYS = {
     "home1",
     "home2_full",
@@ -25,6 +25,7 @@ NO_CITY_CONTEXT_KEYS = {
     "qingming",
     "luoyang_zhengzhou",
 }
+VISITED_ONLY_CONTEXT_KEYS = {"northeast"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -65,10 +66,12 @@ def main() -> int:
                 "未到达城市名称",
                 "地级行政区内部边界",
             }
-            if key not in NO_CITY_CONTEXT_KEYS:
+            if key not in NO_CITY_CONTEXT_KEYS and key not in VISITED_ONLY_CONTEXT_KEYS:
                 required |= city_context
-            else:
+            elif key in NO_CITY_CONTEXT_KEYS:
                 required.add("高亮城市边界")
+            else:
+                required |= {"城市名称", "高亮城市边界"}
             names = {layer.name() for layer in project.mapLayers().values()}
             forbidden = sorted({"背景铁路", "背景铁路复线", "OSM 淡色底图"} & names)
             if forbidden:
@@ -77,6 +80,10 @@ def main() -> int:
             if missing:
                 item_errors.append("missing layers: " + ", ".join(missing))
             unexpected_context = sorted(city_context & names) if key in NO_CITY_CONTEXT_KEYS else []
+            if key in VISITED_ONLY_CONTEXT_KEYS:
+                unexpected_context = sorted(
+                    {"未到达城市名称", "地级行政区内部边界"} & names
+                )
             if unexpected_context:
                 item_errors.append("city context should be absent: " + ", ".join(unexpected_context))
             province_layers = project.mapLayersByName("省级行政区边界")
@@ -89,7 +96,7 @@ def main() -> int:
                         f"province boundary width {actual_width}, expected {expected_width}"
                     )
             highlighted_boundaries = project.mapLayersByName("高亮城市边界")
-            if key in NO_CITY_CONTEXT_KEYS and highlighted_boundaries:
+            if key in NO_CITY_CONTEXT_KEYS | VISITED_ONLY_CONTEXT_KEYS and highlighted_boundaries:
                 width = highlighted_boundaries[0].renderer().symbol().symbolLayer(0).width()
                 if abs(width - 0.22) > 0.01:
                     item_errors.append(

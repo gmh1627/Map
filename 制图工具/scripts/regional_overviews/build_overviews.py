@@ -57,7 +57,7 @@ import card_layout
 
 
 BLOG_ROOT = Path(r"F:\Desktop\Blog")
-RAILWAY_ROOT = Path(r"F:\Desktop\Blog\Map")
+RAILWAY_ROOT = Path(r"F:\Desktop\Railway")
 DATA_ROOT = RAILWAY_ROOT / "制图工具" / "数据源"
 DEFAULT_OUTPUT_ROOT = RAILWAY_ROOT / "地图输出" / "区域线路图"
 NATIONAL_OUTPUT = RAILWAY_ROOT / "地图输出" / "全国专题图" / "全国足迹"
@@ -65,9 +65,23 @@ ROUTE_GPKG = NATIONAL_OUTPUT / "铁路轨迹.gpkg"
 MAP_DATA_GPKG = NATIONAL_OUTPUT / "全国足迹_数据.gpkg"
 CITY_SOURCE = RAILWAY_ROOT / "city" / "city.json"
 PROVINCE_SOURCE = RAILWAY_ROOT / "province" / "province.json"
+COUNTY_SOURCE = RAILWAY_ROOT / "制图工具" / "数据源" / "GeoPackage" / "china_counties_simplified.geojson"
+MUNICIPALITY_NAMES = {"北京市", "天津市", "上海市", "重庆市"}
 
 
 CITY_POINTS = {
+    "北京市": (116.41, 39.90),
+    "赤峰市": (118.96, 42.28),
+    "通辽市": (122.26, 43.62),
+    "白城市": (122.84, 45.62),
+    "呼伦贝尔市": (119.76, 49.22),
+    "哈尔滨市": (126.64, 45.76),
+    "兴安盟": (122.07, 46.08),
+    "乌兰浩特市": (122.093, 46.072),
+    "大兴安岭地区": (124.71, 52.34),
+    "漠河市": (122.54, 52.97),
+    "海拉尔区": (119.76, 49.22),
+    "根河市": (121.52, 50.78),
     "合肥市": (117.30, 31.72),
     "滁州市": (118.31, 32.30),
     "马鞍山市": (118.20, 31.68),
@@ -115,6 +129,7 @@ class ArrowSpec:
 class FocusSpec:
     source: Path
     names: tuple[str, ...]
+    filter_field: str = "name"
 
 
 @dataclass(frozen=True)
@@ -149,6 +164,12 @@ class MapSpec:
     cards: tuple[CardSpec, ...] = field(default_factory=tuple)
     scale_segment_km: int = 100
     strict_extent: bool = False
+    route_source: Path | None = None
+    station_source: Path | None = None
+    station_layer: str = "记录车站"
+    highlighted_provinces: tuple[int, ...] = field(default_factory=tuple)
+    province_labels: tuple[tuple[str, float, float], ...] = field(default_factory=tuple)
+    visited_only_context: bool = False
 
 
 SPECS = (
@@ -228,8 +249,6 @@ SPECS = (
         visited_cities=("合肥市", "杭州市", "宁波市", "南昌市", "郴州市", "韶关市", "湛江市"),
         end_city="湛江市",
         city_labels=("合肥市", "杭州市", "宁波市", "南昌市", "郴州市", "韶关市", "湛江市"),
-        # 广州南站标签避开线路与站点；在原偏移基础上再向右约两个字宽。
-        station_labels=(("广州南", 113.62, 22.921),),
         area_labels=(("慈溪", 121.266, 30.170),),
         focus_areas=(
             FocusSpec(RAILWAY_ROOT / "city" / "ningbo.geojson", ("慈溪市",)),
@@ -255,14 +274,7 @@ SPECS = (
             FocusSpec(RAILWAY_ROOT / "city" / "longyan.geojson", ("上杭县", "长汀县")),
             FocusSpec(RAILWAY_ROOT / "city" / "ganzhou.geojson", ("瑞金市", "于都县")),
         ),
-        # 广州南站在此前下移一个字高、右移两个字宽的基础上，再右移半个字宽。
-        # 广州东站上移半个字宽，避开广州南站及线路交汇处。
-        station_labels=(
-            ("瑞金", 116.05, 25.77),
-            ("赣州西", 114.69, 25.92),
-            ("广州南", 113.685, 22.861),
-            ("广州东", 113.319621, 23.219),
-        ),
+        station_labels=(("瑞金", 116.05, 25.77), ("赣州西", 114.69, 25.92)),
         scale_segment_km=200,
     ),
     MapSpec(
@@ -504,6 +516,54 @@ SPECS = (
         scale_segment_km=100,
         strict_extent=True,
     ),
+    MapSpec(
+        key="northeast",
+        folder="东北漫游",
+        filename="东北漫游",
+        title="东北漫游",
+        subtitle="北京 · 赤峰 · 通辽 · 兴安盟乌兰浩特市 · 白城 · 呼伦贝尔市海拉尔区、根河市满归镇 · 大兴安岭漠河市 · 哈尔滨",
+        date="2026.09.30—10.08",
+        extent=(113.40, 38.20, 129.00, 54.00),
+        page=(300, 300),
+        route_seqs=tuple(range(1, 9)),
+        station_names=(
+            "北京丰台", "赤峰南", "通辽", "乌兰浩特", "白城", "海拉尔",
+            "满归", "漠河", "哈尔滨东", "哈尔滨西", "北京朝阳",
+        ),
+        visited_cities=(
+            "北京市", "赤峰市", "通辽市", "兴安盟", "乌兰浩特市", "白城市",
+            "呼伦贝尔市", "海拉尔区", "根河市", "大兴安岭地区", "漠河市", "哈尔滨市",
+        ),
+        city_labels=(
+            "北京市", "赤峰市", "通辽市", "兴安盟", "乌兰浩特市", "白城市",
+            "呼伦贝尔市", "海拉尔区", "根河市", "大兴安岭地区", "漠河市", "哈尔滨市",
+        ),
+        area_labels=(("乌兰浩特市", 122.10, 46.45), ("漠河市", 122.50, 52.99), ("根河市满归镇", 122.07, 52.20)),
+        focus_areas=(
+            FocusSpec(
+                COUNTY_SOURCE,
+                ("Wulanhaoteshi", "Hailaershi", "Geermushi", "Mohexian"),
+                "shapeName",
+            ),
+        ),
+        start_city="北京市",
+        end_city="北京市",
+        route_source=DEFAULT_OUTPUT_ROOT / "东北漫游" / "东北漫游_路线源.gpkg",
+        station_source=RAILWAY_ROOT / "制图工具" / "数据源" / "GeoPackage" / "northeast_stations.geojson",
+        station_layer="",
+        highlighted_provinces=(110000, 130000, 150000, 210000, 220000, 230000),
+        province_labels=(
+            ("北京市", 116.41, 40.25),
+            ("河北省", 115.30, 39.60),
+            ("内蒙古自治区", 111.80, 45.20),
+            ("辽宁省", 122.50, 41.50),
+            ("吉林省", 126.10, 43.80),
+            ("黑龙江省", 127.20, 49.50),
+        ),
+        visited_only_context=True,
+        scale_segment_km=250,
+        strict_extent=True,
+    ),
 )
 
 NO_CITY_CONTEXT_KEYS = {
@@ -688,6 +748,59 @@ def build_province_boundaries_from_cities(
             "capstyle": "round",
         }
     )
+    layer.setRenderer(QgsSingleSymbolRenderer(symbol))
+    layer.setLabelsEnabled(False)
+    return layer
+
+
+def build_highlighted_provinces(
+    cities: QgsVectorLayer,
+    gpkg: Path,
+    province_codes: tuple[int, ...],
+    *,
+    layer_name: str = "highlighted_provinces",
+    display_name: str = "到过的省级行政区",
+) -> QgsVectorLayer | None:
+    """Create a quiet province fill without duplicating internal boundaries."""
+    if not province_codes:
+        return None
+    municipalities = {110000, 120000, 310000, 500000}
+    geometries: dict[int, list[QgsGeometry]] = {}
+    wanted = set(province_codes)
+    for feature in cities.getFeatures():
+        level = str(feature["level"])
+        parent = feature["parent"] if "parent" in feature.fields().names() else None
+        parent_code = parent.get("adcode") if isinstance(parent, dict) else None
+        if level == "city":
+            routes = feature["acroutes"]
+            province_code = routes[1] if isinstance(routes, list) and len(routes) > 1 else parent_code
+        elif level == "district" and parent_code in municipalities:
+            province_code = parent_code
+        else:
+            continue
+        if province_code is None or int(province_code) not in wanted:
+            continue
+        geometries.setdefault(int(province_code), []).append(feature.geometry())
+    if not geometries:
+        return None
+    memory = QgsVectorLayer(f"MultiPolygon?crs={cities.crs().authid()}", display_name, "memory")
+    memory.dataProvider().addAttributes([QgsField("province", QVariant.Int)])
+    memory.updateFields()
+    features = []
+    for code, parts in geometries.items():
+        geometry = QgsGeometry.unaryUnion(parts)
+        if geometry.isNull() or geometry.isEmpty():
+            continue
+        geometry.convertToMultiType()
+        feature = QgsFeature(memory.fields())
+        feature.setGeometry(geometry)
+        feature.setAttribute("province", code)
+        features.append(feature)
+    memory.dataProvider().addFeatures(features)
+    memory.updateExtents()
+    layer = write_layer(memory, gpkg, layer_name)
+    symbol = fill_symbol("#D7E8E1", 74, "255,255,255,0", 0.0)
+    symbol.symbolLayer(0).setStrokeStyle(Qt.NoPen)
     layer.setRenderer(QgsSingleSymbolRenderer(symbol))
     layer.setLabelsEnabled(False)
     return layer
@@ -967,6 +1080,36 @@ def build_city_labels(project: QgsProject, spec: MapSpec, gpkg: Path, first: boo
     layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
     layer.setLabelsEnabled(True)
     layer.setRenderer(QgsSingleSymbolRenderer(QgsMarkerSymbol.createSimple({"name": "circle", "size": "0"})))
+    return layer
+
+
+def build_province_labels(project: QgsProject, spec: MapSpec, gpkg: Path) -> QgsVectorLayer | None:
+    """Add only the province names explicitly configured for a regional map."""
+    if not spec.province_labels:
+        return None
+    memory = QgsVectorLayer("Point?crs=EPSG:4326", "省级行政区名称", "memory")
+    memory.dataProvider().addAttributes([QgsField("name", QVariant.String)])
+    memory.updateFields()
+    features = []
+    for name, lon, lat in spec.province_labels:
+        feature = QgsFeature(memory.fields())
+        feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lon, lat)))
+        feature.setAttribute("name", name)
+        features.append(feature)
+    memory.dataProvider().addFeatures(features)
+    memory.updateExtents()
+    layer = write_layer(memory, gpkg, "province_labels")
+    layer.setRenderer(QgsSingleSymbolRenderer(QgsMarkerSymbol.createSimple({"name": "circle", "size": "0"})))
+    settings = QgsPalLayerSettings()
+    settings.enabled = True
+    settings.fieldName = "name"
+    settings.placement = Qgis.LabelPlacement.OverPoint
+    settings.priority = 6
+    settings.displayAll = True
+    settings.obstacle = False
+    settings.setFormat(text_format(8.8, "#657476", "思源黑体 CN", 0.28, weight=QFont.Medium))
+    layer.setLabeling(QgsVectorLayerSimpleLabeling(settings))
+    layer.setLabelsEnabled(True)
     return layer
 
 
@@ -1375,17 +1518,19 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         subset=f'"name" IN ({sql_strings(spec.visited_cities)})',
     )
     style_highlight(visited)
+    endpoint_source = PROVINCE_SOURCE if spec.start_city in MUNICIPALITY_NAMES or spec.end_city in MUNICIPALITY_NAMES else CITY_SOURCE
     start = None
     if spec.start_city:
-        start = add_layer(project, CITY_SOURCE, "起终点城市", subset=f'"name" = \'{spec.start_city}\'')
+        start = add_layer(project, endpoint_source, "起终点城市", subset=f'"name" = \'{spec.start_city}\'')
         style_highlight(start, role="start")
     end = None
     if spec.end_city:
-        end = add_layer(project, CITY_SOURCE, "终点城市", subset=f'"name" = \'{spec.end_city}\'')
-        style_highlight(end, role="end")
+        end = add_layer(project, endpoint_source, "终点城市", subset=f'"name" = \'{spec.end_city}\'')
+        style_highlight(end, role="start" if spec.end_city == spec.start_city else "end")
 
+    route_source_path = spec.route_source or ROUTE_GPKG
     route_source = add_layer(
-        project, ROUTE_GPKG, "路线源数据", "rail_routes",
+        project, route_source_path, "路线源数据", "rail_routes",
         subset=f'"seq" IN ({", ".join(str(value) for value in spec.route_seqs)})',
     )
     route = write_layer(route_source, gpkg, "trip_route", first=True)
@@ -1394,15 +1539,19 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     services = {str(feature["service"]) for feature in route.getFeatures()}
     project.removeMapLayer(route_source.id())
     show_city_context = spec.key not in NO_CITY_CONTEXT_KEYS
+    visited_only_context = spec.visited_only_context
     provinces = build_province_boundaries_from_cities(
         cities,
         gpkg,
         spec.extent,
         line_width=0.32 if show_city_context else 0.15,
     )
+    highlighted_provinces = build_highlighted_provinces(
+        cities, gpkg, spec.highlighted_provinces
+    )
     internal_admin = (
         build_internal_admin_boundaries(project, cities, gpkg, spec.extent)
-        if show_city_context
+        if show_city_context and not visited_only_context
         else None
     )
     highlighted_city_boundaries = (
@@ -1413,12 +1562,13 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             | ({spec.start_city} if spec.start_city else set())
             | ({spec.end_city} if spec.end_city else set()),
         )
-        if not show_city_context
+        if visited_only_context or not show_city_context
         else None
     )
 
+    station_source_path = spec.station_source or MAP_DATA_GPKG
     station_source = add_layer(
-        project, MAP_DATA_GPKG, "车站源数据", "记录车站",
+        project, station_source_path, "车站源数据", spec.station_layer or None,
         subset=f'"name" IN ({sql_strings(spec.station_names)})',
     )
     stations = write_layer(station_source, gpkg, "stations")
@@ -1430,7 +1580,7 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
 
     city_labels = (
         build_city_labels(project, spec, gpkg, first=False)
-        if show_city_context
+        if show_city_context or visited_only_context
         else None
     )
     unvisited_city_labels = (
@@ -1443,9 +1593,10 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             | ({spec.start_city} if spec.start_city else set())
             | ({spec.end_city} if spec.end_city else set()),
         )
-        if show_city_context
+        if show_city_context and not visited_only_context
         else None
     )
+    province_labels = build_province_labels(project, spec, gpkg)
     roads, arrows = None, None
     places = build_place_labels(project, spec, gpkg)
     area_labels = build_area_labels(project, spec, gpkg)
@@ -1455,7 +1606,7 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             project,
             focus.source,
             "重点县区：" + "、".join(focus.names),
-            subset=f'"name" IN ({sql_strings(focus.names)})',
+            subset=f'"{focus.filter_field}" IN ({sql_strings(focus.names)})',
         )
         style_focus_area(focus_layer)
         focus_layers.append(focus_layer)
@@ -1465,6 +1616,8 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         map_layers.insert(0, station_labels)
     if area_labels:
         map_layers.append(area_labels)
+    if province_labels:
+        map_layers.append(province_labels)
     if places:
         map_layers.append(places)
     if city_labels:
@@ -1482,7 +1635,11 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         map_layers.append(end)
     if internal_admin:
         map_layers.append(internal_admin)
-    map_layers.extend([provinces, visited, cities])
+    map_layers.extend([provinces, visited])
+    if show_city_context and not visited_only_context:
+        map_layers.append(cities)
+    if highlighted_provinces:
+        map_layers.insert(1, highlighted_provinces)
     effective_extent = QgsRectangle(*spec.extent)
     if not spec.strict_extent:
         effective_extent.combineExtentWith(visited.extent())
@@ -1529,6 +1686,9 @@ def main() -> int:
     output_root.mkdir(parents=True, exist_ok=True)
     selected = [spec for spec in SPECS if not args.only or spec.key in args.only]
     sources = {ROUTE_GPKG, MAP_DATA_GPKG, CITY_SOURCE, PROVINCE_SOURCE}
+    sources.update(spec.route_source for spec in selected if spec.route_source)
+    sources.update(spec.station_source for spec in selected if spec.station_source)
+    sources = {source for source in sources if source is not None}
     sources.update(focus.source for spec in selected for focus in spec.focus_areas)
     for source in sources:
         if not source.exists():
