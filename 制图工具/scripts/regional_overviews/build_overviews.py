@@ -69,6 +69,9 @@ COUNTY_SOURCE = RAILWAY_ROOT / "制图工具" / "数据源" / "GeoPackage" / "ch
 MUNICIPALITY_NAMES = {"北京市", "天津市", "上海市", "重庆市"}
 
 
+_PROCESSING_READY = False
+
+
 CITY_POINTS = {
     "北京市": (116.25, 40.20),
     "赤峰市": (118.75, 43.12),
@@ -997,6 +1000,60 @@ def clip_focus_layer_to_parent(
     return saved
 
 
+def mask_line_layer(
+    layer: QgsVectorLayer,
+    masks: tuple[QgsGeometry, ...],
+    *,
+    radius: float = 0.25,
+) -> None:
+    """Remove simplified boundary segments hidden by a focused polygon."""
+    if not masks:
+        return
+    mask = QgsGeometry.unaryUnion(
+        [geometry.makeValid() for geometry in masks if not geometry.isNull()]
+    ).buffer(radius, 8)
+    if mask.isNull() or mask.isEmpty():
+        return
+    changes = {}
+    for feature in layer.getFeatures():
+        changes[feature.id()] = feature.geometry().difference(mask)
+    if changes:
+        layer.dataProvider().changeGeometryValues(changes)
+        layer.updateExtents()
+
+
+def snap_focus_to_reference(
+    focus: QgsVectorLayer,
+    reference: QgsVectorLayer,
+    *,
+    tolerance: float = 0.15,
+) -> QgsVectorLayer:
+    """Snap a focused county to its authoritative parent boundary."""
+    global _PROCESSING_READY
+    if not _PROCESSING_READY:
+        plugin_path = Path(QgsApplication.prefixPath()) / "python" / "plugins"
+        if str(plugin_path) not in sys.path:
+            sys.path.append(str(plugin_path))
+        from processing.core.Processing import Processing
+
+        Processing.initialize()
+        _PROCESSING_READY = True
+    from qgis import processing
+
+    result = processing.run(
+        "native:snapgeometries",
+        {
+            "INPUT": focus,
+            "REFERENCE_LAYER": reference,
+            "TOLERANCE": tolerance,
+            "BEHAVIOR": 1,
+            "OUTPUT": "memory:",
+        },
+    )["OUTPUT"]
+    result.setName(focus.name())
+    return result
+
+
 def trip_route_symbol(highspeed: bool) -> QgsLineSymbol:
     symbol = QgsLineSymbol()
     if highspeed:
@@ -1661,6 +1718,18 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         cities, gpkg, spec.highlighted_provinces
     )
     focus_layers = []
+    focus_reference = None
+    if spec.key == "northeast":
+        # The county source and the province source are simplified from
+        # different releases.  Use Heilongjiang's outline as the authoritative
+        # snapping reference for Mohe, rather than drawing two near-parallel
+        # borders from unrelated datasets.
+        focus_reference = add_layer(
+            project,
+            PROVINCE_SOURCE,
+            "focus_province_reference",
+            subset='"adcode" = \'230000\'',
+        )
     parent_focus_geometry = None
     if spec.key == "northeast":
         parent_focus_geometry = next(
@@ -1686,19 +1755,34 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             and focus.kind == "county"
             and parent_focus_geometry is not None
         ):
-            focus_layer = clip_focus_layer_to_parent(
+            focus_layer = snap_focus_to_reference(
                 source_focus_layer,
+                focus_reference,
+            )
+            project.removeMapLayer(source_focus_layer.id())
+            focus_layer = clip_focus_layer_to_parent(
+                focus_layer,
                 parent_focus_geometry,
                 gpkg,
                 f"focus_area_{index}",
             )
-            project.removeMapLayer(source_focus_layer.id())
         style_focus_area(
             focus_layer,
             emphasis=spec.key == "northeast",
             county=focus.kind == "county",
         )
         focus_layers.append(focus_layer)
+    if focus_reference is not None:
+        project.removeMapLayer(focus_reference.id())
+    if spec.key == "northeast":
+        mask_line_layer(
+            provinces,
+            tuple(
+                feature.geometry()
+                for layer in focus_layers
+                for feature in layer.getFeatures()
+            ),
+        )
     internal_admin = (
         build_internal_admin_boundaries(project, cities, gpkg, spec.extent)
         if show_city_context and not visited_only_context
