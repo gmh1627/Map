@@ -920,7 +920,10 @@ def build_highlighted_city_boundaries(
         # Leave the focus outline as the single visible edge in the masked
         # area.  This prevents a second simplified parent border from peeking
         # out beside the county boundary.
-        geometry = geometry.difference(mask.makeValid().buffer(0.03, 8))
+        # The county source is more detailed than the prefecture source.  A
+        # slightly wider mask removes the parent outline's simplified edge
+        # instead of leaving a visible parallel line beside the county edge.
+        geometry = geometry.difference(mask.makeValid().buffer(0.25, 8))
         if geometry.isNull() or geometry.isEmpty():
             break
     if geometry.isNull() or geometry.isEmpty():
@@ -1416,19 +1419,25 @@ def style_focus_area(
     layer: QgsVectorLayer, emphasis: bool = False, county: bool = False
 ) -> None:
     if county:
-        symbol = fill_symbol(
-            "#5F9A86" if emphasis else "#E6D7A9",
-            255 if emphasis else 112,
-            "255,255,255,0",
-            0.0,
-        )
+        # County highlights follow the shared regional-map convention used by
+        # xiaocheng3: translucent grass green fill and a separate fine dashed
+        # boundary.  The fill has no stroke, so city/province boundaries do
+        # not become a second dark outline around the county.
+        symbol = fill_symbol("#70A390", 155, "255,255,255,0", 0.0)
+        symbol.symbolLayer(0).setStrokeStyle(Qt.NoPen)
         outline = QgsSimpleLineSymbolLayer.create(
             {
                 "line_color": "#2F6257",
-                "line_width": "0.34" if emphasis else "0.18",
+                "line_width": "0.18",
                 "line_width_unit": "MM",
             }
         )
+        outline.setPenStyle(Qt.CustomDashLine)
+        outline.setCustomDashVector([1.5, 2.2])
+        outline.setCustomDashPatternUnit(Qgis.RenderUnit.Millimeters)
+        outline.setUseCustomDashPattern(True)
+        outline.setPenCapStyle(Qt.SquareCap)
+        outline.setPenJoinStyle(Qt.BevelJoin)
         symbol.appendSymbolLayer(outline)
         layer.setRenderer(QgsSingleSymbolRenderer(symbol))
         return
@@ -1662,6 +1671,8 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             ),
             None,
         )
+        if parent_focus_geometry is None:
+            raise RuntimeError("Northeast focus parent city is missing")
     for index, focus in enumerate(spec.focus_areas, 1):
         source_focus_layer = add_layer(
             project,
@@ -1765,11 +1776,12 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     if roads:
         map_layers.append(roads)
     map_layers.append(route)
+    # County focus outlines sit above the parent boundary, matching the
+    # xiaocheng3 layer order.  The parent boundary is masked locally so the
+    # more detailed county edge remains the single visible edge in that area.
+    map_layers.extend(focus_layers)
     if highlighted_city_boundaries:
         map_layers.append(highlighted_city_boundaries)
-    # The clipped county highlight must sit above the parent boundary so the
-    # shared edge is rendered once instead of as two slightly different lines.
-    map_layers.extend(focus_layers)
     if start:
         map_layers.append(start)
     if end:
@@ -1780,7 +1792,11 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     if show_city_context and not visited_only_context:
         map_layers.append(cities)
     if highlighted_provinces:
-        map_layers.insert(1, highlighted_provinces)
+        # Route lines must be above the province tint.  In particular, Beijing
+        # and Liaoning are highlighted provinces, while Hebei is intentionally
+        # not; inserting this fill before the route would make the same
+        # high-speed line render in different colours across their borders.
+        map_layers.append(highlighted_provinces)
     effective_extent = QgsRectangle(*spec.extent)
     if not spec.strict_extent:
         effective_extent.combineExtentWith(visited.extent())
