@@ -775,6 +775,63 @@ def build_province_boundaries_from_cities(
     return layer
 
 
+def build_reference_border_near_focus(
+    reference: QgsVectorLayer,
+    gpkg: Path,
+    focus_geometries: tuple[QgsGeometry, ...],
+    *,
+    layer_name: str = "focus_province_border",
+    display_name: str = "焦点区域省界",
+    radius: float = 0.35,
+) -> QgsVectorLayer | None:
+    """Restore authoritative external borders hidden by the local mask."""
+    if not focus_geometries:
+        return None
+    focus_mask = QgsGeometry.unaryUnion(
+        [geometry.makeValid() for geometry in focus_geometries if not geometry.isNull()]
+    ).buffer(radius, 8)
+    if focus_mask.isNull() or focus_mask.isEmpty():
+        return None
+    boundaries = []
+    for source_feature in reference.getFeatures():
+        boundary = source_feature.geometry().convertToType(
+            QgsWkbTypes.LineGeometry, True
+        )
+        clipped = boundary.intersection(focus_mask)
+        if not clipped.isNull() and not clipped.isEmpty():
+            boundaries.append(clipped)
+    if not boundaries:
+        return None
+    memory = QgsVectorLayer(
+        f"MultiLineString?crs={reference.crs().authid()}",
+        display_name,
+        "memory",
+    )
+    memory.dataProvider().addAttributes([QgsField("name", QVariant.String)])
+    memory.updateFields()
+    feature = QgsFeature(memory.fields())
+    feature.setAttribute("name", display_name)
+    feature.setGeometry(QgsGeometry.unaryUnion(boundaries))
+    memory.dataProvider().addFeature(feature)
+    memory.updateExtents()
+    layer = write_layer(memory, gpkg, layer_name)
+    layer.setRenderer(
+        QgsSingleSymbolRenderer(
+            QgsLineSymbol.createSimple(
+                {
+                    "line_color": "#A9B1B2",
+                    "line_width": "0.15",
+                    "line_width_unit": "MM",
+                    "joinstyle": "round",
+                    "capstyle": "round",
+                }
+            )
+        )
+    )
+    layer.setLabelsEnabled(False)
+    return layer
+
+
 def build_highlighted_provinces(
     cities: QgsVectorLayer,
     gpkg: Path,
@@ -1755,13 +1812,22 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             county=focus.kind == "county",
         )
         focus_layers.append(focus_layer)
-    if focus_reference is not None:
-        project.removeMapLayer(focus_reference.id())
     focus_masks = tuple(
         feature.geometry()
         for layer in focus_layers
         for feature in layer.getFeatures()
     )
+    focus_province_border = (
+        build_reference_border_near_focus(
+            focus_reference,
+            gpkg,
+            focus_masks,
+        )
+        if focus_reference is not None and spec.key == "northeast"
+        else None
+    )
+    if focus_reference is not None:
+        project.removeMapLayer(focus_reference.id())
     provinces = build_province_boundaries_from_cities(
         cities,
         gpkg,
@@ -1849,6 +1915,8 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     # County focus outlines sit above the parent boundary, matching the
     # xiaocheng3 layer order.  The parent boundary is masked locally so the
     # more detailed county edge remains the single visible edge in that area.
+    if focus_province_border:
+        map_layers.append(focus_province_border)
     map_layers.extend(focus_layers)
     if highlighted_city_boundaries:
         map_layers.append(highlighted_city_boundaries)
