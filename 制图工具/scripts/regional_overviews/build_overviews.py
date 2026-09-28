@@ -81,7 +81,7 @@ CITY_POINTS = {
     "哈尔滨市": (126.95, 46.05),
     "兴安盟": (121.15, 46.25),
     "乌兰浩特市": (122.13, 46.17),
-    "大兴安岭地区": (124.10, 52.15),
+    "大兴安岭地区": (123.95, 52.15),
     "漠河市": (122.70, 52.70),
     "海拉尔区": (119.86, 49.34),
     "根河市": (121.52, 50.78),
@@ -525,7 +525,7 @@ SPECS = (
         folder="东北漫游",
         filename="东北漫游",
         title="东北漫游",
-        subtitle="北京 · 赤峰 · 通辽 · 兴安盟乌兰浩特市 · 白城 · 呼伦贝尔市海拉尔区、根河市满归镇 · 大兴安岭漠河市 · 哈尔滨",
+        subtitle="赤峰 · 通辽 · 兴安盟乌兰浩特市 · 白城 · 呼伦贝尔市海拉尔区、根河市满归镇 · 大兴安岭漠河市 · 哈尔滨",
         date="2026.09.30—10.08",
         extent=(113.40, 38.20, 129.00, 54.00),
         page=(300, 300),
@@ -693,9 +693,16 @@ def build_province_boundaries_from_cities(
     exclude_province_codes: set[int] | None = None,
     line_color: str = "#A9B1B2",
     line_width: float = 0.15,
+    mask_geometries: tuple[QgsGeometry, ...] = (),
+    mask_radius: float = 0.25,
 ) -> QgsVectorLayer:
     """Build province outlines from the same city polygons used by the map."""
     rectangle = QgsRectangle(*extent)
+    boundary_mask = None
+    if mask_geometries:
+        boundary_mask = QgsGeometry.unaryUnion(
+            [geometry.makeValid() for geometry in mask_geometries if not geometry.isNull()]
+        ).buffer(mask_radius, 8)
     province_geometries: dict[str, list[QgsGeometry]] = {}
     municipalities = {110000, 120000, 310000, 500000}
     for feature in cities.getFeatures():
@@ -740,6 +747,10 @@ def build_province_boundaries_from_cities(
         boundary = QgsGeometry.fromMultiPolylineXY(rings)
         if boundary.isNull() or boundary.isEmpty():
             continue
+        if boundary_mask is not None:
+            boundary = boundary.difference(boundary_mask)
+            if boundary.isNull() or boundary.isEmpty():
+                continue
         boundary.convertToMultiType()
         feature = QgsFeature(memory.fields())
         feature.setAttributes([province_code])
@@ -998,28 +1009,6 @@ def clip_focus_layer_to_parent(
     saved = write_layer(memory, gpkg, layer_name)
     saved.setName(focus_layer.name())
     return saved
-
-
-def mask_line_layer(
-    layer: QgsVectorLayer,
-    masks: tuple[QgsGeometry, ...],
-    *,
-    radius: float = 0.25,
-) -> None:
-    """Remove simplified boundary segments hidden by a focused polygon."""
-    if not masks:
-        return
-    mask = QgsGeometry.unaryUnion(
-        [geometry.makeValid() for geometry in masks if not geometry.isNull()]
-    ).buffer(radius, 8)
-    if mask.isNull() or mask.isEmpty():
-        return
-    changes = {}
-    for feature in layer.getFeatures():
-        changes[feature.id()] = feature.geometry().difference(mask)
-    if changes:
-        layer.dataProvider().changeGeometryValues(changes)
-        layer.updateExtents()
 
 
 def snap_focus_to_reference(
@@ -1708,12 +1697,6 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     project.removeMapLayer(route_source.id())
     show_city_context = spec.key not in NO_CITY_CONTEXT_KEYS
     visited_only_context = spec.visited_only_context
-    provinces = build_province_boundaries_from_cities(
-        cities,
-        gpkg,
-        spec.extent,
-        line_width=0.32 if show_city_context else 0.15,
-    )
     highlighted_provinces = build_highlighted_provinces(
         cities, gpkg, spec.highlighted_provinces
     )
@@ -1774,15 +1757,18 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         focus_layers.append(focus_layer)
     if focus_reference is not None:
         project.removeMapLayer(focus_reference.id())
-    if spec.key == "northeast":
-        mask_line_layer(
-            provinces,
-            tuple(
-                feature.geometry()
-                for layer in focus_layers
-                for feature in layer.getFeatures()
-            ),
-        )
+    focus_masks = tuple(
+        feature.geometry()
+        for layer in focus_layers
+        for feature in layer.getFeatures()
+    )
+    provinces = build_province_boundaries_from_cities(
+        cities,
+        gpkg,
+        spec.extent,
+        line_width=0.32 if show_city_context else 0.15,
+        mask_geometries=focus_masks if spec.key == "northeast" else (),
+    )
     internal_admin = (
         build_internal_admin_boundaries(project, cities, gpkg, spec.extent)
         if show_city_context and not visited_only_context
