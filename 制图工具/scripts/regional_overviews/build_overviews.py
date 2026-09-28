@@ -1770,10 +1770,16 @@ def build_layout(
 
     settings = QgsLayoutExporter.ImageExportSettings()
     settings.dpi = 190 if spec.key in {"home1", "home2_full"} else 210
-    image.unlink(missing_ok=True)
-    result = QgsLayoutExporter(layout).exportToImage(str(image), settings)
+    # Export to a fresh path first.  QGIS/GDAL can refuse update access to an
+    # existing PNG, which otherwise leaves a stale image even after a rebuild.
+    temporary_image = image.with_name(f".{image.stem}.render.png")
+    temporary_image.unlink(missing_ok=True)
+    result = QgsLayoutExporter(layout).exportToImage(str(temporary_image), settings)
     if result != QgsLayoutExporter.Success:
+        temporary_image.unlink(missing_ok=True)
         raise RuntimeError(f"Export failed for {spec.key}: {result}")
+    image.unlink(missing_ok=True)
+    temporary_image.replace(image)
     return layout
 
 
