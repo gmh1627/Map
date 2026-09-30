@@ -1,7 +1,7 @@
 {
   "type": "FeatureCollection",
   "features": [
-    {"type":"Feature","properties":{"name":"北京丰台"},"geometry":{"type":"Point","coordinates":[116.2953417,39.8499954]}},
+    {"type":"Feature","properties":{"name":"北京"},"geometry":{"type":"Point","coordinates":[116.4210134,39.9011168]}},
     {"type":"Feature","properties":{"name":"赤峰南"},"geometry":{"type":"Point","coordinates":[118.9536202,42.2548316]}},
     {"type":"Feature","properties":{"name":"通辽"},"geometry":{"type":"Point","coordinates":[122.2658074,43.6016685]}},
     {"type":"Feature","properties":{"name":"乌兰浩特"},"geometry":{"type":"Point","coordinates":[122.0565391,46.0687386]}},

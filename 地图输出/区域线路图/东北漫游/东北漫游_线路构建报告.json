@@ -7,33 +7,33 @@
   ],
   "network_features": 299997,
   "graph_nodes": 373281,
-  "graph_edges": 834696,
-  "topology_connectors": 536980,
+  "graph_edges": 834699,
+  "topology_connectors": 536983,
   "station_component_connectors": 6,
   "largest_component_nodes": 326431,
   "max_station_snap_km": 0.078,
   "review_count": 0,
-  "elapsed_seconds": 32.9,
+  "elapsed_seconds": 43.1,
   "routes": [
     {
       "seq": 1,
       "date": "2026.09.30",
-      "origin": "北京丰台",
+      "origin": "北京",
       "destination": "赤峰南",
       "train": "K1456",
       "distance_km": 477,
       "service_class": "conventional",
       "control_points": [],
       "preferred_network": "conventional",
-      "route_km": 488.6,
-      "ratio": 1.024,
-      "edge_count": 1014,
+      "route_km": 475.2,
+      "ratio": 0.996,
+      "edge_count": 959,
       "track_counts": {
-        "conventional": 1009,
-        "connector": 5
+        "conventional": 957,
+        "connector": 2
       },
       "status": "ok",
-      "origin_snap_km": 0.003,
+      "origin_snap_km": 0.008,
       "destination_snap_km": 0.039
     },
     {

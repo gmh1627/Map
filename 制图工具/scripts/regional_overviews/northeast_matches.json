@@ -68,11 +68,11 @@
   "missing_cities": [],
   "ambiguous_cities": [],
   "station_matches": {
-    "北京丰台": {
-      "fid": 14,
-      "lon": 116.29534170000001,
-      "lat": 39.849995400000005,
-      "tags": "\"addr:district\"=>\"丰台区\",\"addr:housenumber\"=>\"4号\",\"addr:province\"=>\"北京市\",\"addr:street\"=>\"正阳大街\",\"alt_name\"=>\"北京丰台火车站\",\"name:en\"=>\"Beijing Fengtai\",\"name:zh\"=>\"北京丰台\",\"official_name\"=>\"北京丰台站\",\"official_name:en\"=>\"Beijing Fengtai Railway Station\",\"old_name\"=>\"丰台;丰台站;丰台火车站\",\"old_name:en\"=>\"Fengtai;Fengtai Railway Station\",\"old_name:zh\"=>\"丰台\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:position:exact:丰沙:上\"=>\"-4.574\",\"railway:position:exact:京广高速\"=>\"2.980\",\"railway:position:exact:京沪:上\"=>\"17.873\",\"railway:position:exact:京沪:下\"=>\"17.893\",\"railway:position:exact:永丰:上\"=>\"8.334\",\"railway:position:exact:永丰:下\"=>\"8.319\",\"railway:ref\"=>\"10025\",\"train\"=>\"yes\"",
+    "北京": {
+      "fid": 101,
+      "lon": 116.4210134,
+      "lat": 39.9011168,
+      "tags": "\"name:en\"=>\"Beijing\",\"name:zh\"=>\"北京\",\"operator\"=>\"北京局集团有限公司\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"10001\",\"train\"=>\"yes\",\"wikipedia\"=>\"zh:北京站\"",
       "score": 7
     },
     "哈尔滨东": {

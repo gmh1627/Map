@@ -531,7 +531,7 @@ SPECS = (
         page=(300, 300),
         route_seqs=tuple(range(1, 9)),
         station_names=(
-            "北京丰台", "赤峰南", "通辽", "乌兰浩特", "白城", "海拉尔",
+            "北京", "赤峰南", "通辽", "乌兰浩特", "白城", "海拉尔",
             "满归", "漠河", "哈尔滨东", "哈尔滨西", "北京朝阳",
         ),
         visited_cities=(
@@ -544,7 +544,7 @@ SPECS = (
         ),
         area_labels=(("漠河市", 122.42, 52.68),),
         station_labels=(
-            ("北京丰台", 115.85, 39.50),
+            ("北京", 116.4210134, 39.9011168),
             ("赤峰南", 118.78, 41.90),
             ("通辽", 122.45, 43.48),
             ("乌兰浩特", 121.92, 45.90),
@@ -888,6 +888,9 @@ def build_focus_internal_border(
     symbol.setPenCapStyle(Qt.SquareCap)
     symbol.setPenJoinStyle(Qt.BevelJoin)
     line_symbol = QgsLineSymbol()
+    # QgsLineSymbol() starts with a default solid layer. Remove it so the
+    # county highlight is rendered only as the intended dashed line.
+    line_symbol.deleteSymbolLayer(0)
     line_symbol.appendSymbolLayer(symbol)
     layer.setRenderer(QgsSingleSymbolRenderer(line_symbol))
     layer.setLabelsEnabled(False)
@@ -1034,6 +1037,7 @@ def build_highlighted_city_boundaries(
     city_names: set[str],
     *,
     mask_geometries: tuple[QgsGeometry, ...] = (),
+    mask_radius: float = 0.25,
     layer_name: str = "highlighted_city_boundaries",
     display_name: str = "高亮城市边界",
 ) -> QgsVectorLayer:
@@ -1056,7 +1060,7 @@ def build_highlighted_city_boundaries(
         # The county source is more detailed than the prefecture source.  A
         # slightly wider mask removes the parent outline's simplified edge
         # instead of leaving a visible parallel line beside the county edge.
-        geometry = geometry.difference(mask.makeValid().buffer(0.25, 8))
+        geometry = geometry.difference(mask.makeValid().buffer(mask_radius, 8))
         if geometry.isNull() or geometry.isEmpty():
             break
     if geometry.isNull() or geometry.isEmpty():
@@ -1828,6 +1832,7 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     )
     focus_layers = []
     focus_reference = None
+    focus_reference_geometry = None
     if spec.key == "northeast":
         # The county source and the province source are simplified from
         # different releases.  Use Heilongjiang's outline as the authoritative
@@ -1838,6 +1843,9 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             PROVINCE_SOURCE,
             "focus_province_reference",
             subset='"adcode" = \'230000\'',
+        )
+        focus_reference_geometry = next(
+            feature.geometry() for feature in focus_reference.getFeatures()
         )
     for index, focus in enumerate(spec.focus_areas, 1):
         source_focus_layer = add_layer(
@@ -1858,7 +1866,7 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             project.removeMapLayer(source_focus_layer.id())
             focus_layer = clip_focus_layer_to_parent(
                 focus_layer,
-                None,
+                focus_reference_geometry,
                 gpkg,
                 f"focus_area_{index}",
             )
@@ -1899,6 +1907,7 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         spec.extent,
         line_width=0.32 if show_city_context else 0.15,
         mask_geometries=focus_masks if spec.key == "northeast" else (),
+        mask_radius=0.4 if spec.key == "northeast" else 0.25,
     )
     internal_admin = (
         build_internal_admin_boundaries(project, cities, gpkg, spec.extent)
@@ -1921,6 +1930,7 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
                 if spec.key == "northeast"
                 else ()
             ),
+            mask_radius=0.4 if spec.key == "northeast" else 0.25,
         )
         if visited_only_context or not show_city_context
         else None
@@ -1980,10 +1990,10 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     # County focus outlines sit above the parent boundary, matching the
     # xiaocheng3 layer order.  The parent boundary is masked locally so the
     # more detailed county edge remains the single visible edge in that area.
-    if focus_province_border:
-        map_layers.append(focus_province_border)
     if focus_internal_border:
         map_layers.append(focus_internal_border)
+    if focus_province_border:
+        map_layers.append(focus_province_border)
     map_layers.extend(focus_layers)
     if highlighted_city_boundaries:
         map_layers.append(highlighted_city_boundaries)
