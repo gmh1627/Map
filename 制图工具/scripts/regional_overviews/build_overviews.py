@@ -820,7 +820,7 @@ def build_reference_border_near_focus(
             QgsLineSymbol.createSimple(
                 {
                     "line_color": "#A9B1B2",
-                    "line_width": "0.15",
+                    "line_width": "0.32",
                     "line_width_unit": "MM",
                     "joinstyle": "round",
                     "capstyle": "round",
