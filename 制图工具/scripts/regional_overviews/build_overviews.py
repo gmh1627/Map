@@ -66,9 +66,9 @@ MAP_DATA_GPKG = NATIONAL_OUTPUT / "全国足迹_数据.gpkg"
 CITY_SOURCE = RAILWAY_ROOT / "city" / "city.json"
 PROVINCE_SOURCE = RAILWAY_ROOT / "province" / "province.json"
 # city.json contains only prefecture-level geometries. Mohe is selected from
-# this county source for the focus fill/dash; the parent Daxinganling geometry
-# is reconciled only while deriving shared city/province boundary lines.
-COUNTY_SOURCE = RAILWAY_ROOT / "制图工具" / "数据源" / "GeoPackage" / "china_counties_simplified.geojson"
+# this DataV county source, which shares the parent city boundary release; the
+# parent Daxinganling geometry is reconciled only for shared boundary lines.
+COUNTY_SOURCE = BLOG_ROOT / "Map" / "制图工具" / "数据源" / "GeoPackage" / "mohe_county_datav.geojson"
 MUNICIPALITY_NAMES = {"北京市", "天津市", "上海市", "重庆市"}
 
 
@@ -560,7 +560,7 @@ SPECS = (
             ("北京朝阳", 116.72, 39.80),
         ),
         focus_areas=(
-            FocusSpec(COUNTY_SOURCE, ("Mohexian",), "shapeName", "county"),
+            FocusSpec(COUNTY_SOURCE, ("漠河市",), "name", "county"),
         ),
         start_city="北京市",
         end_city="北京市",
