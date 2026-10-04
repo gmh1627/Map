@@ -699,6 +699,46 @@
       "source": "city",
       "fid": 65,
       "adcode": "152900"
+    },
+    {
+      "source_name": "赤峰",
+      "full_name": "赤峰市",
+      "province": "内蒙古自治区",
+      "source": "city",
+      "fid": 57,
+      "adcode": "150400"
+    },
+    {
+      "source_name": "通辽",
+      "full_name": "通辽市",
+      "province": "内蒙古自治区",
+      "source": "city",
+      "fid": 58,
+      "adcode": "150500"
+    },
+    {
+      "source_name": "兴安",
+      "full_name": "兴安盟",
+      "province": "内蒙古自治区",
+      "source": "city",
+      "fid": 63,
+      "adcode": "152200"
+    },
+    {
+      "source_name": "白城",
+      "full_name": "白城市",
+      "province": "吉林省",
+      "source": "city",
+      "fid": 87,
+      "adcode": "220800"
+    },
+    {
+      "source_name": "呼伦贝尔",
+      "full_name": "呼伦贝尔市",
+      "province": "内蒙古自治区",
+      "source": "city",
+      "fid": 60,
+      "adcode": "150700"
     }
   ],
   "missing_cities": [],
@@ -1619,6 +1659,48 @@
       "lon": 111.01546400000001,
       "lat": 38.493298200000005,
       "tags": "\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"train\"=>\"yes\"",
+      "score": 7
+    },
+    "赤峰南": {
+      "fid": 0,
+      "lon": 118.9536202,
+      "lat": 42.2548316,
+      "tags": "东北漫游站点层",
+      "score": 7
+    },
+    "通辽": {
+      "fid": 0,
+      "lon": 122.2658074,
+      "lat": 43.6016685,
+      "tags": "东北漫游站点层",
+      "score": 7
+    },
+    "乌兰浩特": {
+      "fid": 0,
+      "lon": 122.0565391,
+      "lat": 46.0687386,
+      "tags": "东北漫游站点层",
+      "score": 7
+    },
+    "白城": {
+      "fid": 0,
+      "lon": 122.8591067,
+      "lat": 45.6156263,
+      "tags": "东北漫游站点层",
+      "score": 7
+    },
+    "海拉尔": {
+      "fid": 0,
+      "lon": 119.7356021,
+      "lat": 49.2287551,
+      "tags": "东北漫游站点层",
+      "score": 7
+    },
+    "满归": {
+      "fid": 0,
+      "lon": 122.0674186,
+      "lat": 52.0349302,
+      "tags": "东北漫游站点层",
       "score": 7
     }
   },

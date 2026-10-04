@@ -11,6 +11,10 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT = SCRIPT_DIR.parents[2]
 ROUTES = ROOT / "web" / "data" / "visited_routes.geojson"
 INTENTIONAL_REVERSALS = {39}  # G7725 changes direction at Tongling.
+EXPECTED_ENDPOINT_REVERSALS = {
+    139: {1},  # K1457 leaves Chifeng South through the station throat.
+    140: {4},  # K957 leaves Tongliao through the station throat.
+}
 
 
 def distance_km(first: list[float], second: list[float]) -> float:
@@ -121,7 +125,11 @@ def main() -> int:
             points = paths[0] if paths else []
             repeats = repeated_vertices(points)
             returns = short_returns(points)
-            reversals = endpoint_reversals(points)
+            reversals = [
+                item
+                for item in endpoint_reversals(points)
+                if item["index"] not in EXPECTED_ENDPOINT_REVERSALS.get(seq, set())
+            ]
             if repeats:
                 item["repeated_vertices"] = repeats
             if returns:
@@ -134,6 +142,10 @@ def main() -> int:
     report = {
         "route_count": len(collection.get("features", [])),
         "intentional_reversal_sequences": sorted(INTENTIONAL_REVERSALS),
+        "expected_endpoint_reversals": {
+            str(seq): sorted(indices)
+            for seq, indices in sorted(EXPECTED_ENDPOINT_REVERSALS.items())
+        },
         "findings": findings,
         "errors": [] if not findings else ["route geometry findings remain"],
     }

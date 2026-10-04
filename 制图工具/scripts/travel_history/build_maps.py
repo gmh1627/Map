@@ -861,12 +861,20 @@ def main() -> int:
             inset_layers=[province_boundaries, city_boundaries, all_provinces],
         )
 
-        rail_layers = [stations, routes, province_boundaries, city_boundaries, rail_provinces]
+        rail_layers = [
+            stations,
+            routes,
+            visited_city_labels,
+            visited_city_layer,
+            province_boundaries,
+            city_boundaries,
+            rail_provinces,
+        ]
         make_layout(
             project,
             "铁路路线",
             "坐火车走过的地方",
-            "137 段乘车记录｜普铁 45 次 · 高铁/动车 92 次\n总里程 55,896 km（其中普铁 22,472 km，高铁/动车 33,424 km）｜抵达 66 个城市的 132 座车站",
+            "143 段乘车记录｜普铁 50 次 · 高铁/动车 93 次\n总里程 58,285 km（其中普铁 24,774 km，高铁/动车 33,511 km）｜抵达 73 个城市的 138 座车站",
             rail_layers,
             RAIL_IMAGE,
             rail_legend=True,

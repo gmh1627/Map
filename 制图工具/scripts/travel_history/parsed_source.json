@@ -1,7 +1,7 @@
 {
   "source": "F:\\Desktop\\Blog\\source\\_posts\\行旅杂记.md",
-  "province_count": 21,
-  "city_count": 88,
+  "province_count": 22,
+  "city_count": 93,
   "places": [
     {
       "category": "province",
@@ -231,19 +231,31 @@
       ]
     },
     {
+      "category": "province",
+      "province": "吉林",
+      "province_full": "吉林省",
+      "cities": [
+        "白城"
+      ]
+    },
+    {
       "category": "autonomous_region",
       "province": "内蒙古",
       "province_full": "内蒙古自治区",
       "cities": [
-        "阿拉善"
+        "阿拉善",
+        "赤峰",
+        "通辽",
+        "兴安",
+        "呼伦贝尔"
       ]
     }
   ],
-  "rail_record_count": 137,
-  "station_count": 132,
+  "rail_record_count": 143,
+  "station_count": 138,
   "service_counts": {
-    "conventional": 45,
-    "highspeed": 92
+    "conventional": 50,
+    "highspeed": 93
   },
   "stations": [
     "上海",
@@ -377,7 +389,13 @@
     "驻马店",
     "驻马店西",
     "高邮",
-    "黄山北"
+    "黄山北",
+    "赤峰南",
+    "通辽",
+    "乌兰浩特",
+    "白城",
+    "海拉尔",
+    "满归"
   ],
   "rail_records": [
     {
@@ -1679,6 +1697,60 @@
       "train": "D1036",
       "distance_km": 45,
       "service_class": "highspeed"
+    },
+    {
+      "seq": 138,
+      "date": "2026.9.30",
+      "origin": "北京",
+      "destination": "赤峰南",
+      "train": "K1189",
+      "distance_km": 477,
+      "service_class": "conventional"
+    },
+    {
+      "seq": 139,
+      "date": "2026.10.2",
+      "origin": "赤峰南",
+      "destination": "通辽",
+      "train": "K1457",
+      "distance_km": 336,
+      "service_class": "conventional"
+    },
+    {
+      "seq": 140,
+      "date": "2026.10.2",
+      "origin": "通辽",
+      "destination": "乌兰浩特",
+      "train": "K957",
+      "distance_km": 357,
+      "service_class": "conventional"
+    },
+    {
+      "seq": 141,
+      "date": "2026.10.3",
+      "origin": "乌兰浩特",
+      "destination": "白城",
+      "train": "C508",
+      "distance_km": 87,
+      "service_class": "highspeed"
+    },
+    {
+      "seq": 142,
+      "date": "2026.10.3",
+      "origin": "白城",
+      "destination": "海拉尔",
+      "train": "K4259",
+      "distance_km": 626,
+      "service_class": "conventional"
+    },
+    {
+      "seq": 143,
+      "date": "2026.10.4",
+      "origin": "海拉尔",
+      "destination": "满归",
+      "train": "4184",
+      "distance_km": 506,
+      "service_class": "conventional"
     }
   ]
 }

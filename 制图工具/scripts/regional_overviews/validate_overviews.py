@@ -89,7 +89,11 @@ def main() -> int:
             province_layers = project.mapLayersByName("省级行政区边界")
             if province_layers:
                 symbol_layer = province_layers[0].renderer().symbol().symbolLayer(0)
-                expected_width = 0.15 if key in NO_CITY_CONTEXT_KEYS else 0.32
+                expected_width = (
+                    0.15
+                    if key in (NO_CITY_CONTEXT_KEYS | VISITED_ONLY_CONTEXT_KEYS)
+                    else 0.32
+                )
                 actual_width = symbol_layer.width()
                 if abs(actual_width - expected_width) > 0.01:
                     item_errors.append(

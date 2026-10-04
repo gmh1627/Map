@@ -27,19 +27,19 @@ PARSED_SOURCE = SCRIPT_DIR / "parsed_source.json"
 EXPECTED_COUNTS = {
     "全国省级行政区": 35,
     "全国地级行政区": 477,
-    "去过的城市": 88,
-    "去过的省级行政区": 21,
-    "铁路行程轨迹": 137,
-    "记录车站": 132,
-    "去过的城市标注": 88,
+    "去过的城市": 93,
+    "去过的省级行政区": 22,
+    "铁路行程轨迹": 143,
+    "记录车站": 138,
+    "去过的城市标注": 93,
     "重点城市标注": 7,
     "铁路图省级行政区": 35,
     "统一省界": 1,
     "统一市界": 1,
 }
 EXPECTED_RAIL_SUBTITLE = (
-    "137 段乘车记录｜普铁 45 次 · 高铁/动车 92 次\n"
-    "总里程 55,896 km（其中普铁 22,472 km，高铁/动车 33,424 km）｜抵达 66 个城市的 132 座车站"
+    "143 段乘车记录｜普铁 50 次 · 高铁/动车 93 次\n"
+    "总里程 58,285 km（其中普铁 24,774 km，高铁/动车 33,511 km）｜抵达 73 个城市的 138 座车站"
 )
 EXPECTED_NEW_ROUTES = {
     39: ("G7725", "合肥南", "芜湖", ["无为", "铜陵", "繁昌西"]),
@@ -175,8 +175,8 @@ def main() -> int:
                 for service in ("conventional", "highspeed")
             }
             expected_summary = {
-                "conventional": {"trips": 45, "table_km": 22472},
-                "highspeed": {"trips": 92, "table_km": 33424},
+                "conventional": {"trips": 50, "table_km": 24774},
+                "highspeed": {"trips": 93, "table_km": 33511},
             }
             if service_summary != expected_summary:
                 errors.append(
@@ -235,12 +235,9 @@ def main() -> int:
                 item_name = item.id() or "未命名地图"
                 layer_names = [layer.name() for layer in item.layers()]
                 layout_map_layers[f"{layout.name()}/{item_name}"] = layer_names
-                if (
-                    layout.name() == "铁路路线"
-                    and item_name != "南海诸岛插图"
-                    and "去过的城市" in layer_names
-                ):
-                    errors.append("Railway main map still contains the visited-city layer")
+                if layout.name() == "铁路路线" and item_name != "南海诸岛插图":
+                    if "去过的城市" not in layer_names or "去过的城市标注" not in layer_names:
+                        errors.append("Railway main map is missing visited-city highlights or labels")
 
             map_by_id = {item.id(): item for item in map_items}
             main_map = map_by_id.get("主图")

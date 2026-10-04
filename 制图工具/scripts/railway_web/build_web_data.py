@@ -18,6 +18,14 @@ NATIONAL = ROOT / "地图输出" / "全国专题图" / "全国足迹" / "全国�
 ROUTES = ROOT / "地图输出" / "全国专题图" / "全国足迹" / "铁路轨迹.gpkg"
 ROUTE_TIMES = DATA / "route_times.json"
 DIRECT_ADMIN_CODES = {110000, 120000, 310000, 500000, 810000, 820000}
+STATION_CITY_OVERRIDES = {
+    "赤峰南": "赤峰",
+    "通辽": "通辽",
+    "乌兰浩特": "兴安",
+    "白城": "白城",
+    "海拉尔": "呼伦贝尔",
+    "满归": "呼伦贝尔",
+}
 
 
 def feature_collection(features: list[dict]) -> dict:
@@ -206,6 +214,30 @@ def valid_polygon(geometry: QgsGeometry) -> QgsGeometry:
     return result
 
 
+def city_for_station(
+    name: str,
+    station_points: dict[str, object],
+    city_features: list[QgsFeature],
+) -> str:
+    """Resolve an endpoint to the same display city used by the map.
+
+    Newly added railway stations can sit just outside a simplified polygon.
+    Keep explicit administrative matches for those endpoints, then use the
+    source polygon containment rule for existing records.
+    """
+    override = STATION_CITY_OVERRIDES.get(name)
+    if override:
+        return override
+    point = station_points.get(name)
+    if point is None:
+        return ""
+    point_geometry = QgsGeometry.fromPointXY(point)
+    for feature in city_features:
+        if feature.geometry().contains(point_geometry):
+            return str(feature["display"])
+    return ""
+
+
 def export_unified_admin_layers() -> tuple[
     int, int, dict[str, QgsGeometry], dict[str, QgsGeometry]
 ]:
@@ -318,15 +350,6 @@ def export_routes(output: Path) -> int:
     city_layer = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=去过的城市", "visited cities", "ogr")
     station_points = {str(feature["name"]): feature.geometry().asPoint() for feature in station_layer.getFeatures()}
     city_features = list(city_layer.getFeatures())
-    def city_for_station(name: str) -> str:
-        point = station_points.get(name)
-        if point is None:
-            return ""
-        point_geometry = QgsGeometry.fromPointXY(point)
-        for feature in city_features:
-            if feature.geometry().contains(point_geometry):
-                return str(feature["display"])
-        return ""
     route_times = json.loads(ROUTE_TIMES.read_text(encoding="utf-8-sig")) if ROUTE_TIMES.exists() else {}
     result = []
     for feature in route_layer.getFeatures():
@@ -338,7 +361,7 @@ def export_routes(output: Path) -> int:
         origin = str(feature["origin"] or "")
         destination = str(feature["destination"] or "")
         extra = route_times.get(str(feature["seq"]), {})
-        result.append({"type": "Feature", "properties": {"seq": feature["seq"], "date": extra.get("date", feature["date"]), "origin": origin, "destination": destination, "origin_city": city_for_station(origin), "destination_city": city_for_station(destination), "train": feature["train"], "service": feature["service"], "table_km": feature["table_km"], "time": extra.get("time", ""), "note": extra.get("note", "")}, "geometry": geometry_json(geometry)})
+        result.append({"type": "Feature", "properties": {"seq": feature["seq"], "date": extra.get("date", feature["date"]), "origin": origin, "destination": destination, "origin_city": city_for_station(origin, station_points, city_features), "destination_city": city_for_station(destination, station_points, city_features), "train": feature["train"], "service": feature["service"], "table_km": feature["table_km"], "time": extra.get("time", ""), "note": extra.get("note", "")}, "geometry": geometry_json(geometry)})
     output.write_text(json.dumps(feature_collection(result), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     return len(result)
 
@@ -352,12 +375,10 @@ def export_rail_cities(output: Path, all_visited_path: Path) -> int:
         endpoint_names.update(str(feature[field] or "") for field in ("origin", "destination"))
     points = {str(feature["name"]): feature.geometry().asPoint() for feature in station_layer.getFeatures() if str(feature["name"] or "") in endpoint_names}
     city_features = list(city_layer.getFeatures())
-    selected = []
-    for feature in city_features:
-        geometry = feature.geometry()
-        if any(geometry.contains(QgsGeometry.fromPointXY(point)) for point in points.values()):
-            selected.append(feature)
-    selected_names = {str(feature["display"]) for feature in selected}
+    selected_names = {
+        city_for_station(name, points, city_features)
+        for name in endpoint_names
+    } - {""}
     all_data = json.loads(all_visited_path.read_text(encoding="utf-8"))
     result = []
     for feature in all_data["features"]:
