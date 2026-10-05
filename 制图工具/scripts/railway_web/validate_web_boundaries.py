@@ -1,9 +1,8 @@
-"""Validate exact shared segments between web-map fills and admin lines."""
+"""Validate the explicit web-map boundary layers and polygon fill layers."""
 
 from __future__ import annotations
 
 import json
-import math
 from pathlib import Path
 
 
@@ -32,64 +31,35 @@ def paths(geometry: dict) -> list[list[list[float]]]:
     return []
 
 
-def point_key(point: list[float]) -> tuple[float, float]:
-    return round(point[0], 6), round(point[1], 6)
-
-
-def segment_key(start: list[float], end: list[float]) -> tuple:
-    return tuple(sorted((point_key(start), point_key(end))))
-
-
-def segment_set(collection: dict) -> set[tuple]:
-    result = set()
-    for feature in collection.get("features", []):
-        for path in paths(feature.get("geometry", {})):
-            result.update(segment_key(start, end) for start, end in zip(path, path[1:]))
-    return result
-
-
-def boundary_report(collection: dict, admin_segments: set[tuple]) -> dict:
-    total_segments = 0
-    missing_segments = 0
-    total_length = 0.0
-    missing_length = 0.0
-    for feature in collection.get("features", []):
-        for path in paths(feature.get("geometry", {})):
-            for start, end in zip(path, path[1:]):
-                length = math.hypot(end[0] - start[0], end[1] - start[1])
-                if length <= 1e-12:
-                    continue
-                total_segments += 1
-                total_length += length
-                if segment_key(start, end) not in admin_segments:
-                    missing_segments += 1
-                    missing_length += length
+def geometry_report(collection: dict, expected_kind: str) -> dict:
+    features = collection.get("features", [])
+    kinds = {}
+    segments = 0
+    for feature in features:
+        kind = feature.get("geometry", {}).get("type", "null")
+        kinds[kind] = kinds.get(kind, 0) + 1
+        if expected_kind == "line":
+            for path in paths(feature.get("geometry", {})):
+                segments += sum(1 for start, end in zip(path, path[1:]) if start != end)
     return {
-        "features": len(collection.get("features", [])),
-        "segments": total_segments,
-        "missing_segments": missing_segments,
-        "missing_length_degrees": missing_length,
-        "missing_length_ratio": missing_length / total_length if total_length else 0.0,
+        "features": len(features),
+        "geometry_types": kinds,
+        "segments": segments if expected_kind == "line" else None,
     }
 
 
 def main() -> int:
-    admin_segments = segment_set(read("city_boundaries"))
-    admin_segments.update(segment_set(read("province_boundaries")))
     report = {
-        "admin_segments": len(admin_segments),
-        "provinces": boundary_report(read("provinces"), admin_segments),
-        "rail_visited_cities": boundary_report(
-            read("rail_visited_cities"), admin_segments
-        ),
-        "other_visited_cities": boundary_report(
-            read("other_visited_cities"), admin_segments
-        ),
+        "province_boundaries": geometry_report(read("province_boundaries"), "line"),
+        "city_boundaries": geometry_report(read("city_boundaries"), "line"),
+        "provinces": geometry_report(read("provinces"), "polygon"),
+        "rail_visited_cities": geometry_report(read("rail_visited_cities"), "polygon"),
+        "other_visited_cities": geometry_report(read("other_visited_cities"), "polygon"),
     }
     errors = [
         name
-        for name, result in report.items()
-        if isinstance(result, dict) and result["missing_segments"]
+        for name in ("province_boundaries", "city_boundaries")
+        if report[name]["features"] == 0 or report[name]["segments"] == 0
     ]
     report["errors"] = errors
     print(json.dumps(report, ensure_ascii=False, indent=2))

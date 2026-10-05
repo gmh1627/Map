@@ -283,30 +283,33 @@ def export_unified_admin_layers() -> tuple[
 
     normalized_provinces: dict[int, QgsGeometry] = {}
     province_features = []
-    province_geometries = []
     for code in sorted(province_fallbacks):
         geometries = city_groups.get(code)
         geometry = QgsGeometry.unaryUnion(geometries) if geometries else province_fallbacks[code]
         if geometry.isNull() or geometry.isEmpty():
             geometry = province_fallbacks[code]
         normalized_provinces[code] = geometry
-        province_geometries.append(geometry)
         province_features.append({
             "type": "Feature",
             "properties": {"name": province_names[code]},
             "geometry": geometry_json(geometry),
         })
     for name, geometry in special_provinces:
-        province_geometries.append(geometry)
         province_features.append({
             "type": "Feature",
             "properties": {"name": name},
             "geometry": geometry_json(geometry),
         })
 
-    # Dissolve city polygons once for the province outline. City boundaries
-    # below contain only internal edges, so an external edge is rendered once.
-    province_geometry = unified_boundary(province_geometries)
+    # Match the static railway map exactly: the province outline comes from
+    # the nationwide province source, while city boundaries come from the
+    # nationwide city source. City polygon outlines are never drawn directly.
+    province_lines = [
+        polygon_boundary(feature.geometry())
+        for feature in provinces.getFeatures()
+        if not feature.geometry().isNull() and not feature.geometry().isEmpty()
+    ]
+    province_geometry = QgsGeometry.unaryUnion(province_lines)
     segment_records = {}
     for feature, geometry, code in city_features:
         polygons = geometry.asMultiPolygon() if geometry.isMultipart() else [geometry.asPolygon()]

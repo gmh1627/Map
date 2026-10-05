@@ -4,6 +4,7 @@
   map.setMaxBounds(bounds.pad(0.08));
   const layers = {};
   let routeData = null;
+  let visitedStationsData = null;
   let railCitiesData = null;
   let railCityLabelsData = null;
   let networkPromise = null;
@@ -13,11 +14,12 @@
   const $ = (id) => document.getElementById(id);
   // Draw administrative boundaries from dedicated line layers. Polygon rings are not drawn,
   // so a city polygon cannot add a second, slightly displaced outline.
-  const styleProvinceFill = { color: "transparent", weight: 0, fillColor: "#f8faf8", fillOpacity: 0 };
-  const styleProvinceBoundary = { color: "#71807a", weight: 1.2, fill: false, interactive: false };
-  const styleCityBoundary = { color: "#c1cbc7", weight: 0.55, fill: false, interactive: false };
-  const styleVisitedCity = { color: "#477b91", weight: 1.1, fillColor: "#c8dfea", fillOpacity: .45 };
-  const styleOtherVisitedCity = { color: "#aabbb4", weight: .75, fillColor: "#e1e9e5", fillOpacity: .42 };
+  const styleProvinceBoundary = { color: "#727d78", weight: 1.2, fill: false, interactive: false };
+  const styleCityBoundary = { color: "#a8b8c4", weight: 0.55, fill: false, interactive: false };
+  // Static railway maps use transparent polygon outlines. Administrative lines
+  // are drawn separately, with the province boundary above the city boundary.
+  const styleVisitedCity = { color: "transparent", weight: 0, fillColor: "#b5d3e8", fillOpacity: .18 };
+  const styleOtherVisitedCity = { color: "transparent", weight: 0, fillColor: "#e1e9e5", fillOpacity: .42 };
   const hiddenStyle = { color: "transparent", weight: 0, opacity: 0, fillOpacity: 0 };
   // Keep the web map in the same two-layer language as the static QGIS maps:
   // high-speed routes use a light casing and coloured core; conventional
@@ -41,13 +43,24 @@
       ? { color: speedColors[feature.properties.speed_class] || speedColors.unknown, weight: 1.05, opacity: .72 }
       : { color: "#aab5b1", weight: .75, opacity: .68 };
   }
+  function stationStyle(service, visible = true) {
+    return {
+      radius: service ? 3.2 : 2.4,
+      color: service === "highspeed" ? "#258b8a" : service === "conventional" ? "#263b42" : "#667d74",
+      fillColor: "#fff",
+      fillOpacity: visible ? 1 : 0,
+      opacity: visible ? 1 : 0,
+      weight: 1.0,
+    };
+  }
   function addCityLabels(data, className = "city-label", filter = undefined) {
     return geojson(data, { filter, pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 2.8, color: "#477b91", fillColor: "#477b91", fillOpacity: .9, weight: 0.6 }), onEachFeature: (feature, layer) => layer.bindTooltip(feature.properties.display || "", { permanent: true, direction: "right", className, offset: [4, 0] }) });
   }
-  function addStations(data, service, labels = true, visible = true) {
+  function addStations(data, service, labels = true, visible = true, stationNames = null) {
     return geojson(data, {
-      filter: (feature) => !service || (feature.properties.services || "").split(",").includes(service),
-      pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: service ? 3.2 : 2.4, color: service === "highspeed" ? "#258b8a" : service === "conventional" ? "#263b42" : "#667d74", fillColor: "#fff", fillOpacity: visible ? 1 : 0, opacity: visible ? 1 : 0, weight: 1.0 }),
+      filter: (feature) => (!service || (feature.properties.services || "").split(",").includes(service))
+        && (!stationNames || stationNames.has(feature.properties.name)),
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, stationStyle(service, visible)),
       onEachFeature: labels ? (feature, layer) => layer.bindTooltip(feature.properties.name || "", { permanent: true, direction: "right", className: "station-label", offset: [5, 0] }) : undefined,
     });
   }
@@ -58,7 +71,7 @@
   function refreshRailCities() {
     if (!routeData || !layers.railCities) return;
     const routeCities = new Set((routeData.features || [])
-      .filter((feature) => selectedRouteIds.has(Number(feature.properties.seq)))
+      .filter((feature) => routeVisibility(feature))
       .flatMap((feature) => [feature.properties.origin_city, feature.properties.destination_city])
       .filter(Boolean));
     layers.railCities.eachLayer((layer) => {
@@ -67,23 +80,38 @@
     if (layers.railCityLabels) map.removeLayer(layers.railCityLabels);
     layers.railCityLabels = addCityLabels(railCityLabelsData, "city-label", (feature) => routeCities.has(feature.properties.display));
   }
-  function refreshRoutes() {
-    if (!routeData || !layers.routeOuter || !layers.routeInner) return;
+  function routeVisibility(feature) {
+    if (!selectedRouteIds.has(Number(feature.properties.seq))) return false;
     const showAllRoutes = $("visited").checked;
     const showHighspeedRoutes = showAllRoutes || $("visitedHighspeed").checked;
     const showConventionalRoutes = showAllRoutes || $("visitedConventional").checked;
-    const visibleRoute = (feature) => {
-      if (!selectedRouteIds.has(Number(feature.properties.seq))) return false;
-      return (feature.properties.service === "highspeed" && showHighspeedRoutes)
-        || (feature.properties.service === "conventional" && showConventionalRoutes);
-    };
+    return (feature.properties.service === "highspeed" && showHighspeedRoutes)
+      || (feature.properties.service === "conventional" && showConventionalRoutes);
+  }
+  function refreshStations() {
+    if (!routeData || !visitedStationsData) return;
+    const visibleNames = { highspeed: new Set(), conventional: new Set() };
+    routeData.features.forEach((feature) => {
+      if (!routeVisibility(feature)) return;
+      const service = feature.properties.service;
+      if (!visibleNames[service]) return;
+      [feature.properties.origin, feature.properties.destination].filter(Boolean).forEach((name) => visibleNames[service].add(name));
+    });
+    ["highspeedStations", "conventionalStations"].forEach((key) => {
+      if (layers[key]) map.removeLayer(layers[key]);
+    });
+    layers.highspeedStations = addStations(visitedStationsData, "highspeed", true, true, visibleNames.highspeed);
+    layers.conventionalStations = addStations(visitedStationsData, "conventional", true, true, visibleNames.conventional);
+  }
+  function refreshRoutes() {
+    if (!routeData || !layers.routeOuter || !layers.routeInner) return;
     layers.routeOuter.eachLayer((layer) => {
-      layer.setStyle(visibleRoute(layer.feature) ? routeStyle(layer.feature.properties.service, "outer") : hiddenStyle);
+      layer.setStyle(routeVisibility(layer.feature) ? routeStyle(layer.feature.properties.service, "outer") : hiddenStyle);
     });
     layers.routeInner.eachLayer((layer) => {
-      layer.setStyle(visibleRoute(layer.feature) ? routeStyle(layer.feature.properties.service, "inner") : hiddenStyle);
+      layer.setStyle(routeVisibility(layer.feature) ? routeStyle(layer.feature.properties.service, "inner") : hiddenStyle);
     });
-    if (showHighspeedRoutes || showConventionalRoutes) {
+    if (layers.routeOuter.getLayers().some((layer) => routeVisibility(layer.feature))) {
       layers.routeOuter.addTo(map);
       layers.routeInner.addTo(map);
     } else {
@@ -121,15 +149,20 @@
     }).catch((error) => console.error("全国铁路底图加载失败", error));
   }
   function refresh() {
-    if (!layers.provinceFill) return;
-    layers.provinceFill.addTo(map);
+    if (!layers.provinceBounds) return;
     if ($("cityBounds").checked) layers.cityBounds.addTo(map); else map.removeLayer(layers.cityBounds);
     layers.provinceBounds.addTo(map);
     layers.provinceBounds.bringToFront();
     refreshRailCities();
     refreshRoutes();
+    refreshStations();
     refreshNetwork();
     updateZoomDependentLayers();
+  }
+  function addVisibleStations(layer) {
+    if (!layer) return;
+    layer.addTo(map);
+    layer.eachLayer((station) => station.openTooltip());
   }
   function updateZoomDependentLayers() {
     const zoom = map.getZoom();
@@ -146,8 +179,8 @@
     if (networkEnabled() && zoom >= 12 && layers.networkStationLabels) layers.networkStationLabels.addTo(map);
     const showHighspeedStations = $("visitedHighspeed").checked || ($("visited").checked && !$("visitedConventional").checked);
     const showConventionalStations = $("visitedConventional").checked || ($("visited").checked && !$("visitedHighspeed").checked);
-    if (zoom >= 7 && showHighspeedStations && layers.highspeedStations) layers.highspeedStations.addTo(map);
-    if (zoom >= 7 && showConventionalStations && layers.conventionalStations) layers.conventionalStations.addTo(map);
+    if (zoom >= 7 && showHighspeedStations) addVisibleStations(layers.highspeedStations);
+    if (zoom >= 7 && showConventionalStations) addVisibleStations(layers.conventionalStations);
   }
   function routePopup(feature, layer) {
     const p = feature.properties;
@@ -167,7 +200,6 @@
     }).join("") || '<div class="note">没有匹配的路线</div>';
   }
   Promise.all([
-    load("provinces"),
     load("province_boundaries"),
     load("city_boundaries"),
     load("rail_visited_cities"),
@@ -176,8 +208,7 @@
     load("other_city_labels"),
     load("visited_routes"),
     load("visited_stations"),
-  ]).then(([provinces, provinceBoundaries, cityBoundaries, railCities, railCityLabels, otherCities, otherCityLabels, routes, stations]) => {
-    layers.provinceFill = geojson(provinces, { style: styleProvinceFill });
+  ]).then(([provinceBoundaries, cityBoundaries, railCities, railCityLabels, otherCities, otherCityLabels, routes, stations]) => {
     layers.provinceBounds = geojson(provinceBoundaries, { style: styleProvinceBoundary });
     layers.cityBounds = geojson(cityBoundaries, { style: styleCityBoundary });
     railCitiesData = railCities;
@@ -190,9 +221,8 @@
     routeData.features.forEach((feature) => selectedRouteIds.add(Number(feature.properties.seq)));
     layers.routeOuter = geojson(routeData, { style: (feature) => routeStyle(feature.properties.service, "outer") });
     layers.routeInner = geojson(routeData, { style: (feature) => routeStyle(feature.properties.service, "inner"), onEachFeature: routePopup });
-    layers.highspeedStations = addStations(stations, "highspeed");
-    layers.conventionalStations = addStations(stations, "conventional");
-    layers.provinceFill.addTo(map);
+    visitedStationsData = stations;
+    refreshStations();
     addSpeedLegend();
     refresh();
     map.fitBounds(bounds, { padding: [12, 12] });

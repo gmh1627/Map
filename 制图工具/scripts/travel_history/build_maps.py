@@ -861,6 +861,8 @@ def main() -> int:
             inset_layers=[province_boundaries, city_boundaries, all_provinces],
         )
 
+        # make_layout receives layers from top to bottom. Keep city boundaries
+        # below province boundaries so the province stroke remains continuous.
         rail_layers = [
             stations,
             routes,
