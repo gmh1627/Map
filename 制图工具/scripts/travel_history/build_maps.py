@@ -861,14 +861,14 @@ def main() -> int:
             inset_layers=[province_boundaries, city_boundaries, all_provinces],
         )
 
-        # make_layout receives layers from top to bottom. Keep city boundaries
-        # below province boundaries so the province stroke remains continuous.
+        # QgsLayoutItemMap renders index 0 on top. Put the province boundary
+        # above routes and city boundaries so its colour stays continuous.
         rail_layers = [
+            province_boundaries,
             stations,
             routes,
             visited_city_labels,
             visited_city_layer,
-            province_boundaries,
             city_boundaries,
             rail_provinces,
         ]

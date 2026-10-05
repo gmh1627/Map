@@ -81,7 +81,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 17px 0; }
 .city-label::before, .station-label::before, .other-city-label::before { display: none !important; }
 .city-label { color: #3d514a; font-size: 13px !important; font-weight: 600; }
 .other-city-label { color: #8a9892; font-size: 10px; }
-.station-label { color: #243630; font-size: 10px !important; font-weight: 400; }
+.station-label { color: #243630; font-size: 12px !important; font-weight: 500; }
 @media (max-width: 720px) {
   .shell { height: 100svh; }
   .topbar { gap: 8px; padding: 10px 12px; }
