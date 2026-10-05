@@ -184,8 +184,16 @@ def province_code(feature: QgsFeature) -> int | None:
             return None
 
 
+def polygon_boundary(geometry: QgsGeometry) -> QgsGeometry:
+    polygons = geometry.asMultiPolygon() if geometry.isMultipart() else [geometry.asPolygon()]
+    rings = [ring for polygon in polygons for ring in polygon if ring]
+    result = QgsGeometry.fromMultiPolylineXY(rings)
+    result.convertToMultiType()
+    return result
+
+
 def unified_boundary(geometries: list[QgsGeometry]) -> QgsGeometry:
-    """Deduplicate shared edges without changing any source boundary vertex."""
+    """Keep one shared outline while preserving the source vertices."""
     segments = {}
     for geometry in geometries:
         polygons = geometry.asMultiPolygon() if geometry.isMultipart() else [geometry.asPolygon()]
@@ -249,7 +257,7 @@ def export_unified_admin_layers() -> tuple[
 
     city_groups: dict[int, list[QgsGeometry]] = {}
     normalized_cities: dict[str, QgsGeometry] = {}
-    city_geometries = []
+    city_features = []
     for feature in cities.getFeatures():
         code = province_code(feature)
         geometry = valid_polygon(feature.geometry())
@@ -257,7 +265,7 @@ def export_unified_admin_layers() -> tuple[
             continue
         city_groups.setdefault(code, []).append(geometry)
         normalized_cities[str(feature["name"] or "")] = geometry
-        city_geometries.append(geometry)
+        city_features.append((feature, geometry, code))
 
     province_names: dict[int, str] = {}
     province_fallbacks: dict[int, QgsGeometry] = {}
@@ -275,28 +283,63 @@ def export_unified_admin_layers() -> tuple[
 
     normalized_provinces: dict[int, QgsGeometry] = {}
     province_features = []
+    province_geometries = []
     for code in sorted(province_fallbacks):
         geometries = city_groups.get(code)
         geometry = QgsGeometry.unaryUnion(geometries) if geometries else province_fallbacks[code]
         if geometry.isNull() or geometry.isEmpty():
             geometry = province_fallbacks[code]
         normalized_provinces[code] = geometry
+        province_geometries.append(geometry)
         province_features.append({
             "type": "Feature",
             "properties": {"name": province_names[code]},
             "geometry": geometry_json(geometry),
         })
     for name, geometry in special_provinces:
+        province_geometries.append(geometry)
         province_features.append({
             "type": "Feature",
             "properties": {"name": name},
             "geometry": geometry_json(geometry),
         })
 
-    province_geometries = list(normalized_provinces.values())
-    province_geometries.extend(geometry for _, geometry in special_provinces)
+    # Dissolve city polygons once for the province outline. City boundaries
+    # below contain only internal edges, so an external edge is rendered once.
     province_geometry = unified_boundary(province_geometries)
-    city_geometry = unified_boundary(city_geometries)
+    segment_records = {}
+    for feature, geometry, code in city_features:
+        polygons = geometry.asMultiPolygon() if geometry.isMultipart() else [geometry.asPolygon()]
+        for polygon in polygons:
+            for ring in polygon:
+                for start, end in zip(ring, ring[1:]):
+                    first = (round(start.x(), 6), round(start.y(), 6))
+                    second = (round(end.x(), 6), round(end.y(), 6))
+                    key = tuple(sorted((first, second)))
+                    record = segment_records.setdefault(
+                        key, {"points": (start, end), "owners": set(), "codes": set()}
+                    )
+                    record["owners"].add(feature.id())
+                    record["codes"].add(code)
+    internal_segments = [
+        list(record["points"])
+        for record in segment_records.values()
+        if len(record["owners"]) >= 2 and len(record["codes"]) == 1
+    ]
+    city_geometry = QgsGeometry.fromMultiPolylineXY(internal_segments).mergeLines()
+    city_parts = city_geometry.asMultiPolyline() if city_geometry.isMultipart() else [city_geometry.asPolyline()]
+    connected_parts = []
+    for part in city_parts:
+        if not part:
+            continue
+        adjusted = list(part)
+        for index in (0, -1):
+            endpoint = QgsGeometry.fromPointXY(adjusted[index])
+            distance = province_geometry.distance(endpoint)
+            if 1e-9 < distance < 0.03:
+                adjusted[index] = province_geometry.nearestPoint(endpoint).asPoint()
+        connected_parts.append(adjusted)
+    city_geometry = QgsGeometry.fromMultiPolylineXY(connected_parts)
 
     (DATA / "provinces.geojson").write_text(
         json.dumps(feature_collection(province_features), ensure_ascii=False, separators=(",", ":")),
@@ -312,8 +355,8 @@ def export_unified_admin_layers() -> tuple[
         encoding="utf-8",
     )
     return (
-        len(province_geometries),
-        len(city_geometries),
+        len(province_features),
+        len(city_features),
         {province_names[code]: geometry for code, geometry in normalized_provinces.items()},
         normalized_cities,
     )
