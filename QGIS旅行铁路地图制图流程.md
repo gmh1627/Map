@@ -1,6 +1,31 @@
 # QGIS 旅行铁路地图制图指导
 
-当前版本：`2026-10-03`
+当前版本：`2026-10-05`
+
+本文使用 ASD-STE100 的受控写法原则整理。ASD-STE100 规定写作规则和受控词汇。本文是中文文档。因此，本文采用相同的表达原则，不把中文内容称为正式的英文 STE 文本。
+
+## 0. 文档写作规则
+
+- 每句话只表达一个动作或一个条件。
+- 每个步骤使用“条件 → 操作 → 结果”的顺序。
+- 使用固定术语。`省界`、`市界`、`重点县界`、`路线`、`车站`和`标签`不互换。
+- 使用主动句。例如：“脚本生成省界”。不要写：“省界会被生成”。
+- 使用明确的强度词。`必须`表示要求，`应`表示推荐，`可`表示允许，`不得`表示禁止。
+- 每个数字都写单位。线宽使用 `mm`，文字使用 `pt`，范围使用百分比。
+- 每个例外都写出触发条件、处理动作和验收结果。不要只写“特殊处理”。
+- 每个文件名、图层名和字段名使用代码格式。名称必须与实际文件一致。
+- 一项规则只写一次。其他章节使用链接或交叉引用。
+
+术语使用下表中的固定形式：
+
+| 术语 | 含义 | 禁止的替代写法 |
+|---|---|---|
+| 行政区面 | 用于填色的面几何 | 区域、图形、轮廓 |
+| 省界 | 省级行政区的边界线 | 省线、外框 |
+| 市界 | 地级市或同级行政区之间的边界线 | 城市线、内部线 |
+| 重点县界 | 重点县或县级市的高亮边界 | 县区线、重点线 |
+| 源几何 | 下载或读取的原始几何 | 原图、底图 |
+| 派生图层 | 由脚本根据源几何生成的图层 | 临时层、结果层 |
 
 ## 1. 使用顺序
 
@@ -121,7 +146,7 @@
 
 当重点县的来源边界与父级地级市边界确实存在可测的精度或位置不一致时，才用同一父级市几何吸附（snap）并 `makeValid`，再决定是否只在父级范围内裁切。若裁切会删掉真实的小角落、多部件环或左下边界，应保留处理后的完整环并持久化到输出 GeoPackage，不能用硬裁切把角落抹掉。若重点县源本身就是目标边界，直接使用源几何，不要为了“对齐”而移动整块高亮。东北漫游的漠河采用源县界作为填色和虚线的唯一权威几何；回家路上3可参考吸附后保留角落的做法。
 
-数据源选择要先看文件的行政层级，不能只看属性里的 `childrenNum`。`F:\Desktop\Railway\city\city.json` 是地级市/地区级几何集合，`232700 大兴安岭地区` 在其中只有一个整体面，没有漠河的子面，因此不能从该文件直接筛出漠河边界。东北漫游使用仓库内 `制图工具/数据源/GeoPackage/mohe_county_datav.geojson` 中的 `name=漠河市` 作为漠河县级面；它与 `city.json` 同属 DataV.GeoAtlas 行政区划源，边界版本一致，负责漠河填色和暗青虚线。大兴安岭整体面仍来自 `city.json`，仅在生成省界和高亮市界时将漠河几何并入父级几何，解决剩余的边缘精度差异。旧的 `china_counties_simplified.geojson` 是另一套全国简化县界，不能与这张图的 `city.json` 混用。不能把整个大兴安岭面改成漠河高亮，也不能用父级面替代县级虚线。
+数据源选择要先看文件的行政层级，不能只看属性里的 `childrenNum`。`F:\Desktop\Railway\city\city.json` 是地级市/地区级几何集合，`232700 大兴安岭地区` 在其中只有一个整体面，没有漠河的子面，因此不能从该文件直接筛出漠河边界。东北漫游使用与永州县区文件相同目录和格式的 `F:\Desktop\Railway\city\daxinganling.geojson`，该文件由 DataV GeoAtlas 的 `232700_full.json` 直接下载，包含加格达奇区、漠河市、呼玛县和塔河县；生成器从中按 `name=漠河市` 选择县级面，负责漠河填色和暗青虚线。大兴安岭整体面仍来自 `city.json`，生成省界和高亮市界时与县级源进行边界衔接。所有区域图的县区数据统一放在 `F:\Desktop\Railway\city`，使用“一个地区一个 FeatureCollection 文件”的方式；旧的 `china_counties_simplified.geojson` 和地图仓库内的漠河临时文件均不再使用。不能把整个大兴安岭面改成漠河高亮，也不能用父级面替代县级虚线。
 
 “回家路上3”的做法不同：它引用 `F:\Desktop\Railway\city\yongzhou.geojson`，这个区域文件直接包含祁阳市、零陵区、冷水滩区等县区面；工程只筛选这些已有县区面，再用同一份源几何画重点区填色和虚线。因此它不需要另行从 `city.json` 拆分县区。今后若父级源没有目标县面，应按东北漫游的两级数据规则处理，并在构建报告中记录源文件和筛选字段。
 
@@ -174,24 +199,24 @@ QGIS Python 脚本必须使用 QGIS 自带 Python 启动：
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Blog\Map\制图工具\scripts\regional_overviews\build_overviews.py' `
-  --output-root 'F:\Desktop\Blog\Map\地图输出\区域线路图'
+  'F:\Desktop\Railway\制图工具\scripts\regional_overviews\build_overviews.py' `
+  --output-root 'F:\Desktop\Railway\地图输出\区域线路图'
 ```
 
 只重建某张区域图时使用 `--only`；例如：
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Blog\Map\制图工具\scripts\regional_overviews\build_overviews.py' `
-  --output-root 'F:\Desktop\Blog\Map\地图输出\区域线路图' --only northeast
+  'F:\Desktop\Railway\制图工具\scripts\regional_overviews\build_overviews.py' `
+  --output-root 'F:\Desktop\Railway\地图输出\区域线路图' --only northeast
 ```
 
 区域图构建后运行：
 
 ```powershell
 & 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat' `
-  'F:\Desktop\Blog\Map\制图工具\scripts\regional_overviews\validate_overviews.py' `
-  --output-root 'F:\Desktop\Blog\Map\地图输出\区域线路图'
+  'F:\Desktop\Railway\制图工具\scripts\regional_overviews\validate_overviews.py' `
+  --output-root 'F:\Desktop\Railway\地图输出\区域线路图'
 ```
 
 校验至少包括：图层有效且发布用派生图层已写入专题 GeoPackage；没有 OSM 或未乘坐铁路背景；路线、站点、`service`、次数和里程与源记录一致；填色无描边；省界、高亮城市界和重点区域虚线使用对应线宽；高亮重点区域只保留一个权威轮廓，不能出现重复平行线；边缘多部件没有空白或错误连接；唯一布局、地图框、图例和比例尺位置正确；PNG 至少约 `1800×1700` 且大小可接受；QGZ 打开后定位到成图范围。区域图正式构建完成后，必须同时查看约 `900–1100 px` 缩略图和原尺寸图。

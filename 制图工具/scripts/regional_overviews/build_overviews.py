@@ -65,10 +65,7 @@ ROUTE_GPKG = NATIONAL_OUTPUT / "铁路轨迹.gpkg"
 MAP_DATA_GPKG = NATIONAL_OUTPUT / "全国足迹_数据.gpkg"
 CITY_SOURCE = RAILWAY_ROOT / "city" / "city.json"
 PROVINCE_SOURCE = RAILWAY_ROOT / "province" / "province.json"
-# city.json contains only prefecture-level geometries. Mohe is selected from
-# this DataV county source, which shares the parent city boundary release; the
-# parent Daxinganling geometry is reconciled only for shared boundary lines.
-COUNTY_SOURCE = BLOG_ROOT / "Map" / "制图工具" / "数据源" / "GeoPackage" / "mohe_county_datav.geojson"
+COUNTY_SOURCE = RAILWAY_ROOT / "city" / "daxinganling.geojson"
 MUNICIPALITY_NAMES = {"北京市", "天津市", "上海市", "重庆市"}
 
 
@@ -685,32 +682,6 @@ def style_base_admin(cities: QgsVectorLayer) -> None:
     )
 
 
-def remove_short_mask_parts(
-    geometry: QgsGeometry,
-    mask_geometries: tuple[QgsGeometry, ...],
-    mask_radius: float,
-    minimum_length: float,
-) -> QgsGeometry:
-    """Drop tiny boundary fragments introduced at a mask edge."""
-    if minimum_length <= 0 or not mask_geometries:
-        return geometry
-    mask = QgsGeometry.unaryUnion(
-        [item.makeValid() for item in mask_geometries if not item.isNull()]
-    )
-    if mask.isNull() or mask.isEmpty():
-        return geometry
-    geometry.convertToMultiType()
-    parts = []
-    for points in geometry.asMultiPolyline():
-        line = QgsGeometry.fromPolylineXY(points)
-        if line.isNull() or line.isEmpty():
-            continue
-        if line.length() < minimum_length and line.distance(mask) <= mask_radius + minimum_length:
-            continue
-        parts.append(points)
-    return QgsGeometry.fromMultiPolylineXY(parts) if parts else QgsGeometry()
-
-
 def build_province_boundaries_from_cities(
     cities: QgsVectorLayer,
     gpkg: Path,
@@ -722,10 +693,8 @@ def build_province_boundaries_from_cities(
     exclude_province_codes: set[int] | None = None,
     line_color: str = "#A9B1B2",
     line_width: float = 0.15,
-    geometry_overrides: dict[int, QgsGeometry] | None = None,
     mask_geometries: tuple[QgsGeometry, ...] = (),
     mask_radius: float = 0.25,
-    minimum_mask_part_length: float = 0.0,
 ) -> QgsVectorLayer:
     """Build province outlines from the same city polygons used by the map."""
     rectangle = QgsRectangle(*extent)
@@ -740,15 +709,6 @@ def build_province_boundaries_from_cities(
         level = str(feature["level"])
         parent = feature["parent"] if "parent" in feature.fields().names() else None
         parent_code = parent.get("adcode") if isinstance(parent, dict) else None
-        try:
-            feature_code = int(feature["adcode"])
-        except (TypeError, ValueError):
-            feature_code = None
-        geometry = (
-            geometry_overrides.get(feature_code, feature.geometry())
-            if geometry_overrides and feature_code is not None
-            else feature.geometry()
-        )
         if level == "city":
             routes = feature["acroutes"]
             province_code = routes[1] if isinstance(routes, list) and len(routes) > 1 else parent_code
@@ -766,7 +726,7 @@ def build_province_boundaries_from_cities(
             continue
         if exclude_province_codes is not None and province_code in exclude_province_codes:
             continue
-        province_geometries.setdefault(str(province_code), []).append(geometry)
+        province_geometries.setdefault(str(province_code), []).append(feature.geometry())
 
     memory = QgsVectorLayer(
         f"MultiLineString?crs={cities.crs().authid()}", display_name, "memory"
@@ -789,14 +749,6 @@ def build_province_boundaries_from_cities(
             continue
         if boundary_mask is not None:
             boundary = boundary.difference(boundary_mask)
-            if boundary.isNull() or boundary.isEmpty():
-                continue
-            boundary = remove_short_mask_parts(
-                boundary,
-                mask_geometries,
-                mask_radius,
-                minimum_mask_part_length,
-            )
             if boundary.isNull() or boundary.isEmpty():
                 continue
         boundary.convertToMultiType()
@@ -823,47 +775,6 @@ def build_province_boundaries_from_cities(
     return layer
 
 
-def build_focus_reference_from_city(
-    cities: QgsVectorLayer,
-    adcode: int,
-    display_name: str = "focus_city_reference",
-) -> QgsVectorLayer:
-    """Return one city geometry as the authoritative focus reference.
-
-    Province outlines in this map are dissolved from the same city layer. A
-    focus county must therefore be snapped to its parent city geometry, not
-    to a second province release, so the shared city/province edges are
-    literally the same coordinates.
-    """
-    matches = []
-    for feature in cities.getFeatures():
-        try:
-            feature_code = int(feature["adcode"])
-        except (TypeError, ValueError):
-            continue
-        if feature_code == adcode:
-            matches.append(feature)
-    if len(matches) != 1:
-        raise RuntimeError(
-            f"Expected one focus city geometry for adcode {adcode}, got {len(matches)}"
-        )
-    source = matches[0]
-    geometry = source.geometry().makeValid()
-    if geometry.isNull() or geometry.isEmpty():
-        raise RuntimeError(f"Focus city geometry is empty for adcode {adcode}")
-    memory = QgsVectorLayer(
-        f"MultiPolygon?crs={cities.crs().authid()}", display_name, "memory"
-    )
-    memory.dataProvider().addAttributes([QgsField("adcode", QVariant.Int)])
-    memory.updateFields()
-    feature = QgsFeature(memory.fields())
-    feature.setAttribute("adcode", adcode)
-    feature.setGeometry(geometry)
-    memory.dataProvider().addFeature(feature)
-    memory.updateExtents()
-    return memory
-
-
 def build_reference_border_near_focus(
     reference: QgsVectorLayer,
     gpkg: Path,
@@ -871,42 +782,26 @@ def build_reference_border_near_focus(
     *,
     layer_name: str = "focus_province_border",
     display_name: str = "焦点区域省界",
-    radius: float = 0.03,
+    radius: float = 0.35,
 ) -> QgsVectorLayer | None:
-    """Keep only parent edges which are also edges of the focus geometry.
-
-    Clipping the complete parent outline to a focus buffer also captures
-    nearby parent edges which do not belong to the focused county.  Those
-    extra fragments are especially visible at Mohe's lower-left corner.  Use
-    the focus boundary as the candidate geometry and retain only the parts
-    close to the authoritative parent boundary.
-    """
+    """Restore authoritative external borders hidden by the local mask."""
     if not focus_geometries:
         return None
-    focus_lines = [
-        geometry.makeValid().convertToType(QgsWkbTypes.LineGeometry, True)
-        for geometry in focus_geometries
-        if not geometry.isNull() and not geometry.isEmpty()
-    ]
-    if not focus_lines:
+    focus_mask = QgsGeometry.unaryUnion(
+        [geometry.makeValid() for geometry in focus_geometries if not geometry.isNull()]
+    ).buffer(radius, 8)
+    if focus_mask.isNull() or focus_mask.isEmpty():
         return None
-    focus_boundary = QgsGeometry.unaryUnion(focus_lines)
-    if focus_boundary.isNull() or focus_boundary.isEmpty():
-        return None
-    reference_lines = []
+    boundaries = []
     for source_feature in reference.getFeatures():
         boundary = source_feature.geometry().convertToType(
             QgsWkbTypes.LineGeometry, True
         )
-        if not boundary.isNull() and not boundary.isEmpty():
-            reference_lines.append(boundary)
-    if not reference_lines:
+        clipped = boundary.intersection(focus_mask)
+        if not clipped.isNull() and not clipped.isEmpty():
+            boundaries.append(clipped)
+    if not boundaries:
         return None
-    parent_boundary = QgsGeometry.unaryUnion(reference_lines)
-    external = focus_boundary.intersection(parent_boundary.buffer(radius, 8))
-    if external.isNull() or external.isEmpty():
-        return None
-    external.convertToMultiType()
     memory = QgsVectorLayer(
         f"MultiLineString?crs={reference.crs().authid()}",
         display_name,
@@ -916,7 +811,7 @@ def build_reference_border_near_focus(
     memory.updateFields()
     feature = QgsFeature(memory.fields())
     feature.setAttribute("name", display_name)
-    feature.setGeometry(external)
+    feature.setGeometry(QgsGeometry.unaryUnion(boundaries))
     memory.dataProvider().addFeature(feature)
     memory.updateExtents()
     layer = write_layer(memory, gpkg, layer_name)
@@ -945,9 +840,8 @@ def build_focus_internal_border(
     layer_name: str = "focus_internal_border",
     display_name: str = "焦点县区边界",
     tolerance: float = 0.03,
-    minimum_length: float = 0.05,
 ) -> QgsVectorLayer | None:
-    """Draw the complete focused county edge as the required dashed line."""
+    """Draw only county edges which are not external province borders."""
     geometries = [
         feature.geometry().convertToType(QgsWkbTypes.LineGeometry, True)
         for layer in focus_layers
@@ -956,23 +850,17 @@ def build_focus_internal_border(
     if not geometries:
         return None
     focus_line = QgsGeometry.unaryUnion(geometries)
-    internal = focus_line
+    reference_lines = [
+        feature.geometry().convertToType(QgsWkbTypes.LineGeometry, True)
+        for feature in reference.getFeatures()
+    ]
+    if not reference_lines:
+        return None
+    external_buffer = QgsGeometry.unaryUnion(reference_lines).buffer(tolerance, 8)
+    internal = focus_line.difference(external_buffer)
     if internal.isNull() or internal.isEmpty():
         return None
-
-    # Drop only genuinely short source fragments. The main ring remains a
-    # single complete dashed county boundary, including its external sides.
     internal.convertToMultiType()
-    parts = [
-        line
-        for line in internal.asMultiPolyline()
-        if len(line) >= 2
-        and QgsGeometry.fromPolylineXY(line).length() >= minimum_length
-    ]
-    if not parts:
-        return None
-    internal = QgsGeometry.fromMultiPolylineXY(parts)
-
     memory = QgsVectorLayer(
         f"MultiLineString?crs={reference.crs().authid()}",
         display_name,
@@ -986,8 +874,6 @@ def build_focus_internal_border(
     memory.dataProvider().addFeature(feature)
     memory.updateExtents()
     layer = write_layer(memory, gpkg, layer_name)
-    # County focus edges are a separate dashed layer. Province/national
-    # borders stay neutral gray in their own layer.
     symbol = QgsSimpleLineSymbolLayer.create(
         {
             "line_color": "#2F6257",
@@ -1002,6 +888,8 @@ def build_focus_internal_border(
     symbol.setPenCapStyle(Qt.SquareCap)
     symbol.setPenJoinStyle(Qt.BevelJoin)
     line_symbol = QgsLineSymbol()
+    # QgsLineSymbol() starts with a default solid layer. Remove it so the
+    # county highlight is rendered only as the intended dashed line.
     line_symbol.deleteSymbolLayer(0)
     line_symbol.appendSymbolLayer(symbol)
     layer.setRenderer(QgsSingleSymbolRenderer(line_symbol))
@@ -1148,27 +1036,18 @@ def build_highlighted_city_boundaries(
     gpkg: Path,
     city_names: set[str],
     *,
-    geometry_overrides: dict[int, QgsGeometry] | None = None,
     mask_geometries: tuple[QgsGeometry, ...] = (),
     mask_radius: float = 0.25,
-    minimum_mask_part_length: float = 0.0,
     layer_name: str = "highlighted_city_boundaries",
     display_name: str = "高亮城市边界",
 ) -> QgsVectorLayer:
     boundaries = []
-    for feature in cities.getFeatures():
-        if str(feature["name"] or "") not in city_names:
-            continue
-        try:
-            feature_code = int(feature["adcode"])
-        except (TypeError, ValueError):
-            feature_code = None
-        geometry = (
-            geometry_overrides.get(feature_code, feature.geometry())
-            if geometry_overrides and feature_code is not None
-            else feature.geometry()
+    for feature in cities.getFeatures(
+        QgsFeatureRequest().setFilterExpression(
+            f'"name" IN ({sql_strings(sorted(city_names))})'
         )
-        boundary = geometry.convertToType(QgsWkbTypes.LineGeometry, True)
+    ):
+        boundary = feature.geometry().convertToType(QgsWkbTypes.LineGeometry, True)
         if not boundary.isNull() and not boundary.isEmpty():
             boundaries.append(boundary)
     if not boundaries:
@@ -1184,12 +1063,6 @@ def build_highlighted_city_boundaries(
         geometry = geometry.difference(mask.makeValid().buffer(mask_radius, 8))
         if geometry.isNull() or geometry.isEmpty():
             break
-    geometry = remove_short_mask_parts(
-        geometry,
-        mask_geometries,
-        mask_radius,
-        minimum_mask_part_length,
-    )
     if geometry.isNull() or geometry.isEmpty():
         raise RuntimeError("No highlighted city boundary remains after masking")
     geometry.convertToMultiType()
@@ -1242,8 +1115,6 @@ def clip_focus_layer_to_parent(
     parent_geometry: QgsGeometry | None,
     gpkg: Path,
     layer_name: str,
-    *,
-    minimum_part_area: float = 0.0,
 ) -> QgsVectorLayer:
     """Persist a focus geometry, optionally clipping it to a parent."""
     geometry_type = "MultiPolygon"
@@ -1261,18 +1132,6 @@ def clip_focus_layer_to_parent(
         clipped = polygonal_geometry(source_feature.geometry())
         if parent_geometry is not None:
             clipped = polygonal_geometry(clipped.intersection(parent_geometry))
-        if minimum_part_area > 0 and not clipped.isNull() and not clipped.isEmpty():
-            polygons = (
-                clipped.asMultiPolygon()
-                if clipped.isMultipart()
-                else [clipped.asPolygon()]
-            )
-            polygons = [
-                polygon
-                for polygon in polygons
-                if QgsGeometry.fromPolygonXY(polygon).area() >= minimum_part_area
-            ]
-            clipped = QgsGeometry.fromMultiPolygonXY(polygons) if polygons else QgsGeometry()
         if clipped.isNull() or clipped.isEmpty():
             continue
         if not clipped.isMultipart():
@@ -1294,14 +1153,9 @@ def snap_focus_to_reference(
     focus: QgsVectorLayer,
     reference: QgsVectorLayer,
     *,
-    tolerance: float = 0.01,
+    tolerance: float = 0.15,
 ) -> QgsVectorLayer:
-    """Snap only nearby focus vertices while preserving county corners.
-
-    The regional sources are EPSG:4326, so this tolerance is in degrees. A
-    larger value can rewrite the whole county ring and remove valid small
-    corners, especially at Mohe's lower-left edge.
-    """
+    """Snap a focused county to its authoritative parent boundary."""
     global _PROCESSING_READY
     if not _PROCESSING_READY:
         plugin_path = Path(QgsApplication.prefixPath()) / "python" / "plugins"
@@ -1323,23 +1177,6 @@ def snap_focus_to_reference(
             "OUTPUT": "memory:",
         },
     )["OUTPUT"]
-    # Keep every valid source corner while retaining nearby parent-edge
-    # alignment. Snapping alone can replace a small, legitimate county ring
-    # fragment when the two source releases differ by more than the local
-    # tolerance.
-    source_features = list(focus.getFeatures())
-    snapped_features = list(result.getFeatures())
-    if len(source_features) == len(snapped_features):
-        for source_feature, snapped_feature in zip(source_features, snapped_features):
-            merged = QgsGeometry.unaryUnion(
-                [
-                    source_feature.geometry().makeValid(),
-                    snapped_feature.geometry().makeValid(),
-                ]
-            ).makeValid()
-            result.dataProvider().changeGeometryValues(
-                {snapped_feature.id(): merged}
-            )
     result.setName(focus.name())
     return result
 
@@ -1766,23 +1603,12 @@ def style_focus_area(
     layer: QgsVectorLayer, emphasis: bool = False, county: bool = False
 ) -> None:
     if county:
-        # Keep the fill and the authoritative county edge in one symbol, as in
-        # the established home3 regional map. This prevents the translucent
-        # fill from covering the edge when other administrative layers meet it.
+        # County highlights follow the shared regional-map convention used by
+        # xiaocheng3: translucent grass green fill and a separate fine dashed
+        # boundary.  The fill has no stroke, so city/province boundaries do
+        # not become a second dark outline around the county.
         symbol = fill_symbol("#70A390", 155, "255,255,255,0", 0.0)
         symbol.symbolLayer(0).setStrokeStyle(Qt.NoPen)
-        outline = QgsSimpleLineSymbolLayer.create(
-            {
-                "line_color": "#2F6257",
-                "line_width": "0.18",
-                "line_width_unit": "MM",
-            }
-        )
-        outline.setUseCustomDashPattern(True)
-        outline.setCustomDashVector([1.5, 2.2])
-        outline.setCustomDashPatternUnit(Qgis.RenderUnit.Millimeters)
-        outline.setTweakDashPatternOnCorners(False)
-        symbol.appendSymbolLayer(outline)
         layer.setRenderer(QgsSingleSymbolRenderer(symbol))
         return
     symbol = fill_symbol(
@@ -2005,6 +1831,22 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         cities, gpkg, spec.highlighted_provinces
     )
     focus_layers = []
+    focus_reference = None
+    focus_reference_geometry = None
+    if spec.key == "northeast":
+        # The county source and the province source are simplified from
+        # different releases.  Use Heilongjiang's outline as the authoritative
+        # snapping reference for Mohe, rather than drawing two near-parallel
+        # borders from unrelated datasets.
+        focus_reference = add_layer(
+            project,
+            PROVINCE_SOURCE,
+            "focus_province_reference",
+            subset='"adcode" = \'230000\'',
+        )
+        focus_reference_geometry = next(
+            feature.geometry() for feature in focus_reference.getFeatures()
+        )
     for index, focus in enumerate(spec.focus_areas, 1):
         source_focus_layer = add_layer(
             project,
@@ -2013,67 +1855,64 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             subset=f'"{focus.filter_field}" IN ({sql_strings(focus.names)})',
         )
         focus_layer = source_focus_layer
-        if spec.key == "northeast" and focus.kind == "county":
-            # Keep the source county ring authoritative. Snapping it to a
-            # separately derived city geometry moves the whole highlight and
-            # can remove Mohe's small lower-left corner.
-            focus_layer = clip_focus_layer_to_parent(
+        if (
+            spec.key == "northeast"
+            and focus.kind == "county"
+        ):
+            focus_layer = snap_focus_to_reference(
                 source_focus_layer,
-                None,
+                focus_reference,
+            )
+            project.removeMapLayer(source_focus_layer.id())
+            focus_layer = clip_focus_layer_to_parent(
+                focus_layer,
+                focus_reference_geometry,
                 gpkg,
                 f"focus_area_{index}",
             )
-            project.removeMapLayer(source_focus_layer.id())
         style_focus_area(
             focus_layer,
             emphasis=spec.key == "northeast",
             county=focus.kind == "county",
         )
         focus_layers.append(focus_layer)
-    focus_geometry = QgsGeometry.unaryUnion(
-        [
-            feature.geometry().makeValid()
-            for layer in focus_layers
-            for feature in layer.getFeatures()
-            if not feature.geometry().isNull() and not feature.geometry().isEmpty()
-        ]
+    focus_masks = tuple(
+        feature.geometry()
+        for layer in focus_layers
+        for feature in layer.getFeatures()
     )
-    geometry_overrides = (
-        {232700: polygonal_geometry(
-            next(
-                feature.geometry()
-                for feature in cities.getFeatures()
-                if int(feature["adcode"]) == 232700
-            ).combine(focus_geometry)
-        )}
-        if spec.key == "northeast" and not focus_geometry.isNull()
+    focus_province_border = (
+        build_reference_border_near_focus(
+            focus_reference,
+            gpkg,
+            focus_masks,
+        )
+        if focus_reference is not None and spec.key == "northeast"
         else None
     )
+    focus_internal_border = (
+        build_focus_internal_border(
+            focus_layers,
+            focus_reference,
+            gpkg,
+        )
+        if focus_reference is not None and spec.key == "northeast"
+        else None
+    )
+    if focus_reference is not None:
+        project.removeMapLayer(focus_reference.id())
     provinces = build_province_boundaries_from_cities(
         cities,
         gpkg,
         spec.extent,
-        # The northeast overview keeps the compact boundary treatment used
-        # for visited-city maps: a light 0.15 mm province outline and a
-        # separate 0.22 mm highlighted-city outline.
-        line_width=0.15 if spec.key == "northeast" or not show_city_context else 0.32,
-        geometry_overrides=geometry_overrides,
-        # Keep the complete province/national outline. Only city-boundary
-        # layers are masked around the focus county; masking this layer would
-        # erase the surrounding provincial border and require fragile repairs.
-        mask_geometries=(),
-        mask_radius=0.25,
-        minimum_mask_part_length=0.0,
+        line_width=0.32 if show_city_context else 0.15,
+        mask_geometries=focus_masks if spec.key == "northeast" else (),
+        mask_radius=0.4 if spec.key == "northeast" else 0.25,
     )
     internal_admin = (
         build_internal_admin_boundaries(project, cities, gpkg, spec.extent)
         if show_city_context and not visited_only_context
         else None
-    )
-    focus_masks = tuple(
-        feature.geometry()
-        for layer in focus_layers
-        for feature in layer.getFeatures()
     )
     highlighted_city_boundaries = (
         build_highlighted_city_boundaries(
@@ -2082,14 +1921,16 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
             set(spec.visited_cities)
             | ({spec.start_city} if spec.start_city else set())
             | ({spec.end_city} if spec.end_city else set()),
-            geometry_overrides=geometry_overrides,
-            # The county source is the authoritative focus edge. Remove only
-            # the parent city line nearby; keep the complete province outline.
-            mask_geometries=focus_masks if spec.key == "northeast" else (),
-            # The parent prefecture geometry is simplified.  A narrow mask
-            # removes only its duplicate stroke beside the authoritative
-            # county edge while preserving nearby city boundaries.
-            mask_radius=0.0 if spec.key == "northeast" else 0.25,
+            mask_geometries=(
+                tuple(
+                    feature.geometry()
+                    for layer in focus_layers
+                    for feature in layer.getFeatures()
+                )
+                if spec.key == "northeast"
+                else ()
+            ),
+            mask_radius=0.4 if spec.key == "northeast" else 0.25,
         )
         if visited_only_context or not show_city_context
         else None
@@ -2146,8 +1987,13 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
     if roads:
         map_layers.append(roads)
     map_layers.append(route)
-    # Match the established home3 ordering: the focus symbol owns its fill
-    # and dashed edge, followed by the highlighted city and province lines.
+    # County focus outlines sit above the parent boundary, matching the
+    # xiaocheng3 layer order.  The parent boundary is masked locally so the
+    # more detailed county edge remains the single visible edge in that area.
+    if focus_internal_border:
+        map_layers.append(focus_internal_border)
+    if focus_province_border:
+        map_layers.append(focus_province_border)
     map_layers.extend(focus_layers)
     if highlighted_city_boundaries:
         map_layers.append(highlighted_city_boundaries)
@@ -2157,8 +2003,7 @@ def build_one(project: QgsProject, spec: MapSpec, output_root: Path) -> dict:
         map_layers.append(end)
     if internal_admin:
         map_layers.append(internal_admin)
-    map_layers.append(provinces)
-    map_layers.append(visited)
+    map_layers.extend([provinces, visited])
     if show_city_context and not visited_only_context:
         map_layers.append(cities)
     if highlighted_provinces:

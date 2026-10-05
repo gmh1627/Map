@@ -137,6 +137,11 @@ WAYPOINT_COORDS = {
     "定州": (114.9671026, 38.5298375),
     "保定": (115.4731670, 38.8627726),
     "高碑店": (115.8527002, 39.3278413),
+    # Northeast regional-map waypoints.  They are used to keep the two
+    # northern legs on the passenger route via Qiqihar/Mianduhe/Yakeshi.
+    "齐齐哈尔": (123.9900470, 47.3384973),
+    "免渡河": (121.0529533, 49.0910704),
+    "牙克石": (120.7311845, 49.2770342),
 }
 ROUTE_WAYPOINTS = {
     8: ["江门"],
