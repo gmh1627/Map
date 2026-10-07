@@ -1,10 +1,10 @@
 {
   "rail_segments": 401017,
   "rail_overview_segments": 30829,
-  "route_count": 143,
-  "station_count": 138,
+  "route_count": 145,
+  "station_count": 142,
   "network_station_count": 5518,
-  "rail_city_count": 73,
+  "rail_city_count": 75,
   "province_boundaries": 35,
   "city_boundaries": 476,
   "source": "F:\\Desktop\\Blog\\Map\\制图工具\\数据源\\GeoPackage\\travel_map_home2_min_gan.gpkg",

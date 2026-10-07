@@ -39,12 +39,11 @@ from qgis.core import (
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+MAP_ROOT = SCRIPT_DIR.parents[2]
 PARSED = SCRIPT_DIR / "parsed_source.json"
 MATCH_REPORT = SCRIPT_DIR / "source_match_report.json"
-RAIL_GPKG = Path(
-    r"F:\Desktop\Railway\制图工具\数据源\GeoPackage\travel_map_home2_min_gan.gpkg"
-)
-DEFAULT_OUTPUT_DIR = Path(r"F:\Desktop\Railway\地图输出\全国专题图\全国足迹")
+RAIL_GPKG = MAP_ROOT / "制图工具" / "数据源" / "GeoPackage" / "travel_map_home2_min_gan.gpkg"
+DEFAULT_OUTPUT_DIR = MAP_ROOT / "地图输出" / "全国专题图" / "全国足迹"
 OUTPUT_DIR = DEFAULT_OUTPUT_DIR
 OUTPUT_GPKG = OUTPUT_DIR / "铁路轨迹.gpkg"
 ROUTE_REPORT = OUTPUT_DIR / "线路构建报告.json"
@@ -213,9 +212,15 @@ ROUTE_SHAPING_WAYPOINTS = {
 }
 
 # Whole-route network overrides are reserved for services whose physical route
-# differs from their statistical class. Mixed routes should use shaping points
-# so each section follows its actual railway.
-PREFERRED_NETWORK_OVERRIDES: dict[str, str] = {}
+# differs from their statistical class. D37 is a CR200J service on the
+# conventional Beijing-Guangzhou corridor: keep its high-speed/EMU statistical
+# class, but route its physical geometry on the conventional network. D901
+# follows the Beijing-Guangzhou high-speed railway and needs no override.
+# Mixed routes should use shaping points so each section follows its actual
+# railway.
+PREFERRED_NETWORK_OVERRIDES: dict[str, str] = {
+    "D37": "conventional",
+}
 
 
 def parse_args() -> argparse.Namespace:

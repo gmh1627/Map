@@ -9,10 +9,10 @@ from pathlib import Path
 
 
 DEFAULT_ARTICLE = Path(r"F:\Desktop\Blog\source\_posts\行旅杂记.md")
-EXPECTED_PROVINCES = 21
-EXPECTED_CITIES = 88
-EXPECTED_RAIL_TRIPS = 137
-EXPECTED_RAIL_DISTANCE_KM = 55896
+EXPECTED_PROVINCES = 23
+EXPECTED_CITIES = 95
+EXPECTED_RAIL_TRIPS = 145
+EXPECTED_RAIL_DISTANCE_KM = 60572
 
 
 def parse_args() -> argparse.Namespace:
@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def parse_visited_regions(text: str) -> list[dict]:
-    start = text.index("至此，共计去过21个省级行政区，88个城市")
+    start = text.index("至此，共计去过23个省级行政区，95个城市")
     end = text.index("<figure", start)
     lines = text[start:end].splitlines()
 
@@ -80,9 +80,10 @@ def service_class(train: str, origin: str, destination: str) -> str:
 
 def track_preference(train: str, origin: str, destination: str) -> str:
     value = train.strip().upper()
-    # D37/D38/D901 are CR200J sleeper services on the conventional Beijing-Guangzhou
-    # railway; S5xx services use the conventional Beijing-Chengde railway.
-    if value in {"D37", "D38", "D901", "S501", "S502"}:
+    # D37/D38 are CR200J services on the conventional Beijing-Guangzhou
+    # railway; D901 follows the Beijing-Guangzhou high-speed railway. S5xx
+    # services use the conventional Beijing-Chengde railway.
+    if value in {"D37", "D38", "S501", "S502"}:
         return "conventional"
     return service_class(value, origin, destination)
 
@@ -142,7 +143,7 @@ def main() -> int:
     actual = (province_count, city_count, len(records), distance_km)
     if actual != expected:
         raise RuntimeError(f"Article totals do not match: expected {expected}, got {actual}")
-    if class_counts != {"conventional": 45, "high_speed_emu": 92}:
+    if class_counts != {"conventional": 51, "high_speed_emu": 94}:
         raise RuntimeError(f"Rail class totals do not match article: {class_counts}")
 
     warnings = []

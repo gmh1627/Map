@@ -28,12 +28,14 @@ PROVINCE_NAME_MAP = {
     "福建": "福建省",
     "河北": "河北省",
     "辽宁": "辽宁省",
+    "吉林": "吉林省",
     "甘肃": "甘肃省",
     "北京": "北京市",
     "上海": "上海市",
     "天津": "天津市",
     "广西": "广西壮族自治区",
     "内蒙古": "内蒙古自治区",
+    "黑龙江": "黑龙江省",
 }
 
 # Map service classes follow the article's statistical convention: D/C/S
@@ -63,7 +65,7 @@ def split_markdown_row(line: str) -> list[str]:
 
 def parse_places(lines: list[str]) -> list[dict]:
     start = next(
-        i for i, line in enumerate(lines) if "至此，共计去过21个省级行政区" in line
+        i for i, line in enumerate(lines) if re.search(r"至此，共计去过\d+个省级行政区", line)
     )
     end = next(i for i in range(start + 1, len(lines)) if lines[i].startswith("<figure"))
     places = []

@@ -1,7 +1,7 @@
 {
   "source": "F:\\Desktop\\Blog\\source\\_posts\\行旅杂记.md",
-  "province_count": 22,
-  "city_count": 93,
+  "province_count": 23,
+  "city_count": 95,
   "places": [
     {
       "category": "province",
@@ -194,6 +194,23 @@
       ]
     },
     {
+      "category": "province",
+      "province": "吉林",
+      "province_full": "吉林省",
+      "cities": [
+        "白城"
+      ]
+    },
+    {
+      "category": "province",
+      "province": "黑龙江",
+      "province_full": "黑龙江省",
+      "cities": [
+        "大兴安岭",
+        "哈尔滨"
+      ]
+    },
+    {
       "category": "municipality",
       "province": "北京",
       "province_full": "北京市",
@@ -231,14 +248,6 @@
       ]
     },
     {
-      "category": "province",
-      "province": "吉林",
-      "province_full": "吉林省",
-      "cities": [
-        "白城"
-      ]
-    },
-    {
       "category": "autonomous_region",
       "province": "内蒙古",
       "province_full": "内蒙古自治区",
@@ -251,17 +260,18 @@
       ]
     }
   ],
-  "rail_record_count": 143,
-  "station_count": 138,
+  "rail_record_count": 145,
+  "station_count": 142,
   "service_counts": {
-    "conventional": 50,
-    "highspeed": 93
+    "conventional": 51,
+    "highspeed": 94
   },
   "stations": [
     "上海",
     "上海南",
     "上海虹桥",
     "东莞",
+    "乌兰浩特",
     "于都",
     "佛山西",
     "信阳",
@@ -275,6 +285,7 @@
     "北京丰台",
     "北京北",
     "北京南",
+    "北京朝阳",
     "北京西",
     "南京南",
     "南昌",
@@ -288,6 +299,8 @@
     "合肥西",
     "周口",
     "周口东",
+    "哈尔滨东",
+    "哈尔滨西",
     "嘉峪关",
     "嘉峪关南",
     "大兴机场",
@@ -342,6 +355,7 @@
     "汉口",
     "泾县",
     "洛阳",
+    "海拉尔",
     "淮北",
     "深圳",
     "深圳东",
@@ -351,11 +365,14 @@
     "湛江北",
     "湛江西",
     "滁州北",
+    "满归",
+    "漠河",
     "漯河",
     "漯河西",
     "玉林",
     "瑞金",
     "甘谷",
+    "白城",
     "白洋淀",
     "祁阳",
     "神木",
@@ -368,6 +385,8 @@
     "贵阳",
     "赣州",
     "赣州西",
+    "赤峰南",
+    "通辽",
     "郑州",
     "郑州东",
     "郴州",
@@ -389,13 +408,7 @@
     "驻马店",
     "驻马店西",
     "高邮",
-    "黄山北",
-    "赤峰南",
-    "通辽",
-    "乌兰浩特",
-    "白城",
-    "海拉尔",
-    "满归"
+    "黄山北"
   ],
   "rail_records": [
     {
@@ -1659,7 +1672,7 @@
     },
     {
       "seq": 134,
-      "date": "2026.9.2",
+      "date": "2026.9",
       "origin": "合肥",
       "destination": "德州",
       "train": "K1036",
@@ -1673,7 +1686,7 @@
     },
     {
       "seq": 135,
-      "date": "2026.9.2",
+      "date": "2026.9",
       "origin": "德州东",
       "destination": "北京南",
       "train": "G816",
@@ -1682,7 +1695,7 @@
     },
     {
       "seq": 136,
-      "date": "2026.9.21",
+      "date": "2026.9",
       "origin": "清河",
       "destination": "八达岭长城",
       "train": "D1091",
@@ -1691,7 +1704,7 @@
     },
     {
       "seq": 137,
-      "date": "2026.9.21",
+      "date": "2026.9",
       "origin": "八达岭长城",
       "destination": "清河",
       "train": "D1036",
@@ -1700,7 +1713,7 @@
     },
     {
       "seq": 138,
-      "date": "2026.9.30",
+      "date": "2026.9",
       "origin": "北京",
       "destination": "赤峰南",
       "train": "K1189",
@@ -1709,7 +1722,7 @@
     },
     {
       "seq": 139,
-      "date": "2026.10.2",
+      "date": "2026.10",
       "origin": "赤峰南",
       "destination": "通辽",
       "train": "K1457",
@@ -1718,7 +1731,7 @@
     },
     {
       "seq": 140,
-      "date": "2026.10.2",
+      "date": "2026.10",
       "origin": "通辽",
       "destination": "乌兰浩特",
       "train": "K957",
@@ -1727,7 +1740,7 @@
     },
     {
       "seq": 141,
-      "date": "2026.10.3",
+      "date": "2026.10",
       "origin": "乌兰浩特",
       "destination": "白城",
       "train": "C508",
@@ -1736,7 +1749,7 @@
     },
     {
       "seq": 142,
-      "date": "2026.10.3",
+      "date": "2026.10",
       "origin": "白城",
       "destination": "海拉尔",
       "train": "K4259",
@@ -1745,12 +1758,30 @@
     },
     {
       "seq": 143,
-      "date": "2026.10.4",
+      "date": "2026.10",
       "origin": "海拉尔",
       "destination": "满归",
       "train": "4184",
       "distance_km": 506,
       "service_class": "conventional"
+    },
+    {
+      "seq": 144,
+      "date": "2026.10.6",
+      "origin": "漠河",
+      "destination": "哈尔滨东",
+      "train": "K7040",
+      "distance_km": 1129,
+      "service_class": "conventional"
+    },
+    {
+      "seq": 145,
+      "date": "2026.10.8",
+      "origin": "哈尔滨西",
+      "destination": "北京朝阳",
+      "train": "G102",
+      "distance_km": 1158,
+      "service_class": "highspeed"
     }
   ]
 }

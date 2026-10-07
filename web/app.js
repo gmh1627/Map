@@ -35,7 +35,7 @@
       : { color: "#fffdf7", weight: 1.55, opacity: .98, lineCap: "round", lineJoin: "round" };
   };
 
-  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20261005-5`, { cache: "default" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
+  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20261007-1`, { cache: "default" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
   function geojson(data, options) { return L.geoJSON(data, options); }
   function networkEnabled() { return $("network").checked || $("speedNetwork").checked; }
   function networkStyle(feature) {
@@ -80,13 +80,18 @@
     if (layers.railCityLabels) map.removeLayer(layers.railCityLabels);
     layers.railCityLabels = addCityLabels(railCityLabelsData, "city-label", (feature) => routeCities.has(feature.properties.display));
   }
+  function selectedServiceVisibility() {
+    const highspeed = $("visitedHighspeed").checked;
+    const conventional = $("visitedConventional").checked;
+    if (highspeed || conventional) return { highspeed, conventional };
+    const all = $("visited").checked;
+    return { highspeed: all, conventional: all };
+  }
+  function serviceVisible(feature) {
+    return Boolean(selectedServiceVisibility()[feature.properties.service]);
+  }
   function routeVisibility(feature) {
-    if (!selectedRouteIds.has(Number(feature.properties.seq))) return false;
-    const showAllRoutes = $("visited").checked;
-    const showHighspeedRoutes = showAllRoutes || $("visitedHighspeed").checked;
-    const showConventionalRoutes = showAllRoutes || $("visitedConventional").checked;
-    return (feature.properties.service === "highspeed" && showHighspeedRoutes)
-      || (feature.properties.service === "conventional" && showConventionalRoutes);
+    return selectedRouteIds.has(Number(feature.properties.seq)) && serviceVisible(feature);
   }
   function refreshStations() {
     if (!routeData || !visitedStationsData) return;
@@ -158,6 +163,18 @@
     refreshStations();
     refreshNetwork();
     updateZoomDependentLayers();
+    raiseForegroundLayers();
+    if (routeData) renderRouteList();
+  }
+  function raiseForegroundLayers() {
+    if (layers.provinceBounds) layers.provinceBounds.bringToFront();
+    if (layers.cityBounds && $("cityBounds").checked) layers.cityBounds.bringToFront();
+    if (layers.routeOuter) layers.routeOuter.bringToFront();
+    if (layers.routeInner) layers.routeInner.bringToFront();
+    if (layers.highspeedStations) layers.highspeedStations.bringToFront();
+    if (layers.conventionalStations) layers.conventionalStations.bringToFront();
+    if (layers.railCityLabels) layers.railCityLabels.bringToFront();
+    if (layers.otherCityLabels) layers.otherCityLabels.bringToFront();
   }
   function addVisibleStations(layer) {
     if (!layer) return;
@@ -190,8 +207,10 @@
     const query = $("routeSearch").value.trim().toLowerCase();
     const rows = routeData.features.filter((feature) => {
       const p = feature.properties;
-      return `${p.train} ${p.origin} ${p.destination}`.toLowerCase().includes(query);
+      return serviceVisible(feature)
+        && `${p.train} ${p.origin} ${p.destination}`.toLowerCase().includes(query);
     });
+    $("routeListHeading").textContent = `${rows.length} 段相关行程`;
     $("routeList").innerHTML = rows.map((feature) => {
       const p = feature.properties;
       const id = Number(p.seq);

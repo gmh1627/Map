@@ -1,5 +1,5 @@
 {
-  "province_matches": 21,
+  "province_matches": 23,
   "missing_provinces": [],
   "city_matches": [
     {
@@ -627,6 +627,30 @@
       "adcode": "620700"
     },
     {
+      "source_name": "白城",
+      "full_name": "白城市",
+      "province": "吉林省",
+      "source": "city",
+      "fid": 87,
+      "adcode": "220800"
+    },
+    {
+      "source_name": "大兴安岭",
+      "full_name": "大兴安岭地区",
+      "province": "黑龙江省",
+      "source": "city",
+      "fid": 101,
+      "adcode": "232700"
+    },
+    {
+      "source_name": "哈尔滨",
+      "full_name": "哈尔滨市",
+      "province": "黑龙江省",
+      "source": "city",
+      "fid": 89,
+      "adcode": "230100"
+    },
+    {
       "source_name": "北京",
       "full_name": "北京市",
       "province": "北京市",
@@ -723,14 +747,6 @@
       "source": "city",
       "fid": 63,
       "adcode": "152200"
-    },
-    {
-      "source_name": "白城",
-      "full_name": "白城市",
-      "province": "吉林省",
-      "source": "city",
-      "fid": 87,
-      "adcode": "220800"
     },
     {
       "source_name": "呼伦贝尔",
@@ -835,6 +851,13 @@
       "tags": "\"alt_name\"=>\"深圳站;深圳火车站;Shenzhen Railway Station\",\"internet_access\"=>\"yes\",\"name:en\"=>\"Shenzhen\",\"name:zh\"=>\"深圳\",\"operator\"=>\"中国铁路广州局\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"train\"=>\"yes\"",
       "score": 7
     },
+    "哈尔滨东": {
+      "fid": 1482,
+      "lon": 126.7056057,
+      "lat": 45.7865776,
+      "tags": "\"addr:city\"=>\"哈尔滨市\",\"addr:district\"=>\"火车头街道\",\"addr:housenumber\"=>\"1\",\"addr:province\"=>\"黑龙江省\",\"addr:street\"=>\"南棵街\",\"alt_name\"=>\"哈尔滨东站\",\"name:en\"=>\"Harbin East\",\"name:ru\"=>\"Харбин-Восточный\",\"name:zh\"=>\"哈尔滨东\",\"operator\"=>\"中国铁路哈尔滨局集团有限公司 哈尔滨车务段\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"60002\",\"train\"=>\"yes\",\"wikidata\"=>\"Q10921977\",\"wikipedia\"=>\"zh:哈尔滨东站\"",
+      "score": 7
+    },
     "巩义南": {
       "fid": 1554,
       "lon": 112.9105621,
@@ -855,6 +878,13 @@
       "lat": 40.749518,
       "tags": "\"alt_name\"=>\"张家口站;张家口火车站;Zhangjiakou Railway Station\",\"name:cs\"=>\"Čang-ťia-kchou\",\"name:en\"=>\"Zhangjiakou\",\"name:zh\"=>\"张家口\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:position:exact:京包\"=>\"192.164\",\"railway:position:exact:京包客专\"=>\"192.645\",\"railway:ref\"=>\"12308\",\"train\"=>\"yes\",\"uic_ref\"=>\"3300022\",\"wikidata\"=>\"Q6118927\",\"wikipedia\"=>\"zh:张家口站\"",
       "score": 7
+    },
+    "通辽": {
+      "fid": 1728,
+      "lon": 122.26580740000001,
+      "lat": 43.6016685,
+      "tags": "\"alt_name\"=>\"通辽站;通辽火车站;Tongliao Railway Station\",\"name:en\"=>\"Tongliao\",\"name:zh\"=>\"通辽\",\"operator\"=>\"中国铁路沈阳局集团有限公司 通辽站\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"53363\"",
+      "score": 6
     },
     "宁武": {
       "fid": 1770,
@@ -961,6 +991,20 @@
       "tags": "\"alt_name\"=>\"岢岚站;岢岚火车站;Kelan Railway Station\",\"name:en\"=>\"Kelan\",\"name:ru\"=>\"Кэлань\",\"railway\"=>\"station\",\"train\"=>\"yes\",\"usage\"=>\"main\"",
       "score": 5
     },
+    "白城": {
+      "fid": 6260,
+      "lon": 122.85910670000001,
+      "lat": 45.6156263,
+      "tags": "\"alt_name\"=>\"白城站;白城火车站;Baicheng Railway Station\",\"name:en\"=>\"Baicheng\",\"name:ru\"=>\"Байчэн\",\"operator\"=>\"中国铁路沈阳局集团有限公司 白城车务段\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"56504\"",
+      "score": 6
+    },
+    "北京朝阳": {
+      "fid": 6836,
+      "lon": 116.50241810000001,
+      "lat": 39.943316200000005,
+      "tags": "\"name:de\"=>\"Peking Chaoyang\",\"name:en\"=>\"Beijing Chaoyang\",\"name:fr\"=>\"Pékin Chaoyang\",\"name:ja\"=>\"北京朝陽\",\"name:ko\"=>\"베이징 차오양\",\"name:zh\"=>\"北京朝阳\",\"name:zh-Hans\"=>\"北京朝阳\",\"name:zh-Hant\"=>\"北京朝陽\",\"old_name\"=>\"星火\",\"old_name:en\"=>\"Xinghuo\",\"old_name:zh\"=>\"星火\",\"old_name:zh-Hans\"=>\"星火\",\"old_name:zh-Hant\"=>\"星火\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:position:exact:东北环\"=>\"35.894\",\"railway:position:exact:东星\"=>\"8.119\",\"railway:position:exact:京哈高速:上\"=>\"2.309\",\"railway:position:exact:京哈高速:下\"=>\"2.311\",\"railway:position:exact:北京朝阳动走B\"=>\"2.354\",\"railway:ref\"=>\"12161\",\"start_date\"=>\"2021-01-22\",\"train\"=>\"yes\",\"wikidata\"=>\"Q105061192\"",
+      "score": 7
+    },
     "驻马店": {
       "fid": 21358,
       "lon": 114.0368444,
@@ -988,6 +1032,13 @@
       "lat": 26.226133,
       "tags": "\"alt_name\"=>\"零陵站;零陵火车站;Lingling Railway Station\",\"name:en\"=>\"Lingling\",\"name:zh\"=>\"零陵\",\"railway\"=>\"station\",\"train\"=>\"yes\",\"wikidata\"=>\"Q28418227\",\"wikipedia\"=>\"zh:零陵站\"",
       "score": 5
+    },
+    "哈尔滨西": {
+      "fid": 9154,
+      "lon": 126.57232420000001,
+      "lat": 45.7051442,
+      "tags": "\"alt_name\"=>\"哈尔滨西站;Harbin West Railway Station\",\"name:en\"=>\"Harbin West\",\"name:ru\"=>\"Харбин-Западный\",\"name:zh\"=>\"哈尔滨西\",\"operator\"=>\"中国铁路哈尔滨局集团有限公司 哈尔滨站\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"53469\",\"wikidata\"=>\"Q5654454\",\"wikipedia\"=>\"zh:哈尔滨西站\"",
+      "score": 6
     },
     "信阳东": {
       "fid": 10146,
@@ -1388,6 +1439,13 @@
       "tags": "\"alt_name\"=>\"宣城站;宣城火车站;Xuancheng Railway Station\",\"name:de\"=>\"Xuancheng\",\"name:en\"=>\"Xuancheng\",\"name:zh\"=>\"宣城\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"train\"=>\"yes\"",
       "score": 7
     },
+    "八达岭长城": {
+      "fid": 64040,
+      "lon": 116.00505150000001,
+      "lat": 40.3603284,
+      "tags": "\"alt_name\"=>\"八达岭长城站;八达岭长城火车站;BadalingChangcheng Railway Station\",\"alt_name:en\"=>\"Badaling Chang Cheng\",\"name:cs\"=>\"Pa-ta-ling-čchang-čcheng\",\"name:en\"=>\"Badaling Great Wall\",\"name:zh\"=>\"八达岭长城\",\"name:zh-Hans\"=>\"八达岭长城\",\"name:zh-Hant\"=>\"八達嶺長城\",\"name:zh-Latn-pinyin\"=>\"Badaling Changcheng\",\"official_name:en\"=>\"Badaling Great Wall Railway Station\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:position:exact\"=>\"76.206\",\"railway:ref\"=>\"12181\",\"toilets:wheelchair\"=>\"no\",\"train\"=>\"yes\",\"wheelchair\"=>\"yes\",\"wikidata\"=>\"Q33239460\",\"wikipedia\"=>\"zh:八达岭长城站\"",
+      "score": 7
+    },
     "郑州东": {
       "fid": 73893,
       "lon": 113.7732527,
@@ -1450,6 +1508,13 @@
       "lat": 21.245634900000002,
       "tags": "\"name:en\"=>\"Zhanjiangxi\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"train\"=>\"yes\",\"wikidata\"=>\"Q17498915\"",
       "score": 7
+    },
+    "赤峰南": {
+      "fid": 102781,
+      "lon": 118.9536202,
+      "lat": 42.2548316,
+      "tags": "\"alt_name\"=>\"赤峰南站;Chifeng South;Chifeng South Railway Station;Chifengnan Railway Station\",\"name:en\"=>\"Chifengnan\",\"old_name\"=>\"赤峰\",\"operator\"=>\"中国铁路沈阳局集团有限公司 赤峰车务段\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"11822\",\"wikidata\"=>\"Q11635551\"",
+      "score": 6
     },
     "佛山西": {
       "fid": 103150,
@@ -1570,6 +1635,34 @@
       "tags": "\"network\"=>\"中国铁路\",\"operator\"=>\"中国铁路武汉局集团有限公司\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"start_date\"=>\"2013年\",\"wheelchair\"=>\"yes\",\"wikidata\"=>\"Q22099909\",\"wikipedia\"=>\"zh:周口站\"",
       "score": 6
     },
+    "乌兰浩特": {
+      "fid": 123544,
+      "lon": 122.05653910000001,
+      "lat": 46.0687386,
+      "tags": "\"operator\"=>\"中国铁路沈阳局集团有限公司 白城车务段\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"56081\"",
+      "score": 6
+    },
+    "满归": {
+      "fid": 123567,
+      "lon": 122.06741860000001,
+      "lat": 52.034930200000005,
+      "tags": "\"name:en\"=>\"Mangui\",\"name:ru\"=>\"Маньгуй\",\"operator\"=>\"中国铁路哈尔滨局集团有限公司 海拉尔车务段\",\"railway\"=>\"station\",\"railway:ref\"=>\"58421\",\"wikidata\"=>\"Q17032351\",\"wikipedia\"=>\"zh:满归站\"",
+      "score": 4
+    },
+    "漠河": {
+      "fid": 123621,
+      "lon": 122.4977008,
+      "lat": 52.9865751,
+      "tags": "\"alt_name\"=>\"漠河站;漠河火车站;Mohe Railway Station\",\"name:en\"=>\"Mohe\",\"name:ru\"=>\"Мохэ\",\"name:zh\"=>\"漠河\",\"operator\"=>\"中国铁路哈尔滨局集团有限公司 加格达奇车务段\",\"railway\"=>\"station\",\"railway:ref\"=>\"59150\",\"wikidata\"=>\"Q17032631\"",
+      "score": 4
+    },
+    "海拉尔": {
+      "fid": 124040,
+      "lon": 119.73560210000001,
+      "lat": 49.2287551,
+      "tags": "\"name:en\"=>\"Hailaer\",\"name:fr\"=>\"Gare de Hailaer\",\"name:ru\"=>\"Хайлар\",\"operator\"=>\"中国铁路哈尔滨局集团有限公司 海拉尔车务段\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"57785\",\"start_date\"=>\"1903\",\"train\"=>\"yes\",\"wikidata\"=>\"Q11150806\",\"wikipedia\"=>\"zh:海拉尔站\"",
+      "score": 7
+    },
     "芜湖": {
       "fid": 125452,
       "lon": 118.38600190000001,
@@ -1659,48 +1752,6 @@
       "lon": 111.01546400000001,
       "lat": 38.493298200000005,
       "tags": "\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"train\"=>\"yes\"",
-      "score": 7
-    },
-    "赤峰南": {
-      "fid": 0,
-      "lon": 118.9536202,
-      "lat": 42.2548316,
-      "tags": "东北漫游站点层",
-      "score": 7
-    },
-    "通辽": {
-      "fid": 0,
-      "lon": 122.2658074,
-      "lat": 43.6016685,
-      "tags": "东北漫游站点层",
-      "score": 7
-    },
-    "乌兰浩特": {
-      "fid": 0,
-      "lon": 122.0565391,
-      "lat": 46.0687386,
-      "tags": "东北漫游站点层",
-      "score": 7
-    },
-    "白城": {
-      "fid": 0,
-      "lon": 122.8591067,
-      "lat": 45.6156263,
-      "tags": "东北漫游站点层",
-      "score": 7
-    },
-    "海拉尔": {
-      "fid": 0,
-      "lon": 119.7356021,
-      "lat": 49.2287551,
-      "tags": "东北漫游站点层",
-      "score": 7
-    },
-    "满归": {
-      "fid": 0,
-      "lon": 122.0674186,
-      "lat": 52.0349302,
-      "tags": "东北漫游站点层",
       "score": 7
     }
   },

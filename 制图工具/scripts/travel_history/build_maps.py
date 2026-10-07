@@ -727,7 +727,7 @@ def make_layout(
         add_label(layout, "高铁/动车（含城际、市郊）", 151, 297, 88, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
         add_route_legend_sample(layout, 245, 301.5, 22, False)
         add_label(layout, "普铁", 271, 297, 30, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
-    add_label(layout, "数据截至 2026.09", 343, 297, 75, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
+    add_label(layout, "数据截至 2026.10", 343, 297, 75, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
 
     exporter = QgsLayoutExporter(layout)
     settings = QgsLayoutExporter.ImageExportSettings()
@@ -855,20 +855,19 @@ def main() -> int:
             project,
             "去过的省市",
             "我的行旅版图",
-            "21 个省级行政区 · 88 个城市",
+            "23 个省级行政区 · 95 个城市",
             visit_layers,
             VISIT_IMAGE,
             inset_layers=[province_boundaries, city_boundaries, all_provinces],
         )
 
-        # QgsLayoutItemMap renders index 0 on top. Put the province boundary
-        # above routes and city boundaries so its colour stays continuous.
+        # QgsLayoutItemMap renders index 0 on top. Keep route and station
+        # symbols above administrative lines, and keep both line layers above
+        # the visited-city fill.
         rail_layers = [
-            province_boundaries,
             stations,
             routes,
-            visited_city_labels,
-            visited_city_layer,
+            province_boundaries,
             city_boundaries,
             rail_provinces,
         ]
@@ -876,7 +875,7 @@ def main() -> int:
             project,
             "铁路路线",
             "坐火车走过的地方",
-            "143 段乘车记录｜普铁 50 次 · 高铁/动车 93 次\n总里程 58,285 km（其中普铁 24,774 km，高铁/动车 33,511 km）｜抵达 73 个城市的 138 座车站",
+            "145 段乘车记录｜普铁 51 次 · 高铁/动车 94 次\n总里程 60,572 km（其中普铁 25,903 km，高铁/动车 34,669 km）｜抵达 73 个城市的 142 座车站",
             rail_layers,
             RAIL_IMAGE,
             rail_legend=True,

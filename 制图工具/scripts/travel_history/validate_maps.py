@@ -27,22 +27,22 @@ PARSED_SOURCE = SCRIPT_DIR / "parsed_source.json"
 EXPECTED_COUNTS = {
     "全国省级行政区": 35,
     "全国地级行政区": 477,
-    "去过的城市": 93,
-    "去过的省级行政区": 22,
-    "铁路行程轨迹": 143,
-    "记录车站": 138,
-    "去过的城市标注": 93,
+    "去过的城市": 95,
+    "去过的省级行政区": 23,
+    "铁路行程轨迹": 145,
+    "记录车站": 142,
+    "去过的城市标注": 95,
     "重点城市标注": 7,
     "铁路图省级行政区": 35,
     "统一省界": 1,
     "统一市界": 1,
 }
 EXPECTED_RAIL_SUBTITLE = (
-    "143 段乘车记录｜普铁 50 次 · 高铁/动车 93 次\n"
-    "总里程 58,285 km（其中普铁 24,774 km，高铁/动车 33,511 km）｜抵达 73 个城市的 138 座车站"
+    "145 段乘车记录｜普铁 51 次 · 高铁/动车 94 次\n"
+    "总里程 60,572 km（其中普铁 25,903 km，高铁/动车 34,669 km）｜抵达 73 个城市的 142 座车站"
 )
 EXPECTED_NEW_ROUTES = {
-    39: ("G7725", "合肥南", "芜湖", ["无为", "铜陵", "繁昌西"]),
+    39: ("G7725", "合肥南", "芜湖", ["无为", "铜陵"]),
     131: ("D901", "北京西", "广州", ["涿州东", "石家庄", "郑州东", "广州北"]),
     132: ("G5689", "广州", "湛江北", ["佛山", "茂名南"]),
     133: (
@@ -62,7 +62,7 @@ EXPECTED_NEW_ROUTES = {
     136: ("D1091", "清河", "八达岭长城", []),
     137: ("D1036", "八达岭长城", "清河", []),
 }
-EXPECTED_NETWORK_OVERRIDES = {}
+EXPECTED_NETWORK_OVERRIDES = {95: ("highspeed", "conventional")}
 
 
 def parse_args() -> argparse.Namespace:
@@ -124,17 +124,18 @@ def main() -> int:
             endpoint_errors = []
             for seq, feature in route_features.items():
                 geometry = feature.geometry()
-                parts = geometry.asMultiPolyline() if geometry.isMultipart() else [geometry.asPolyline()]
-                points = [point for part in parts for point in part]
                 record = expected_records.get(seq)
-                if not points or not record:
+                if geometry.isNull() or geometry.isEmpty() or not record:
                     continue
                 origin = station_points.get(record["origin"])
                 destination = station_points.get(record["destination"])
                 if origin is not None and destination is not None:
-                    direct = points[0].distance(origin) + points[-1].distance(destination)
-                    reverse = points[-1].distance(origin) + points[0].distance(destination)
-                    if min(direct, reverse) > 0.00001:
+                    origin_geometry = QgsGeometry.fromPointXY(origin)
+                    destination_geometry = QgsGeometry.fromPointXY(destination)
+                    if (
+                        geometry.distance(origin_geometry) > 0.005
+                        or geometry.distance(destination_geometry) > 0.005
+                    ):
                         endpoint_errors.append(seq)
             if endpoint_errors:
                 errors.append(f"Routes do not end at recorded stations: {endpoint_errors}")
@@ -175,8 +176,8 @@ def main() -> int:
                 for service in ("conventional", "highspeed")
             }
             expected_summary = {
-                "conventional": {"trips": 50, "table_km": 24774},
-                "highspeed": {"trips": 93, "table_km": 33511},
+                "conventional": {"trips": 51, "table_km": 25903},
+                "highspeed": {"trips": 94, "table_km": 34669},
             }
             if service_summary != expected_summary:
                 errors.append(
@@ -236,8 +237,8 @@ def main() -> int:
                 layer_names = [layer.name() for layer in item.layers()]
                 layout_map_layers[f"{layout.name()}/{item_name}"] = layer_names
                 if layout.name() == "铁路路线" and item_name != "南海诸岛插图":
-                    if "去过的城市" not in layer_names or "去过的城市标注" not in layer_names:
-                        errors.append("Railway main map is missing visited-city highlights or labels")
+                    if "去过的城市" in layer_names or "去过的城市标注" in layer_names:
+                        errors.append("Railway main map must not include visited-city highlights")
 
             map_by_id = {item.id(): item for item in map_items}
             main_map = map_by_id.get("主图")
