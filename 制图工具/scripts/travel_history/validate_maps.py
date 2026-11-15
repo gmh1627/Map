@@ -62,7 +62,7 @@ EXPECTED_NEW_ROUTES = {
     136: ("D1091", "清河", "八达岭长城", []),
     137: ("D1036", "八达岭长城", "清河", []),
     146: ("K105", "北京西", "菏泽", ["衡水"]),
-    147: ("G3935", "菏泽东", "合肥西", ["兰考南", "商丘", "亳州南"]),
+    147: ("G3935", "菏泽东", "合肥西", ["曹县西", "商丘", "阜阳西"]),
     148: ("K1036", "合肥", "北京丰台", ["蚌埠", "宿州", "徐州", "德州", "衡水"]),
 }
 EXPECTED_NETWORK_OVERRIDES = {95: ("highspeed", "conventional")}
@@ -206,6 +206,20 @@ def main() -> int:
                     errors.append("D901 incorrectly follows the conventional line at Zhengzhou")
                 if guangzhou_north_distance > 0.01:
                     errors.append("D901 does not pass Guangzhou North before entering Guangzhou")
+            g3935 = route_features.get(147)
+            if g3935 is None:
+                errors.append("Missing G3935 geometry")
+            else:
+                g3935_geometry = g3935.geometry()
+                for name, coordinate in {
+                    "Caoxian West": (115.4993284, 34.8537083),
+                    "Shangqiu": (115.6518561, 34.4460585),
+                    "Fuyang West": (115.7476278, 32.8849409),
+                }.items():
+                    if g3935_geometry.distance(QgsGeometry.fromPointXY(QgsPointXY(*coordinate))) > 0.005:
+                        errors.append(f"G3935 does not pass {name}")
+                if g3935_geometry.distance(QgsGeometry.fromPointXY(QgsPointXY(114.8183029, 34.7720247))) < 0.1:
+                    errors.append("G3935 incorrectly detours via Lankao South")
         else:
             service_mismatches = []
 
