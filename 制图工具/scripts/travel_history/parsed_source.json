@@ -1,7 +1,7 @@
 {
   "source": "F:\\Desktop\\Blog\\source\\_posts\\行旅杂记.md",
   "province_count": 23,
-  "city_count": 95,
+  "city_count": 97,
   "places": [
     {
       "category": "province",
@@ -147,7 +147,8 @@
       "province_full": "山东省",
       "cities": [
         "枣庄",
-        "德州"
+        "德州",
+        "菏泽"
       ]
     },
     {
@@ -241,6 +242,7 @@
       "cities": [
         "北海",
         "桂林",
+        "南宁",
         "柳州",
         "来宾",
         "贵港",
@@ -260,11 +262,11 @@
       ]
     }
   ],
-  "rail_record_count": 145,
-  "station_count": 142,
+  "rail_record_count": 148,
+  "station_count": 144,
   "service_counts": {
-    "conventional": 51,
-    "highspeed": 94
+    "conventional": 53,
+    "highspeed": 95
   },
   "stations": [
     "上海",
@@ -378,6 +380,8 @@
     "神木",
     "福州",
     "芜湖",
+    "菏泽",
+    "菏泽东",
     "蔡家崖",
     "虎门",
     "西安北",
@@ -1767,7 +1771,7 @@
     },
     {
       "seq": 144,
-      "date": "2026.10.6",
+      "date": "2026.10",
       "origin": "漠河",
       "destination": "哈尔滨东",
       "train": "K7040",
@@ -1776,12 +1780,54 @@
     },
     {
       "seq": 145,
-      "date": "2026.10.8",
+      "date": "2026.10",
       "origin": "哈尔滨西",
       "destination": "北京朝阳",
       "train": "G102",
       "distance_km": 1158,
       "service_class": "highspeed"
+    },
+    {
+      "seq": 146,
+      "date": "2026.11",
+      "origin": "北京西",
+      "destination": "菏泽",
+      "train": "K105",
+      "distance_km": 542,
+      "service_class": "conventional",
+      "control_points": [
+        "衡水"
+      ]
+    },
+    {
+      "seq": 147,
+      "date": "2026.11",
+      "origin": "菏泽东",
+      "destination": "合肥西",
+      "train": "G3935",
+      "distance_km": 483,
+      "service_class": "highspeed",
+      "control_points": [
+        "兰考南",
+        "商丘",
+        "亳州南"
+      ]
+    },
+    {
+      "seq": 148,
+      "date": "2026.11",
+      "origin": "合肥",
+      "destination": "北京丰台",
+      "train": "K1036",
+      "distance_km": 1069,
+      "service_class": "conventional",
+      "control_points": [
+        "蚌埠",
+        "宿州",
+        "徐州",
+        "德州",
+        "衡水"
+      ]
     }
   ]
 }

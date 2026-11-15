@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
 
 from qgis.core import QgsApplication, QgsFeature, QgsGeometry, QgsVectorLayer, QgsWkbTypes
@@ -11,6 +12,9 @@ from qgis.core import QgsApplication, QgsFeature, QgsGeometry, QgsVectorLayer, Q
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT = SCRIPT_DIR.parents[2]
+sys.path.insert(0, str(ROOT / "制图工具" / "scripts" / "travel_history"))
+from railway_stats import city_for_station, railway_statistics  # noqa: E402
+
 WEB = ROOT / "web"
 DATA = WEB / "data"
 SOURCE = ROOT / "制图工具" / "数据源" / "GeoPackage" / "travel_map_home2_min_gan.gpkg"
@@ -18,18 +22,6 @@ NATIONAL = ROOT / "地图输出" / "全国专题图" / "全国足迹" / "全国�
 ROUTES = ROOT / "地图输出" / "全国专题图" / "全国足迹" / "铁路轨迹.gpkg"
 ROUTE_TIMES = DATA / "route_times.json"
 DIRECT_ADMIN_CODES = {110000, 120000, 310000, 500000, 810000, 820000}
-STATION_CITY_OVERRIDES = {
-    "赤峰南": "赤峰",
-    "通辽": "通辽",
-    "乌兰浩特": "兴安",
-    "白城": "白城",
-    "海拉尔": "呼伦贝尔",
-    "满归": "呼伦贝尔",
-    "漠河": "大兴安岭",
-    "哈尔滨东": "哈尔滨",
-    "哈尔滨西": "哈尔滨",
-    "北京朝阳": "北京",
-}
 
 
 def feature_collection(features: list[dict]) -> dict:
@@ -224,30 +216,6 @@ def valid_polygon(geometry: QgsGeometry) -> QgsGeometry:
         ]
         result = QgsGeometry.unaryUnion(polygon_parts) if polygon_parts else QgsGeometry()
     return result
-
-
-def city_for_station(
-    name: str,
-    station_points: dict[str, object],
-    city_features: list[QgsFeature],
-) -> str:
-    """Resolve an endpoint to the same display city used by the map.
-
-    Newly added railway stations can sit just outside a simplified polygon.
-    Keep explicit administrative matches for those endpoints, then use the
-    source polygon containment rule for existing records.
-    """
-    override = STATION_CITY_OVERRIDES.get(name)
-    if override:
-        return override
-    point = station_points.get(name)
-    if point is None:
-        return ""
-    point_geometry = QgsGeometry.fromPointXY(point)
-    for feature in city_features:
-        if feature.geometry().contains(point_geometry):
-            return str(feature["display"])
-    return ""
 
 
 def export_unified_admin_layers() -> tuple[
@@ -472,6 +440,15 @@ def main() -> int:
         network_station_count = export_network_stations(DATA / "network_stations.geojson")
         rail_city_count = export_rail_cities(DATA / "rail_visited_cities.geojson", DATA / "visited_cities.geojson")
         metadata = {"rail_segments": rail_segments, "rail_overview_segments": overview_segments, "route_count": route_count, "station_count": station_count, "network_station_count": network_station_count, "rail_city_count": rail_city_count, "province_boundaries": province_boundary_count, "city_boundaries": city_boundary_count, "source": str(SOURCE), "railway_simplify_degrees": 0.02, "railway_overview_min_span_degrees": 0.02, "route_simplify_degrees": 0.0, "administrative_simplify_degrees": 0.0}
+        route_layer = QgsVectorLayer(f"{ROUTES.as_posix()}|layername=rail_routes", "routes", "ogr")
+        station_layer = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=记录车站", "stations", "ogr")
+        city_layer = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=去过的城市", "cities", "ogr")
+        metadata["summary"] = railway_statistics(
+            route_layer.getFeatures(),
+            {str(feature["name"]): feature.geometry().asPoint() for feature in station_layer.getFeatures()},
+            list(city_layer.getFeatures()),
+        )
+        del route_layer, station_layer, city_layer
         (DATA / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(metadata, ensure_ascii=False))
         return 0

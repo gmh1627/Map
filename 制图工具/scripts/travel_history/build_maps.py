@@ -7,6 +7,8 @@ import json
 import sys
 from pathlib import Path
 
+from railway_stats import railway_statistics, railway_subtitle
+
 from qgis.PyQt.QtCore import QPointF, Qt, QVariant
 from qgis.PyQt.QtGui import QColor, QFont, QPolygonF
 from qgis.core import (
@@ -727,7 +729,7 @@ def make_layout(
         add_label(layout, "高铁/动车（含城际、市郊）", 151, 297, 88, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
         add_route_legend_sample(layout, 245, 301.5, 22, False)
         add_label(layout, "普铁", 271, 297, 30, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
-    add_label(layout, "数据截至 2026.10", 343, 297, 75, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
+    add_label(layout, f"数据截至 {project.readEntry('railway', 'latest_month')[0]}", 343, 297, 75, 9, 12.0, "#4E5954", "思源黑体 CN", bold=True)
 
     exporter = QgsLayoutExporter(layout)
     settings = QgsLayoutExporter.ImageExportSettings()
@@ -808,6 +810,12 @@ def main() -> int:
         stations = build_station_layer(
             project, matches["station_matches"], parsed["rail_records"]
         )
+        railway_summary = railway_statistics(
+            routes.getFeatures(),
+            {str(feature["name"]): feature.geometry().asPoint() for feature in stations.getFeatures()},
+            list(visited_city_layer.getFeatures()),
+        )
+        project.writeEntry("railway", "latest_month", railway_summary["latest_month"])
 
         style_all_provinces(all_provinces, visited_provinces)
         style_neutral_provinces(rail_provinces)
@@ -855,7 +863,7 @@ def main() -> int:
             project,
             "去过的省市",
             "我的行旅版图",
-            "23 个省级行政区 · 95 个城市",
+            f"{visited_province_layer.featureCount()} 个省级行政区 · {visited_city_layer.featureCount()} 个城市",
             visit_layers,
             VISIT_IMAGE,
             inset_layers=[province_boundaries, city_boundaries, all_provinces],
@@ -875,7 +883,7 @@ def main() -> int:
             project,
             "铁路路线",
             "坐火车走过的地方",
-            "145 段乘车记录｜普铁 51 次 · 高铁/动车 94 次\n总里程 60,572 km（其中普铁 25,903 km，高铁/动车 34,669 km）｜抵达 73 个城市的 142 座车站",
+            railway_subtitle(railway_summary),
             rail_layers,
             RAIL_IMAGE,
             rail_legend=True,

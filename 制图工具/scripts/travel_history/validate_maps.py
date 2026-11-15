@@ -27,19 +27,19 @@ PARSED_SOURCE = SCRIPT_DIR / "parsed_source.json"
 EXPECTED_COUNTS = {
     "全国省级行政区": 35,
     "全国地级行政区": 477,
-    "去过的城市": 95,
+    "去过的城市": 97,
     "去过的省级行政区": 23,
-    "铁路行程轨迹": 145,
-    "记录车站": 142,
-    "去过的城市标注": 95,
+    "铁路行程轨迹": 148,
+    "记录车站": 144,
+    "去过的城市标注": 97,
     "重点城市标注": 7,
     "铁路图省级行政区": 35,
     "统一省界": 1,
     "统一市界": 1,
 }
 EXPECTED_RAIL_SUBTITLE = (
-    "145 段乘车记录｜普铁 51 次 · 高铁/动车 94 次\n"
-    "总里程 60,572 km（其中普铁 25,903 km，高铁/动车 34,669 km）｜抵达 73 个城市的 142 座车站"
+    "148 段乘车记录｜普铁 53 次 · 高铁/动车 95 次\n"
+    "总里程 62,666 km（其中普铁 27,514 km，高铁/动车 35,152 km）｜抵达 76 个城市的 144 座车站"
 )
 EXPECTED_NEW_ROUTES = {
     39: ("G7725", "合肥南", "芜湖", ["无为", "铜陵"]),
@@ -61,6 +61,9 @@ EXPECTED_NEW_ROUTES = {
     135: ("G816", "德州东", "北京南", []),
     136: ("D1091", "清河", "八达岭长城", []),
     137: ("D1036", "八达岭长城", "清河", []),
+    146: ("K105", "北京西", "菏泽", ["衡水"]),
+    147: ("G3935", "菏泽东", "合肥西", ["兰考南", "商丘", "亳州南"]),
+    148: ("K1036", "合肥", "北京丰台", ["蚌埠", "宿州", "徐州", "德州", "衡水"]),
 }
 EXPECTED_NETWORK_OVERRIDES = {95: ("highspeed", "conventional")}
 
@@ -176,8 +179,8 @@ def main() -> int:
                 for service in ("conventional", "highspeed")
             }
             expected_summary = {
-                "conventional": {"trips": 51, "table_km": 25903},
-                "highspeed": {"trips": 94, "table_km": 34669},
+                "conventional": {"trips": 53, "table_km": 27514},
+                "highspeed": {"trips": 95, "table_km": 35152},
             }
             if service_summary != expected_summary:
                 errors.append(
@@ -215,6 +218,15 @@ def main() -> int:
         layout_map_layers = {}
         layout_geometry = {}
         for layout in layouts:
+            label_texts = [
+                item.text()
+                for item in layout.items()
+                if isinstance(item, QgsLayoutItemLabel)
+            ]
+            if "数据截至 2026.11" not in label_texts:
+                errors.append(f"{layout.name()}: data cutoff is out of date")
+            if layout.name() == "去过的省市" and "23 个省级行政区 · 97 个城市" not in label_texts:
+                errors.append("Visited-city subtitle totals are out of date")
             if layout.name() == "铁路路线":
                 label_texts = [
                     item.text()

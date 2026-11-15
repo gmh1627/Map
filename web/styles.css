@@ -18,7 +18,7 @@ h1 { font: 24px/1.2 "STXinwei", "华文新魏", "Microsoft YaHei", serif; letter
 .summary-counts strong { color: #2e3e39; font-size: 17px; font-weight: 700; }
 .summary-counts span { color: #687771; font-size: 10px; white-space: nowrap; }
 .summary-mileage { display: flex; align-items: baseline; justify-content: space-between; padding: 7px 0 3px; border-top: 1px solid #e4ebe7; }
-.summary-mileage span { color: #687771; font-size: 10px; }
+.summary-mileage > span { color: #687771; font-size: 10px; }
 .summary-mileage strong { width: 74px; color: #2e3e39; font-size: 15px; font-weight: 650; text-align: left; }
 .summary-mileage small { color: #687771; font-size: 10px; font-weight: 500; }
 .summary-breakdown { display: flex; flex-direction: column; gap: 2px; color: #7a8781; font-size: 10px; }
@@ -46,7 +46,11 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 17px 0; }
 .hub-filter-section { margin-bottom: 11px; }
 .hub-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
 .hub-filter { min-width: 0; padding: 5px 4px; border-color: #c5d2cc; color: #5b6b64; font-size: 11px; line-height: 1.25; white-space: nowrap; }
-.hub-filter[aria-selected="true"] { border-color: var(--accent); background: #e2f0eb; color: #205e55; font-weight: 700; box-shadow: inset 0 -2px 0 var(--accent); }
+.hub-filter[aria-pressed="true"] { border-color: var(--accent); background: #e2f0eb; color: #205e55; font-weight: 700; box-shadow: inset 0 -2px 0 var(--accent); }
+.year-filter-section { margin-bottom: 15px; }
+.year-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.year-filter { min-width: 0; padding: 5px 3px; font-size: 11px; white-space: nowrap; }
+.year-filter[aria-pressed="true"] { border-color: var(--accent); background: #e2f0eb; color: #205e55; font-weight: 700; }
 .route-search { min-height: 32px !important; padding: 5px 8px !important; font-size: 12px; }
 .route-actions { display: flex; gap: 6px; margin: 7px 0; }
 .route-actions button { flex: 1; padding: 4px 6px; font-size: 12px; }
@@ -123,7 +127,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 17px 0; }
   .topbar { padding-inline: 10px; }
   h1 { font-size: 18px; }
   .map-summary { column-gap: 10px; }
-  .summary-total span, .summary-mileage span { font-size: 10px; }
+  .summary-total span, .summary-mileage > span { font-size: 10px; }
   .summary-counts { gap: 7px; }
   .summary-counts span, .summary-breakdown { font-size: 9px; }
 }

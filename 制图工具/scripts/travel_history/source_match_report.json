@@ -507,6 +507,14 @@
       "adcode": "371400"
     },
     {
+      "source_name": "菏泽",
+      "full_name": "菏泽市",
+      "province": "山东省",
+      "source": "city",
+      "fid": 193,
+      "adcode": "371700"
+    },
+    {
       "source_name": "福州",
       "full_name": "福州市",
       "province": "福建省",
@@ -683,6 +691,14 @@
       "source": "city",
       "fid": 266,
       "adcode": "450300"
+    },
+    {
+      "source_name": "南宁",
+      "full_name": "南宁市",
+      "province": "广西壮族自治区",
+      "source": "city",
+      "fid": 264,
+      "adcode": "450100"
     },
     {
       "source_name": "柳州",
@@ -1411,6 +1427,13 @@
       "tags": "\"alt_name:de\"=>\"Dezhou Ost\",\"alt_name:en\"=>\"Dezhou East\",\"name:en\"=>\"Dezhoudong\",\"name:zh\"=>\"德州东\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:ref\"=>\"66809\",\"start_date\"=>\"2011-06-30\",\"train\"=>\"yes\",\"wikidata\"=>\"Q5268591\"",
       "score": 7
     },
+    "菏泽": {
+      "fid": 51252,
+      "lon": 115.5019149,
+      "lat": 35.2313038,
+      "tags": "\"alt_name\"=>\"菏泽站;菏泽火车站;Heze Railway Station\",\"name:en\"=>\"Heze\",\"name:zh\"=>\"菏泽\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"train\"=>\"yes\",\"usage\"=>\"main\",\"wikidata\"=>\"Q15903980\"",
+      "score": 7
+    },
     "合肥北城": {
       "fid": 51332,
       "lon": 117.24669990000001,
@@ -1703,6 +1726,13 @@
       "lon": 114.7407189,
       "lat": 33.6468018,
       "tags": "\"addr:city\"=>\"周口市\",\"addr:district\"=>\"东新区\",\"addr:postcode\"=>\"466000\",\"addr:province\"=>\"河南省\",\"addr:street\"=>\"高铁大道\",\"air_conditioning\"=>\"yes\",\"alt_name\"=>\"周口东站;Zhoukou East;Zhoukou East Railway Station;Zhoukoudong Railway Station\",\"construction\"=>\"station\",\"name:en\"=>\"Zhoukoudong\",\"name:en2\"=>\"Zhoukou East Railway Station\",\"name:ja\"=>\"周口東駅\",\"name:zh\"=>\"周口东\",\"name:zh-Hans\"=>\"周口东站\",\"name:zh-Hant\"=>\"周口東站\",\"name:zh-Latn-pinyin\"=>\"Zhōu Kǒu Dōng Zhàn\",\"operator\"=>\"中国铁路郑州局集团有限公司\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"start_date\"=>\"2019年12月1日\",\"train\"=>\"yes\",\"wheelchair\"=>\"yes\",\"wikidata\"=>\"Q77252915\"",
+      "score": 7
+    },
+    "菏泽东": {
+      "fid": 126624,
+      "lon": 115.5575103,
+      "lat": 35.184585500000004,
+      "tags": "\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:position:exact:日兰高速\"=>\"389.263\",\"railway:position:exact:菏泽东动走A\"=>\"-1.411\",\"railway:ref\"=>\"38970\",\"train\"=>\"yes\"",
       "score": 7
     },
     "铜陵": {

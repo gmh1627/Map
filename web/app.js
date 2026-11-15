@@ -1,6 +1,12 @@
 (() => {
   const map = L.map("map", { zoomControl: true, preferCanvas: true, attributionControl: true }).setView([35.5, 105.5], 4);
   const bounds = L.latLngBounds([[17.5, 73.5], [53.6, 135.2]]);
+  const HUBS = {
+    all: { label: "全部范围", bounds },
+    beijing: { label: "北京及周边", bounds: [[39.28, 115.20], [41.22, 117.75]] },
+    hefei: { label: "合肥及周边", bounds: [[30.78, 116.45], [32.70, 118.22]] },
+    guangzhou: { label: "广州及周边", bounds: [[22.05, 112.70], [24.10, 114.32]] },
+  };
   map.setMaxBounds(bounds.pad(0.08));
   const layers = {};
   let routeData = null;
@@ -8,6 +14,9 @@
   let railCitiesData = null;
   let railCityLabelsData = null;
   let networkPromise = null;
+  const selectedYears = new Set();
+  let selectedHub = "all";
+  const stationCoordinates = new Map();
   const selectedRouteIds = new Set();
   const speedColors = { "300+": "#9b2c52", "250-299": "#d06b3c", "200-249": "#d59c32", "160-199": "#6a9b55", "120-159": "#3b8b87", "0-119": "#6a7895", unknown: "#aeb9b6" };
   const speedLabels = { "300+": "≥ 300 km/h", "250-299": "250–299 km/h", "200-249": "200–249 km/h", "160-199": "160–199 km/h", "120-159": "120–159 km/h", "0-119": "≤ 119 km/h", unknown: "未标注速度" };
@@ -35,7 +44,68 @@
       : { color: "#fffdf7", weight: 1.55, opacity: .98, lineCap: "round", lineJoin: "round" };
   };
 
-  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20261007-1`, { cache: "default" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
+  async function load(name) { const response = await fetch(`data/${name}.geojson?v=20261115-2`, { cache: "default" }); if (!response.ok) throw new Error(`${name}: ${response.status}`); return response.json(); }
+  function routeYear(feature) {
+    return String(feature.properties.date || "").match(/\d{4}/)?.[0] || "unknown";
+  }
+  function yearVisible(feature) {
+    return selectedYears.size === 0 || selectedYears.has(routeYear(feature));
+  }
+  function yearLabel() {
+    if (selectedYears.size === 0) return "全部年份";
+    const years = [...selectedYears].filter((year) => year !== "unknown").sort((a, b) => b.localeCompare(a));
+    return [years.length ? `${years.join("、")} 年` : "", selectedYears.has("unknown") ? "日期不详" : ""].filter(Boolean).join("、");
+  }
+  function hubVisible(feature) {
+    if (selectedHub === "all") return true;
+    const [southWest, northEast] = HUBS[selectedHub].bounds;
+    return [feature.properties.origin, feature.properties.destination].some((name) => {
+      const point = stationCoordinates.get(name);
+      return point && point[0] >= southWest[1] && point[0] <= northEast[1]
+        && point[1] >= southWest[0] && point[1] <= northEast[0];
+    });
+  }
+  function scopeVisible(feature) {
+    return yearVisible(feature) && hubVisible(feature);
+  }
+  function selectScopedRoutes() {
+    selectedRouteIds.clear();
+    routeData.features.filter(scopeVisible).forEach((feature) => selectedRouteIds.add(Number(feature.properties.seq)));
+    $("routeSearch").value = "";
+  }
+  function fitHub() {
+    map.stop();
+    map.fitBounds(HUBS[selectedHub].bounds, { padding: [12, 12], animate: false });
+  }
+  function renderYearFilters() {
+    const years = [...new Set(routeData.features.map(routeYear))].sort((a, b) => b.localeCompare(a));
+    $("yearFilters").innerHTML = ["all", ...years].map((year) => {
+      const label = year === "all" ? "全部年份" : year === "unknown" ? "日期不详" : `${year} 年`;
+      const active = year === "all" ? selectedYears.size === 0 : selectedYears.has(year);
+      return `<button class="year-filter" type="button" data-year="${year}" aria-pressed="${active}">${label}</button>`;
+    }).join("");
+  }
+  function renderSummary() {
+    const records = routeData.features.filter(routeVisibility).map((feature) => feature.properties);
+    const conventional = records.filter((record) => record.service === "conventional");
+    const highspeed = records.filter((record) => record.service === "highspeed");
+    const distance = (items) => items.reduce((total, record) => total + Number(record.table_km || 0), 0);
+    const cities = new Set(records.flatMap((record) => [record.origin_city, record.destination_city]).filter(Boolean));
+    const stations = new Set(records.flatMap((record) => [record.origin, record.destination]).filter(Boolean));
+    const values = {
+      summaryTrips: records.length,
+      summaryConventional: conventional.length,
+      summaryHighspeed: highspeed.length,
+      summaryDistance: distance(records),
+      summaryConventionalKm: distance(conventional),
+      summaryHighspeedKm: distance(highspeed),
+      summaryCities: cities.size,
+      summaryStations: stations.size,
+    };
+    Object.entries(values).forEach(([id, value]) => { $(id).textContent = value.toLocaleString("en-US"); });
+    $("summaryLabel").textContent = selectedYears.size === 0 ? "铁路足迹" : `${yearLabel()}铁路足迹`;
+    $("status").textContent = [selectedHub === "all" ? "" : HUBS[selectedHub].label, yearLabel(), `${records.length} 段行程`].filter(Boolean).join(" · ");
+  }
   function geojson(data, options) { return L.geoJSON(data, options); }
   function networkEnabled() { return $("network").checked || $("speedNetwork").checked; }
   function networkStyle(feature) {
@@ -91,7 +161,7 @@
     return Boolean(selectedServiceVisibility()[feature.properties.service]);
   }
   function routeVisibility(feature) {
-    return selectedRouteIds.has(Number(feature.properties.seq)) && serviceVisible(feature);
+    return scopeVisible(feature) && selectedRouteIds.has(Number(feature.properties.seq)) && serviceVisible(feature);
   }
   function refreshStations() {
     if (!routeData || !visitedStationsData) return;
@@ -164,7 +234,10 @@
     refreshNetwork();
     updateZoomDependentLayers();
     raiseForegroundLayers();
-    if (routeData) renderRouteList();
+    if (routeData) {
+      renderRouteList();
+      renderSummary();
+    }
   }
   function raiseForegroundLayers() {
     if (layers.provinceBounds) layers.provinceBounds.bringToFront();
@@ -207,7 +280,7 @@
     const query = $("routeSearch").value.trim().toLowerCase();
     const rows = routeData.features.filter((feature) => {
       const p = feature.properties;
-      return serviceVisible(feature)
+      return scopeVisible(feature) && serviceVisible(feature)
         && `${p.train} ${p.origin} ${p.destination}`.toLowerCase().includes(query);
     });
     $("routeListHeading").textContent = `${rows.length} 段相关行程`;
@@ -237,21 +310,45 @@
     layers.otherCities = geojson(otherCities, { style: styleOtherVisitedCity });
     layers.otherCityLabels = addCityLabels(otherCityLabels, "other-city-label");
     routeData = routes;
+    renderYearFilters();
     routeData.features.forEach((feature) => selectedRouteIds.add(Number(feature.properties.seq)));
     layers.routeOuter = geojson(routeData, { style: (feature) => routeStyle(feature.properties.service, "outer") });
     layers.routeInner = geojson(routeData, { style: (feature) => routeStyle(feature.properties.service, "inner"), onEachFeature: routePopup });
     visitedStationsData = stations;
+    stations.features.forEach((feature) => stationCoordinates.set(feature.properties.name, feature.geometry.coordinates));
     refreshStations();
     addSpeedLegend();
     refresh();
-    map.fitBounds(bounds, { padding: [12, 12] });
+    fitHub();
     renderRouteList();
   }).catch((error) => { console.error(error); });
   ["visited", "network", "visitedHighspeed", "visitedConventional", "speedNetwork", "cityBounds", "visitedCities", "otherVisitedCities"].forEach((id) => $(id).addEventListener("change", refresh));
-  $("reset").addEventListener("click", () => map.fitBounds(bounds, { padding: [12, 12] }));
+  $("reset").addEventListener("click", fitHub);
   $("routeSearch").addEventListener("input", renderRouteList);
+  $("yearFilters").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-year]");
+    if (!button || !routeData) return;
+    const year = button.dataset.year;
+    if (year === "all") selectedYears.clear();
+    else if (selectedYears.has(year)) selectedYears.delete(year);
+    else selectedYears.add(year);
+    selectScopedRoutes();
+    renderYearFilters();
+    refresh();
+  });
+  $("hubFilters").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-hub]");
+    if (!button || !routeData || !HUBS[button.dataset.hub]) return;
+    selectedHub = button.dataset.hub;
+    $("hubFilters").querySelectorAll("button[data-hub]").forEach((tab) => {
+      tab.setAttribute("aria-pressed", String(tab.dataset.hub === selectedHub));
+    });
+    selectScopedRoutes();
+    refresh();
+    fitHub();
+  });
   $("routeList").addEventListener("change", (event) => { const id = Number(event.target.dataset.routeId); if (!Number.isFinite(id)) return; if (event.target.checked) selectedRouteIds.add(id); else selectedRouteIds.delete(id); renderRouteList(); refresh(); });
-  $("selectAllRoutes").addEventListener("click", () => { routeData?.features.forEach((feature) => selectedRouteIds.add(Number(feature.properties.seq))); renderRouteList(); refresh(); });
+  $("selectAllRoutes").addEventListener("click", () => { routeData?.features.filter(scopeVisible).forEach((feature) => selectedRouteIds.add(Number(feature.properties.seq))); refresh(); });
   $("clearRoutes").addEventListener("click", () => { selectedRouteIds.clear(); renderRouteList(); refresh(); });
   map.on("zoomend", updateZoomDependentLayers);
 })();

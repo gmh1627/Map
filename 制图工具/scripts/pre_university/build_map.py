@@ -54,7 +54,7 @@ VISITED_PROVINCES = ("广东省", "贵州省", "北京市", "广西壮族自治�
 VISITED_CITIES = (
     "湛江市", "广州市", "茂名市", "东莞市", "河源市", "惠州市", "阳江市",
     "江门市", "佛山市", "中山市", "珠海市", "贵阳市", "黔南布依族苗族自治州",
-    "黔东南苗族侗族自治州", "安顺市", "铜仁市", "北海市", "桂林市",
+    "黔东南苗族侗族自治州", "安顺市", "铜仁市", "北海市", "桂林市", "南宁市",
 )
 LABEL_NAMES = {
     "北京市": "北京",
@@ -146,7 +146,7 @@ def build_layout(project: QgsProject, layers: list[QgsVectorLayer], inset_layers
     layout.pageCollection().page(0).setPageSize(QgsLayoutSize(*PAGE, QgsUnitTypes.LayoutMillimeters))
     project.layoutManager().addLayout(layout)
     bm.add_label(layout, "上大学前走过的地方", 12, 3, 310, 16, 27, "#111111", "华文新魏")
-    bm.add_label(layout, "19 个城市", 13, 20, 390, 13, 16.0, "#111111", "华文楷体")
+    bm.add_label(layout, f"{len(LABEL_NAMES)} 个城市", 13, 20, 390, 13, 16.0, "#111111", "华文楷体")
 
     main = QgsLayoutItemMap(layout)
     main.setId("主图")
@@ -218,7 +218,7 @@ def main() -> int:
         OUTPUT_PNG.unlink(missing_ok=True)
         if QgsLayoutExporter(layout).exportToImage(str(OUTPUT_PNG), settings) != QgsLayoutExporter.Success:
             raise RuntimeError("Image export failed")
-        report = {"image": str(OUTPUT_PNG), "project": str(OUTPUT_QGZ), "city_count": 19, "province_count": 4}
+        report = {"image": str(OUTPUT_PNG), "project": str(OUTPUT_QGZ), "city_count": labels.featureCount(), "province_count": provinces.featureCount()}
         (OUTPUT_DIR / "构建报告.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0

@@ -6,7 +6,7 @@
   <title>中国铁路图</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=20261007-1">
+  <link rel="stylesheet" href="styles.css?v=20261115-3">
 </head>
 <body>
   <main class="shell">
@@ -22,16 +22,22 @@
     </header>
     <section class="workspace">
       <aside class="panel" aria-label="图层控制">
-        <section class="map-summary" aria-label="铁路足迹统计">
-          <div class="summary-label">铁路足迹</div>
-          <div class="summary-total"><strong>145</strong><span>段乘车记录</span></div>
-          <div class="summary-counts">
-            <div><strong>51</strong><span>普铁</span></div>
-            <div><strong>94</strong><span>高铁 / 动车</span></div>
+        <section class="year-filter-section" aria-label="年份筛选">
+          <div class="route-list-heading"><h2>行程年份</h2><span>可多选</span></div>
+          <div id="yearFilters" class="year-filters" role="group" aria-label="选择行程年份">
+            <button class="year-filter" type="button" data-year="all" aria-pressed="true">全部年份</button>
           </div>
-          <div class="summary-mileage"><span>总里程</span><strong>60,572 <small>km</small></strong></div>
-          <div class="summary-breakdown"><span>普铁 25,903 km</span><span>高铁 / 动车 34,669 km</span></div>
-            <div class="summary-foot"><strong>73</strong> 个城市 <i>·</i> <strong>142</strong> 座车站</div>
+        </section>
+        <section class="map-summary" aria-label="铁路足迹统计">
+          <div id="summaryLabel" class="summary-label">铁路足迹</div>
+          <div class="summary-total"><strong id="summaryTrips">148</strong><span>段乘车记录</span></div>
+          <div class="summary-counts">
+            <div><strong id="summaryConventional">53</strong><span>普铁</span></div>
+            <div><strong id="summaryHighspeed">95</strong><span>高铁 / 动车</span></div>
+          </div>
+          <div class="summary-mileage"><span>总里程</span><strong><span id="summaryDistance">62,666</span> <small>km</small></strong></div>
+          <div class="summary-breakdown"><span>普铁 <span id="summaryConventionalKm">27,514</span> km</span><span>高铁 / 动车 <span id="summaryHighspeedKm">35,152</span> km</span></div>
+            <div class="summary-foot"><strong id="summaryCities">76</strong> 个城市 <i>·</i> <strong id="summaryStations">144</strong> 座车站</div>
         </section>
         <section class="control-section">
           <h2>显示图层</h2>
@@ -55,11 +61,11 @@
         <hr>
         <section class="hub-filter-section" aria-label="枢纽筛选">
           <div class="route-list-heading"><h2>线路范围</h2></div>
-          <div id="hubFilters" class="hub-filters" role="tablist" aria-label="选择枢纽视图">
-            <button class="hub-filter" type="button" data-hub="all" aria-selected="true">全部</button>
-            <button class="hub-filter" type="button" data-hub="beijing" aria-selected="false">北京</button>
-            <button class="hub-filter" type="button" data-hub="hefei" aria-selected="false">合肥</button>
-            <button class="hub-filter" type="button" data-hub="guangzhou" aria-selected="false">广州</button>
+          <div id="hubFilters" class="hub-filters" role="group" aria-label="选择线路范围">
+            <button class="hub-filter" type="button" data-hub="all" aria-pressed="true">全部</button>
+            <button class="hub-filter" type="button" data-hub="beijing" aria-pressed="false">北京</button>
+            <button class="hub-filter" type="button" data-hub="hefei" aria-pressed="false">合肥</button>
+            <button class="hub-filter" type="button" data-hub="guangzhou" aria-pressed="false">广州</button>
           </div>
         </section>
         <div class="route-list-heading"><h2 id="routeListHeading">相关行程</h2></div>
@@ -74,6 +80,6 @@
     </section>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=20261007-1"></script>
+  <script src="app.js?v=20261115-3"></script>
 </body>
 </html>
