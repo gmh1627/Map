@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import re
 from collections import Counter
@@ -11,6 +12,7 @@ from pathlib import Path
 
 DEFAULT_POST = Path(r"F:\Desktop\Blog\source\_posts\行旅杂记.md")
 DEFAULT_OUTPUT = Path(__file__).with_name("parsed_source.json")
+DEFAULT_RAIL_RECORDS = Path(__file__).with_name("railway_records.csv")
 
 PROVINCE_NAME_MAP = {
     "广东": "广东省",
@@ -161,15 +163,33 @@ def parse_rail_records(lines: list[str]) -> list[dict]:
     return records
 
 
+def read_rail_records(path: Path = DEFAULT_RAIL_RECORDS) -> list[dict]:
+    """Read reviewed rows as complete records, keeping clocks with their trips."""
+    with path.open(encoding="utf-8-sig", newline="") as source:
+        rows = list(csv.DictReader(source, delimiter="|"))
+    records = []
+    for index, row in enumerate(rows, 1):
+        if int(row["seq"]) != index:
+            raise ValueError(f"Unexpected railway sequence: {row['seq']}")
+        record = {**row, "seq": index, "distance_km": int(row["distance_km"])}
+        record["service_class"] = classify_service(row["train"], row["origin"], row["destination"])
+        controls = ROUTE_CONTROL_POINTS.get((row["origin"], row["destination"], row["train"]))
+        if controls:
+            record["control_points"] = controls
+        records.append(record)
+    return records
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--post", type=Path, default=DEFAULT_POST)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--rail-records", type=Path, default=DEFAULT_RAIL_RECORDS)
     args = parser.parse_args()
 
     lines = args.post.read_text(encoding="utf-8").splitlines()
     places = parse_places(lines)
-    rail_records = parse_rail_records(lines)
+    rail_records = read_rail_records(args.rail_records)
     city_count = sum(len(item["cities"]) for item in places)
     station_names = sorted(
         {record["origin"] for record in rail_records}
@@ -177,6 +197,7 @@ def main() -> int:
     )
     payload = {
         "source": str(args.post.resolve()),
+        "railway_source": str(args.rail_records.resolve()),
         "province_count": len(places),
         "city_count": city_count,
         "places": places,

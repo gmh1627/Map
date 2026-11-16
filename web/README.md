@@ -12,6 +12,8 @@ python -m http.server 4178 --bind 127.0.0.1 --directory web
 
 `制图工具/scripts/railway_web/build_web_data.py` 用于从本地 QGIS 数据源重新导出网页数据。
 
+完整铁路行程以 `制图工具/scripts/travel_history/railway_records.csv` 为校对来源，日期、起终点、车次、里程和时刻保存在同一行。修改后依次运行 `travel_history/parse_source.py`、`travel_history/sync_rail_records.py`、`railway_web/build_web_data.py`；同步脚本会更新工程中的记录属性和 `web/data/route_times.json`，导出时再核对起终点、车次，避免拆分或合并行程后时刻错位。
+
 右上角“返回主页”可返回博客主页 <https://kangaroogao.com/>。
 
 网页行政边界与静态专题图采用同一套边界处理规则：省界来自统一溶解后的省级几何，市界只保留同省城市之间的内部共享边，并将内部边端点吸附到统一省界。城市外轮廓不再重复叠加，因此省界和市界在交界处只显示一条连续边线。

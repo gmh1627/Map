@@ -379,6 +379,9 @@ def export_routes(output: Path) -> int:
         origin = str(feature["origin"] or "")
         destination = str(feature["destination"] or "")
         extra = route_times.get(str(feature["seq"]), {})
+        for field in ("origin", "destination", "train"):
+            if field in extra and extra[field] != str(feature[field]):
+                raise RuntimeError(f"Route {feature['seq']}: timetable does not match {field}")
         result.append({"type": "Feature", "properties": {"seq": feature["seq"], "date": extra.get("date", feature["date"]), "origin": origin, "destination": destination, "origin_city": city_for_station(origin, station_points, city_features), "destination_city": city_for_station(destination, station_points, city_features), "train": feature["train"], "service": feature["service"], "table_km": feature["table_km"], "time": extra.get("time", ""), "note": extra.get("note", "")}, "geometry": geometry_json(geometry)})
     output.write_text(json.dumps(feature_collection(result), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     return len(result)
