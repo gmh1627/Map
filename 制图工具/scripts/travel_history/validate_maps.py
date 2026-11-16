@@ -63,7 +63,7 @@ EXPECTED_NEW_ROUTES = {
     137: ("D1036", "八达岭长城", "清河", []),
     146: ("K105", "北京西", "菏泽", ["衡水"]),
     147: ("G3935", "菏泽东", "合肥西", ["曹县西", "商丘", "阜阳西"]),
-    148: ("K1036", "合肥", "北京丰台", ["蚌埠", "宿州", "徐州", "德州", "衡水"]),
+    148: ("K1036", "合肥", "北京丰台", ["蚌埠", "宿州", "徐州", "德州", "沧州", "天津西", "广阳"]),
 }
 EXPECTED_NETWORK_OVERRIDES = {95: ("highspeed", "conventional")}
 
@@ -220,6 +220,21 @@ def main() -> int:
                         errors.append(f"G3935 does not pass {name}")
                 if g3935_geometry.distance(QgsGeometry.fromPointXY(QgsPointXY(114.8183029, 34.7720247))) < 0.1:
                     errors.append("G3935 incorrectly detours via Lankao South")
+            k1036 = route_features.get(148)
+            if k1036 is None:
+                errors.append("Missing Hefei–Beijing Fengtai K1036 geometry")
+            else:
+                geometry = k1036.geometry()
+                for name, coordinate in {
+                    "Dezhou": (116.2826708, 37.4486663),
+                    "Cangzhou": (116.8722034, 38.3090868),
+                    "Tianjin West": (117.1571195, 39.157355),
+                    "Guangyang": (116.6998726, 39.5115603),
+                }.items():
+                    if geometry.distance(QgsGeometry.fromPointXY(QgsPointXY(*coordinate))) > 0.005:
+                        errors.append(f"K1036 does not pass {name}")
+                if geometry.distance(QgsGeometry.fromPointXY(QgsPointXY(115.6850570, 37.7434930))) < 0.1:
+                    errors.append("K1036 incorrectly detours via Hengshui")
         else:
             service_mismatches = []
 
