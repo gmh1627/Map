@@ -12,7 +12,11 @@ python -m http.server 4178 --bind 127.0.0.1 --directory web
 
 `制图工具/scripts/railway_web/build_web_data.py` 用于从本地 QGIS 数据源重新导出网页数据。
 
-完整铁路行程以 `制图工具/scripts/travel_history/railway_records.csv` 为校对来源，日期、起终点、车次、里程和时刻保存在同一行。修改后依次运行 `travel_history/parse_source.py`、`travel_history/sync_rail_records.py`、`railway_web/build_web_data.py`；同步脚本会更新工程中的记录属性和 `web/data/route_times.json`，导出时再核对起终点、车次，避免拆分或合并行程后时刻错位。
+首屏使用 `data/startup.json.gz`：相同线路片段只保存一次，坐标以完整六位小数编码，浏览器还原后与原 GeoJSON 完全一致。导出脚本会自动重建压缩包、资源版本号和 HTML 统计。地图依赖位于 `vendor/leaflet`，首屏不再依赖外部 CDN。城市填色在放大后加载，其他到访城市在启用后加载，全国路网和全国车站分别按需加载。
+
+添加新铁路记录时，将完整行追加到 `制图工具/scripts/travel_history/railway_records.csv`，然后在 Blog 根目录运行 `& .\Map\制图工具\update_travel_history.ps1`。仅更正已有日期或时刻可加 `-TimetableOnly`。新增车站、路线或到访城市需要完整构建，并检查线路是否符合实际。
+
+完整铁路行程以 `制图工具/scripts/travel_history/railway_records.csv` 为校对来源，日期、起终点、车次、里程和时刻保存在同一行。`sync_rail_records.py` 只适用于已有记录的属性更正；新增记录或改变起终点时，需要使用完整构建。网页导出会核对起终点、车次，避免拆分或合并行程后时刻错位。
 
 右上角“返回主页”可返回博客主页 <https://kangaroogao.com/>。
 

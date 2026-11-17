@@ -8,6 +8,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from railway_stats import railway_statistics, railway_subtitle
+
 from qgis.PyQt.QtGui import QImage
 from qgis.core import (
     QgsApplication,
@@ -27,20 +29,11 @@ PARSED_SOURCE = SCRIPT_DIR / "parsed_source.json"
 EXPECTED_COUNTS = {
     "全国省级行政区": 35,
     "全国地级行政区": 477,
-    "去过的城市": 97,
-    "去过的省级行政区": 23,
-    "铁路行程轨迹": 148,
-    "记录车站": 144,
-    "去过的城市标注": 97,
     "重点城市标注": 7,
     "铁路图省级行政区": 35,
     "统一省界": 1,
     "统一市界": 1,
 }
-EXPECTED_RAIL_SUBTITLE = (
-    "148 段乘车记录｜普铁 53 次 · 高铁/动车 95 次\n"
-    "总里程 62,666 km（其中普铁 27,514 km，高铁/动车 35,152 km）｜抵达 76 个城市的 144 座车站"
-)
 EXPECTED_NEW_ROUTES = {
     39: ("G7725", "合肥南", "芜湖", ["无为", "铜陵"]),
     131: ("D901", "北京西", "广州", ["涿州东", "石家庄", "郑州东", "广州北"]),
@@ -83,6 +76,15 @@ def main() -> int:
         output_dir / "去过的省市.png",
         output_dir / "铁路路线.png",
     ]
+    parsed = json.loads(PARSED_SOURCE.read_text(encoding="utf-8"))
+    expected_counts = {
+        **EXPECTED_COUNTS,
+        "去过的城市": parsed["city_count"],
+        "去过的城市标注": parsed["city_count"],
+        "去过的省级行政区": parsed["province_count"],
+        "铁路行程轨迹": len(parsed["rail_records"]),
+        "记录车站": len(parsed["stations"]),
+    }
 
     app = QgsApplication([], False)
     app.initQgis()
@@ -99,7 +101,7 @@ def main() -> int:
             errors.append(f"Invalid layers: {', '.join(invalid_layers)}")
 
         counts = {}
-        for name, expected in EXPECTED_COUNTS.items():
+        for name, expected in expected_counts.items():
             layers = project.mapLayersByName(name)
             if not layers:
                 errors.append(f"Missing layer: {name}")
@@ -179,8 +181,11 @@ def main() -> int:
                 for service in ("conventional", "highspeed")
             }
             expected_summary = {
-                "conventional": {"trips": 53, "table_km": 27514},
-                "highspeed": {"trips": 95, "table_km": 35152},
+                service: {
+                    "trips": sum(record["service_class"] == service for record in expected_records.values()),
+                    "table_km": sum(int(record["distance_km"]) for record in expected_records.values() if record["service_class"] == service),
+                }
+                for service in ("conventional", "highspeed")
             }
             if service_summary != expected_summary:
                 errors.append(
@@ -246,15 +251,20 @@ def main() -> int:
         layout_maps = {}
         layout_map_layers = {}
         layout_geometry = {}
+        expected_subtitle = railway_subtitle(railway_statistics(
+            route_layers[0].getFeatures(), station_points,
+            list(project.mapLayersByName("去过的城市")[0].getFeatures()),
+        )) if route_layers else ""
+        expected_months = railway_statistics(route_layers[0].getFeatures(), {}, [])["latest_month"] if route_layers else ""
         for layout in layouts:
             label_texts = [
                 item.text()
                 for item in layout.items()
                 if isinstance(item, QgsLayoutItemLabel)
             ]
-            if "数据截至 2026.11" not in label_texts:
+            if f"数据截至 {expected_months}" not in label_texts:
                 errors.append(f"{layout.name()}: data cutoff is out of date")
-            if layout.name() == "去过的省市" and "23 个省级行政区 · 97 个城市" not in label_texts:
+            if layout.name() == "去过的省市" and f"{parsed['province_count']} 个省级行政区 · {parsed['city_count']} 个城市" not in label_texts:
                 errors.append("Visited-city subtitle totals are out of date")
             if layout.name() == "铁路路线":
                 label_texts = [
@@ -262,7 +272,7 @@ def main() -> int:
                     for item in layout.items()
                     if isinstance(item, QgsLayoutItemLabel)
                 ]
-                if EXPECTED_RAIL_SUBTITLE not in label_texts:
+                if expected_subtitle not in label_texts:
                     errors.append("Railway subtitle totals are out of date")
             map_items = [
                 item for item in layout.items() if isinstance(item, QgsLayoutItemMap)

@@ -7,6 +7,8 @@ import re
 import sys
 from pathlib import Path
 
+from build_startup_data import build as build_startup_data
+
 from qgis.core import QgsApplication, QgsFeature, QgsGeometry, QgsVectorLayer, QgsWkbTypes
 
 
@@ -453,6 +455,7 @@ def main() -> int:
         )
         del route_layer, station_layer, city_layer
         (DATA / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+        build_startup_data(DATA)
         print(json.dumps(metadata, ensure_ascii=False))
         return 0
     finally:
