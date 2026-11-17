@@ -1,6 +1,7 @@
 param(
     [string]$QgisPython = 'E:\QGIS 3.44.8\bin\python-qgis-ltr.bat',
-    [switch]$TimetableOnly
+    [switch]$TimetableOnly,
+    [switch]$SkipBlogBuild
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,7 +34,7 @@ if ($TimetableOnly) {
 Invoke-MapStep 'railway_web\build_web_data.py'
 Invoke-MapStep 'travel_history\validate_maps.py'
 
-if (Test-Path -LiteralPath (Join-Path $blogRoot 'package.json')) {
+if (-not $SkipBlogBuild -and (Test-Path -LiteralPath (Join-Path $blogRoot 'package.json'))) {
     Push-Location $blogRoot
     try {
         & npm.cmd run build

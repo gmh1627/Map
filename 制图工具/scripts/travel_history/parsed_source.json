@@ -1,6 +1,6 @@
 {
   "source": "F:\\Desktop\\Blog\\source\\_posts\\行旅杂记.md",
-  "railway_source": "F:\\Desktop\\Blog\\Map\\制图工具\\scripts\\travel_history\\railway_records.csv",
+  "railway_source": "F:\\Desktop\\Blog\\source\\_posts\\行旅杂记.md",
   "province_count": 23,
   "city_count": 97,
   "places": [
@@ -423,9 +423,9 @@
       "destination": "桂林北",
       "train": "K158",
       "distance_km": 617,
+      "service_class": "conventional",
       "time": "",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 2,
@@ -434,9 +434,9 @@
       "destination": "湛江",
       "train": "K157",
       "distance_km": 617,
+      "service_class": "conventional",
       "time": "",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 3,
@@ -445,9 +445,9 @@
       "destination": "北京西",
       "train": "K158",
       "distance_km": 2725,
+      "service_class": "conventional",
       "time": "",
       "note": "",
-      "service_class": "conventional",
       "control_points": [
         "遂溪",
         "廉江",
@@ -487,9 +487,9 @@
       "destination": "小榄",
       "train": "不详",
       "distance_km": 379,
+      "service_class": "highspeed",
       "time": "",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 5,
@@ -498,9 +498,9 @@
       "destination": "贵阳",
       "train": "K872",
       "distance_km": 878,
+      "service_class": "conventional",
       "time": "",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 6,
@@ -509,9 +509,9 @@
       "destination": "湛江",
       "train": "K874",
       "distance_km": 878,
+      "service_class": "conventional",
       "time": "",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 7,
@@ -520,9 +520,9 @@
       "destination": "佛山西",
       "train": "不详",
       "distance_km": 449,
+      "service_class": "highspeed",
       "time": "",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 8,
@@ -531,9 +531,9 @@
       "destination": "广州南",
       "train": "不详",
       "distance_km": 428,
+      "service_class": "highspeed",
       "time": "",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 9,
@@ -542,9 +542,9 @@
       "destination": "湛江西",
       "train": "不详",
       "distance_km": 428,
+      "service_class": "highspeed",
       "time": "",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 10,
@@ -553,20 +553,20 @@
       "destination": "广州南",
       "train": "不详",
       "distance_km": 428,
+      "service_class": "highspeed",
       "time": "",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 11,
       "date": "2022.6.28",
-      "origin": "湛江西",
-      "destination": "广州南",
+      "origin": "广州南",
+      "destination": "湛江西",
       "train": "不详",
       "distance_km": 428,
+      "service_class": "highspeed",
       "time": "",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 12,
@@ -575,9 +575,9 @@
       "destination": "广州南",
       "train": "G637",
       "distance_km": 1424,
+      "service_class": "highspeed",
       "time": "08:22-14:36",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 13,
@@ -586,9 +586,9 @@
       "destination": "湛江西",
       "train": "C6945",
       "distance_km": 428,
+      "service_class": "highspeed",
       "time": "15:16-18:19",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 14,
@@ -597,9 +597,9 @@
       "destination": "合肥南",
       "train": "G638",
       "distance_km": 1424,
+      "service_class": "highspeed",
       "time": "14:56-21:36",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 15,
@@ -608,9 +608,9 @@
       "destination": "汉口",
       "train": "D2247",
       "distance_km": 359,
+      "service_class": "highspeed",
       "time": "12:50-14:44",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 16,
@@ -619,9 +619,9 @@
       "destination": "岳阳东",
       "train": "G1105",
       "distance_km": 215,
+      "service_class": "highspeed",
       "time": "06:53-07:49",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 17,
@@ -630,9 +630,9 @@
       "destination": "广州白云",
       "train": "G885",
       "distance_km": 829,
+      "service_class": "highspeed",
       "time": "12:48-16:01",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 18,
@@ -641,9 +641,9 @@
       "destination": "湛江西",
       "train": "C6961",
       "distance_km": 428,
+      "service_class": "highspeed",
       "time": "17:38-20:39",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 19,
@@ -652,9 +652,9 @@
       "destination": "广州南",
       "train": "C6914",
       "distance_km": 428,
+      "service_class": "highspeed",
       "time": "11:04-14:05",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 20,
@@ -663,9 +663,9 @@
       "destination": "合肥南",
       "train": "G638",
       "distance_km": 1424,
+      "service_class": "highspeed",
       "time": "15:00-21:36",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 21,
@@ -674,9 +674,9 @@
       "destination": "黄山北",
       "train": "G7709",
       "distance_km": 306,
+      "service_class": "highspeed",
       "time": "07:16-08:57",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 22,
@@ -685,9 +685,9 @@
       "destination": "合肥南",
       "train": "G1602",
       "distance_km": 306,
+      "service_class": "highspeed",
       "time": "16:59-18:28",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 23,
@@ -696,9 +696,9 @@
       "destination": "高邮",
       "train": "D2866",
       "distance_km": 296,
+      "service_class": "highspeed",
       "time": "07:03-09:08",
-      "note": "镇江—高邮为上车补票",
-      "service_class": "highspeed"
+      "note": "镇江—高邮为上车补票"
     },
     {
       "seq": 24,
@@ -707,9 +707,9 @@
       "destination": "扬州东",
       "train": "G8265",
       "distance_km": 38,
+      "service_class": "highspeed",
       "time": "12:46-13:01",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 25,
@@ -718,9 +718,9 @@
       "destination": "合肥南",
       "train": "D3042",
       "distance_km": 231,
+      "service_class": "highspeed",
       "time": "18:37-20:06",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 26,
@@ -729,9 +729,9 @@
       "destination": "永济北",
       "train": "D2506",
       "distance_km": 170,
+      "service_class": "highspeed",
       "time": "07:20-08:17",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 27,
@@ -740,9 +740,9 @@
       "destination": "西安北",
       "train": "D1717",
       "distance_km": 170,
+      "service_class": "highspeed",
       "time": "11:01-12:00",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 28,
@@ -751,9 +751,9 @@
       "destination": "杭州东",
       "train": "G7449",
       "distance_km": 398,
+      "service_class": "highspeed",
       "time": "07:25-09:59",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 29,
@@ -762,9 +762,9 @@
       "destination": "南昌西",
       "train": "G1353",
       "distance_km": 582,
+      "service_class": "highspeed",
       "time": "14:30-17:15",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 30,
@@ -773,9 +773,9 @@
       "destination": "郴州",
       "train": "T151",
       "distance_km": 648,
+      "service_class": "conventional",
       "time": "23:01-次日06:26",
-      "note": "硬座过夜",
-      "service_class": "conventional"
+      "note": "硬座过夜"
     },
     {
       "seq": 31,
@@ -784,9 +784,9 @@
       "destination": "韶关",
       "train": "G9629",
       "distance_km": 150,
+      "service_class": "highspeed",
       "time": "09:27-09:58",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 32,
@@ -795,9 +795,9 @@
       "destination": "广州南",
       "train": "G6183",
       "distance_km": 227,
+      "service_class": "highspeed",
       "time": "15:33-16:26",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 33,
@@ -806,9 +806,9 @@
       "destination": "湛江西",
       "train": "C7731",
       "distance_km": 428,
+      "service_class": "highspeed",
       "time": "16:42-19:57",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 34,
@@ -817,9 +817,9 @@
       "destination": "郑州",
       "train": "T326",
       "distance_km": 602,
+      "service_class": "conventional",
       "time": "22:43-次日05:48",
-      "note": "硬座过夜",
-      "service_class": "conventional"
+      "note": "硬座过夜"
     },
     {
       "seq": 35,
@@ -828,9 +828,9 @@
       "destination": "洛阳",
       "train": "K1349",
       "distance_km": 124,
+      "service_class": "conventional",
       "time": "05:58-07:39",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 36,
@@ -839,9 +839,9 @@
       "destination": "巩义",
       "train": "K32",
       "distance_km": 54,
+      "service_class": "conventional",
       "time": "12:44-13:24",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 37,
@@ -850,9 +850,9 @@
       "destination": "郑州东",
       "train": "G1888",
       "distance_km": 93,
+      "service_class": "highspeed",
       "time": "17:52-18:28",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 38,
@@ -861,9 +861,9 @@
       "destination": "合肥",
       "train": "G1885",
       "distance_km": 590,
+      "service_class": "highspeed",
       "time": "18:31-21:41",
-      "note": "兰考南—合肥为上车补票",
-      "service_class": "highspeed"
+      "note": "兰考南—合肥为上车补票"
     },
     {
       "seq": 39,
@@ -872,9 +872,9 @@
       "destination": "芜湖",
       "train": "G7725",
       "distance_km": 237,
+      "service_class": "highspeed",
       "time": "07:00-08:39",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 40,
@@ -883,9 +883,9 @@
       "destination": "宣城",
       "train": "G7759",
       "distance_km": 64,
+      "service_class": "highspeed",
       "time": "10:20-10:48",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 41,
@@ -894,9 +894,9 @@
       "destination": "合肥南",
       "train": "G1890",
       "distance_km": 192,
+      "service_class": "highspeed",
       "time": "17:49-18:57",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 42,
@@ -905,9 +905,9 @@
       "destination": "安庆",
       "train": "G7071",
       "distance_km": 149,
+      "service_class": "highspeed",
       "time": "07:17-08:24",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 43,
@@ -916,9 +916,9 @@
       "destination": "铜陵",
       "train": "G2790",
       "distance_km": 96,
+      "service_class": "highspeed",
       "time": "12:41-13:17",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 44,
@@ -927,9 +927,9 @@
       "destination": "合肥南",
       "train": "G7424",
       "distance_km": 161,
+      "service_class": "highspeed",
       "time": "16:54-18:05",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 45,
@@ -938,9 +938,9 @@
       "destination": "湛江西",
       "train": "C6967",
       "distance_km": 428,
+      "service_class": "highspeed",
       "time": "20:30-23:03",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 46,
@@ -949,9 +949,9 @@
       "destination": "虎门",
       "train": "G1623",
       "distance_km": 50,
+      "service_class": "highspeed",
       "time": "10:05-10:22",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 47,
@@ -960,9 +960,9 @@
       "destination": "深圳",
       "train": "C7131",
       "distance_km": 76,
+      "service_class": "highspeed",
       "time": "17:43-18:35",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 48,
@@ -971,9 +971,9 @@
       "destination": "枣庄",
       "train": "G246",
       "distance_km": 373,
+      "service_class": "highspeed",
       "time": "06:32-08:39",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 49,
@@ -982,9 +982,9 @@
       "destination": "淮北",
       "train": "K491",
       "distance_km": 62,
+      "service_class": "conventional",
       "time": "14:40-15:24",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 50,
@@ -993,9 +993,9 @@
       "destination": "合肥南",
       "train": "G7430",
       "distance_km": 385,
+      "service_class": "highspeed",
       "time": "17:51-20:34",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 51,
@@ -1004,9 +1004,9 @@
       "destination": "上海南",
       "train": "C3020",
       "distance_km": 481,
+      "service_class": "highspeed",
       "time": "09:41-12:57",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 52,
@@ -1015,9 +1015,9 @@
       "destination": "合肥南",
       "train": "G7576",
       "distance_km": 468,
+      "service_class": "highspeed",
       "time": "12:12-15:06",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 53,
@@ -1026,9 +1026,9 @@
       "destination": "上海虹桥",
       "train": "G1726",
       "distance_km": 468,
+      "service_class": "highspeed",
       "time": "17:58-19:54",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 54,
@@ -1037,9 +1037,9 @@
       "destination": "六安",
       "train": "K8363",
       "distance_km": 659,
+      "service_class": "conventional",
       "time": "23:28-次日08:33",
-      "note": "经合肥，上海—合肥段车次为K8362",
-      "service_class": "conventional"
+      "note": "经合肥，上海—合肥段车次为K8362"
     },
     {
       "seq": 55,
@@ -1048,9 +1048,9 @@
       "destination": "合肥南",
       "train": "G1730",
       "distance_km": 87,
+      "service_class": "highspeed",
       "time": "12:17-12:42",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 56,
@@ -1059,9 +1059,9 @@
       "destination": "北京南",
       "train": "G2554",
       "distance_km": 980,
+      "service_class": "highspeed",
       "time": "09:00-13:54",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 57,
@@ -1070,9 +1070,9 @@
       "destination": "合肥北城",
       "train": "G325",
       "distance_km": 957,
+      "service_class": "highspeed",
       "time": "12:04-16:46",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 58,
@@ -1081,9 +1081,9 @@
       "destination": "泾县",
       "train": "G7709",
       "distance_km": 194,
+      "service_class": "highspeed",
       "time": "07:10-08:12",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 59,
@@ -1092,9 +1092,9 @@
       "destination": "福州",
       "train": "G345",
       "distance_km": 614,
+      "service_class": "highspeed",
       "time": "11:13-14:24",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 60,
@@ -1103,9 +1103,9 @@
       "destination": "古田会址",
       "train": "D6572",
       "distance_km": 396,
+      "service_class": "highspeed",
       "time": "06:25-09:38",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 61,
@@ -1114,9 +1114,9 @@
       "destination": "长汀南",
       "train": "G5078",
       "distance_km": 83,
+      "service_class": "highspeed",
       "time": "14:09-14:40",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 62,
@@ -1125,9 +1125,9 @@
       "destination": "瑞金",
       "train": "G2372",
       "distance_km": 34,
+      "service_class": "highspeed",
       "time": "08:36-08:51",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 63,
@@ -1136,9 +1136,9 @@
       "destination": "于都",
       "train": "D6582",
       "distance_km": 72,
+      "service_class": "highspeed",
       "time": "14:21-14:55",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 64,
@@ -1147,9 +1147,9 @@
       "destination": "赣州",
       "train": "D6572",
       "distance_km": 54,
+      "service_class": "highspeed",
       "time": "11:05-11:35",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 65,
@@ -1158,9 +1158,9 @@
       "destination": "广州东",
       "train": "G1305",
       "distance_km": 416,
+      "service_class": "highspeed",
       "time": "12:27-14:40",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 66,
@@ -1169,9 +1169,9 @@
       "destination": "湛江西",
       "train": "C6951",
       "distance_km": 428,
+      "service_class": "highspeed",
       "time": "15:58-19:09",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 67,
@@ -1180,9 +1180,9 @@
       "destination": "全椒",
       "train": "G7258",
       "distance_km": 101,
+      "service_class": "highspeed",
       "time": "07:30-08:05",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 68,
@@ -1191,9 +1191,9 @@
       "destination": "马鞍山",
       "train": "K551",
       "distance_km": 135,
+      "service_class": "conventional",
       "time": "18:48-21:13",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 69,
@@ -1202,9 +1202,9 @@
       "destination": "合肥",
       "train": "T237",
       "distance_km": 188,
+      "service_class": "conventional",
       "time": "15:32-18:18",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 70,
@@ -1213,9 +1213,9 @@
       "destination": "寿县",
       "train": "G7702",
       "distance_km": 127,
+      "service_class": "highspeed",
       "time": "08:18-09:01",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 71,
@@ -1224,9 +1224,9 @@
       "destination": "颍上北",
       "train": "G3256",
       "distance_km": 58,
+      "service_class": "highspeed",
       "time": "14:45-15:02",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 72,
@@ -1235,9 +1235,9 @@
       "destination": "阜阳",
       "train": "K1506",
       "distance_km": 48,
+      "service_class": "conventional",
       "time": "08:37-09:37",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 73,
@@ -1246,9 +1246,9 @@
       "destination": "周口东",
       "train": "G1318",
       "distance_km": 138,
+      "service_class": "highspeed",
       "time": "12:41-13:16",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 74,
@@ -1257,9 +1257,9 @@
       "destination": "漯河",
       "train": "K6176",
       "distance_km": 64,
+      "service_class": "conventional",
       "time": "18:08-18:58",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 75,
@@ -1268,9 +1268,9 @@
       "destination": "驻马店西",
       "train": "G3785",
       "distance_km": 64,
+      "service_class": "highspeed",
       "time": "14:08-14:26",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 76,
@@ -1279,9 +1279,9 @@
       "destination": "信阳",
       "train": "K8053",
       "distance_km": 96,
+      "service_class": "conventional",
       "time": "08:19-09:19",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 77,
@@ -1290,9 +1290,9 @@
       "destination": "孝感北",
       "train": "G2085",
       "distance_km": 73,
+      "service_class": "highspeed",
       "time": "11:49-12:08",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 78,
@@ -1301,9 +1301,9 @@
       "destination": "汉口",
       "train": "G6896",
       "distance_km": 61,
+      "service_class": "highspeed",
       "time": "18:52-19:19",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 79,
@@ -1312,9 +1312,9 @@
       "destination": "合肥南",
       "train": "D4830",
       "distance_km": 359,
+      "service_class": "highspeed",
       "time": "21:10-22:50",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 80,
@@ -1323,9 +1323,9 @@
       "destination": "北京南",
       "train": "G2554",
       "distance_km": 980,
+      "service_class": "highspeed",
       "time": "09:00-13:54",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 81,
@@ -1334,9 +1334,9 @@
       "destination": "合肥",
       "train": "Z225",
       "distance_km": 1032,
+      "service_class": "conventional",
       "time": "21:59-次日07:41",
-      "note": "硬卧上铺",
-      "service_class": "conventional"
+      "note": "硬卧上铺"
     },
     {
       "seq": 82,
@@ -1345,9 +1345,9 @@
       "destination": "北京丰台",
       "train": "Z227",
       "distance_km": 1032,
+      "service_class": "conventional",
       "time": "21:32-次日07:46",
-      "note": "软卧上铺",
-      "service_class": "conventional"
+      "note": "软卧上铺"
     },
     {
       "seq": 83,
@@ -1356,9 +1356,9 @@
       "destination": "古北口",
       "train": "S501",
       "distance_km": 136,
+      "service_class": "highspeed",
       "time": "07:12-09:23",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 84,
@@ -1367,9 +1367,9 @@
       "destination": "清河",
       "train": "S502",
       "distance_km": 136,
+      "service_class": "highspeed",
       "time": "09:49-12:13",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 85,
@@ -1378,9 +1378,9 @@
       "destination": "天津",
       "train": "C2567",
       "distance_km": 120,
+      "service_class": "highspeed",
       "time": "09:48-10:25",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 86,
@@ -1389,9 +1389,9 @@
       "destination": "北京南",
       "train": "C2624",
       "distance_km": 122,
+      "service_class": "highspeed",
       "time": "15:39-16:11",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 87,
@@ -1400,9 +1400,9 @@
       "destination": "雄安",
       "train": "C2705",
       "distance_km": 103,
+      "service_class": "highspeed",
       "time": "09:30-10:20",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 88,
@@ -1411,9 +1411,9 @@
       "destination": "北京丰台",
       "train": "C128",
       "distance_km": 95,
+      "service_class": "highspeed",
       "time": "19:50-21:12",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 89,
@@ -1422,9 +1422,9 @@
       "destination": "山海关",
       "train": "K339",
       "distance_km": 303,
+      "service_class": "conventional",
       "time": "10:54-15:22",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 90,
@@ -1433,9 +1433,9 @@
       "destination": "北京丰台",
       "train": "T184",
       "distance_km": 321,
+      "service_class": "conventional",
       "time": "18:31-21:56",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 91,
@@ -1444,9 +1444,9 @@
       "destination": "合肥",
       "train": "Z225",
       "distance_km": 1032,
+      "service_class": "conventional",
       "time": "21:59-次日07:41",
-      "note": "硬卧中铺",
-      "service_class": "conventional"
+      "note": "硬卧中铺"
     },
     {
       "seq": 92,
@@ -1455,9 +1455,9 @@
       "destination": "新乡",
       "train": "K2276",
       "distance_km": 682,
+      "service_class": "conventional",
       "time": "21:14-次日06:27",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 93,
@@ -1466,9 +1466,9 @@
       "destination": "卫辉",
       "train": "K262",
       "distance_km": 25,
+      "service_class": "conventional",
       "time": "07:45-08:03",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 94,
@@ -1477,9 +1477,9 @@
       "destination": "北京西",
       "train": "G1580",
       "distance_km": 626,
+      "service_class": "highspeed",
       "time": "16:09-19:13",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 95,
@@ -1488,9 +1488,9 @@
       "destination": "汉口",
       "train": "D37",
       "distance_km": 1106,
+      "service_class": "highspeed",
       "time": "20:36-次日07:11",
-      "note": "二等座过夜",
-      "service_class": "highspeed"
+      "note": "二等座过夜"
     },
     {
       "seq": 96,
@@ -1499,9 +1499,9 @@
       "destination": "祁阳",
       "train": "G1479",
       "distance_km": 641,
+      "service_class": "highspeed",
       "time": "09:30-12:55",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 97,
@@ -1510,9 +1510,9 @@
       "destination": "永州",
       "train": "G1503",
       "distance_km": 33,
+      "service_class": "highspeed",
       "time": "16:18-16:35",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 98,
@@ -1521,9 +1521,9 @@
       "destination": "零陵",
       "train": "K1803",
       "distance_km": 26,
+      "service_class": "conventional",
       "time": "21:02-21:26",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 99,
@@ -1532,9 +1532,9 @@
       "destination": "柳州",
       "train": "D3969",
       "distance_km": 363,
+      "service_class": "highspeed",
       "time": "17:06-19:51",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 100,
@@ -1543,9 +1543,9 @@
       "destination": "来宾北",
       "train": "D8455",
       "distance_km": 66,
+      "service_class": "highspeed",
       "time": "08:03-08:28",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 101,
@@ -1554,9 +1554,9 @@
       "destination": "贵港",
       "train": "5537",
       "distance_km": 119,
+      "service_class": "conventional",
       "time": "12:54-14:28",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 102,
@@ -1565,9 +1565,9 @@
       "destination": "玉林",
       "train": "D9683",
       "distance_km": 89,
+      "service_class": "highspeed",
       "time": "17:46-18:44",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 103,
@@ -1576,9 +1576,9 @@
       "destination": "湛江",
       "train": "K653",
       "distance_km": 175,
+      "service_class": "conventional",
       "time": "15:36-18:02",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 104,
@@ -1587,9 +1587,9 @@
       "destination": "深圳东",
       "train": "K1234",
       "distance_km": 559,
+      "service_class": "conventional",
       "time": "21:39-次日08:30",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 105,
@@ -1598,9 +1598,9 @@
       "destination": "合肥西",
       "train": "G2694",
       "distance_km": 1177,
+      "service_class": "highspeed",
       "time": "11:37-19:03",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 106,
@@ -1609,9 +1609,9 @@
       "destination": "北京南",
       "train": "G2558",
       "distance_km": 1000,
+      "service_class": "highspeed",
       "time": "11:36-16:09",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 107,
@@ -1620,9 +1620,9 @@
       "destination": "北京西",
       "train": "C2726",
       "distance_km": 47,
+      "service_class": "highspeed",
       "time": "17:19-17:47",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 108,
@@ -1631,9 +1631,9 @@
       "destination": "太原",
       "train": "K609",
       "distance_km": 547,
+      "service_class": "conventional",
       "time": "23:45-次日07:00",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 109,
@@ -1642,9 +1642,9 @@
       "destination": "蔡家崖",
       "train": "4621",
       "distance_km": 223,
+      "service_class": "conventional",
       "time": "08:07-12:16",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 110,
@@ -1653,9 +1653,9 @@
       "destination": "府谷",
       "train": "K8204",
       "distance_km": 64,
+      "service_class": "conventional",
       "time": "16:29-18:12",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 111,
@@ -1664,9 +1664,9 @@
       "destination": "宁武",
       "train": "8834",
       "distance_km": 95,
+      "service_class": "conventional",
       "time": "12:18-14:40",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 112,
@@ -1675,9 +1675,9 @@
       "destination": "大同",
       "train": "8824",
       "distance_km": 166,
+      "service_class": "conventional",
       "time": "14:45-17:50",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 113,
@@ -1686,9 +1686,9 @@
       "destination": "北京北",
       "train": "G2514",
       "distance_km": 320,
+      "service_class": "highspeed",
       "time": "19:39-21:55",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 114,
@@ -1697,9 +1697,9 @@
       "destination": "合肥",
       "train": "Z225",
       "distance_km": 1032,
+      "service_class": "conventional",
       "time": "21:59-次日07:41",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 115,
@@ -1708,9 +1708,9 @@
       "destination": "天水",
       "train": "Z595",
       "distance_km": 1216,
+      "service_class": "conventional",
       "time": "16:30-次日08:37",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 116,
@@ -1719,9 +1719,9 @@
       "destination": "甘谷",
       "train": "K1041",
       "distance_km": 67,
+      "service_class": "conventional",
       "time": "14:45-15:31",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 117,
@@ -1730,9 +1730,9 @@
       "destination": "武山",
       "train": "T113",
       "distance_km": 40,
+      "service_class": "conventional",
       "time": "08:39-09:05",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 118,
@@ -1741,9 +1741,9 @@
       "destination": "定西",
       "train": "K1041",
       "distance_km": 84,
+      "service_class": "conventional",
       "time": "16:26-17:22",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 119,
@@ -1752,9 +1752,9 @@
       "destination": "兰州西",
       "train": "D2653",
       "distance_km": 94,
+      "service_class": "highspeed",
       "time": "11:04-11:34",
-      "note": "一等座",
-      "service_class": "highspeed"
+      "note": "一等座"
     },
     {
       "seq": 120,
@@ -1763,9 +1763,9 @@
       "destination": "武威",
       "train": "Z6205",
       "distance_km": 303,
+      "service_class": "conventional",
       "time": "07:44-10:43",
-      "note": "软座",
-      "service_class": "conventional"
+      "note": "软座"
     },
     {
       "seq": 121,
@@ -1774,9 +1774,9 @@
       "destination": "武威",
       "train": "7519",
       "distance_km": 13,
+      "service_class": "conventional",
       "time": "21:10-21:25",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 122,
@@ -1785,9 +1785,9 @@
       "destination": "张掖",
       "train": "K9667",
       "distance_km": 244,
+      "service_class": "conventional",
       "time": "21:38-次日00:26",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 123,
@@ -1796,9 +1796,9 @@
       "destination": "酒泉南",
       "train": "D575",
       "distance_km": 191,
+      "service_class": "highspeed",
       "time": "13:15-14:20",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 124,
@@ -1807,9 +1807,9 @@
       "destination": "嘉峪关",
       "train": "7567",
       "distance_km": 22,
+      "service_class": "conventional",
       "time": "12:11-12:31",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 125,
@@ -1818,9 +1818,9 @@
       "destination": "敦煌",
       "train": "D2737",
       "distance_km": 357,
+      "service_class": "highspeed",
       "time": "18:23-21:20",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 126,
@@ -1829,9 +1829,9 @@
       "destination": "南京南",
       "train": "G7434",
       "distance_km": 157,
+      "service_class": "highspeed",
       "time": "08:28-09:20",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 127,
@@ -1840,9 +1840,9 @@
       "destination": "合肥",
       "train": "G464",
       "distance_km": 154,
+      "service_class": "highspeed",
       "time": "14:23-15:14",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 128,
@@ -1851,9 +1851,9 @@
       "destination": "北京丰台",
       "train": "Z227",
       "distance_km": 1032,
+      "service_class": "conventional",
       "time": "21:32-次日07:41",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 129,
@@ -1862,9 +1862,9 @@
       "destination": "张家口",
       "train": "Z183",
       "distance_km": 166,
+      "service_class": "conventional",
       "time": "09:11-12:23",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 130,
@@ -1873,9 +1873,9 @@
       "destination": "清河",
       "train": "D1050",
       "distance_km": 141,
+      "service_class": "highspeed",
       "time": "18:25-19:16",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 131,
@@ -1884,9 +1884,9 @@
       "destination": "广州",
       "train": "D901",
       "distance_km": 1989,
+      "service_class": "highspeed",
       "time": "19:42-次日06:47",
-      "note": "动卧",
-      "service_class": "highspeed"
+      "note": "动卧"
     },
     {
       "seq": 132,
@@ -1895,9 +1895,9 @@
       "destination": "湛江北",
       "train": "G5689",
       "distance_km": 369,
+      "service_class": "highspeed",
       "time": "16:00-17:30",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 133,
@@ -1906,9 +1906,9 @@
       "destination": "北京西",
       "train": "K158",
       "distance_km": 2725,
+      "service_class": "conventional",
       "time": "09:54-次日22:48",
       "note": "",
-      "service_class": "conventional",
       "control_points": [
         "遂溪",
         "廉江",
@@ -1948,9 +1948,9 @@
       "destination": "德州",
       "train": "K1036",
       "distance_km": 732,
+      "service_class": "conventional",
       "time": "20:45-次日07:12",
       "note": "",
-      "service_class": "conventional",
       "control_points": [
         "蚌埠",
         "宿州",
@@ -1964,9 +1964,9 @@
       "destination": "北京南",
       "train": "G816",
       "distance_km": 314,
+      "service_class": "highspeed",
       "time": "13:27-14:46",
-      "note": "软卧上铺",
-      "service_class": "highspeed"
+      "note": "软卧上铺"
     },
     {
       "seq": 136,
@@ -1975,9 +1975,9 @@
       "destination": "八达岭长城",
       "train": "D1091",
       "distance_km": 45,
+      "service_class": "highspeed",
       "time": "10:09-10:32",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 137,
@@ -1986,9 +1986,9 @@
       "destination": "清河",
       "train": "D1036",
       "distance_km": 45,
+      "service_class": "highspeed",
       "time": "14:01-14:22",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 138,
@@ -1997,9 +1997,9 @@
       "destination": "赤峰南",
       "train": "K1189",
       "distance_km": 477,
+      "service_class": "conventional",
       "time": "16:10-次日01:34",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 139,
@@ -2008,9 +2008,9 @@
       "destination": "通辽",
       "train": "K1457",
       "distance_km": 336,
+      "service_class": "conventional",
       "time": "08:47-13:10",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 140,
@@ -2019,9 +2019,9 @@
       "destination": "乌兰浩特",
       "train": "K957",
       "distance_km": 357,
+      "service_class": "conventional",
       "time": "17:30-22:01",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 141,
@@ -2030,9 +2030,9 @@
       "destination": "白城",
       "train": "C508",
       "distance_km": 87,
+      "service_class": "highspeed",
       "time": "13:20-14:10",
-      "note": "CR200J1重联型复兴号绿皮动力集中型动车",
-      "service_class": "highspeed"
+      "note": "CR200J1重联型复兴号绿皮动力集中型动车"
     },
     {
       "seq": 142,
@@ -2041,9 +2041,9 @@
       "destination": "海拉尔",
       "train": "K4259",
       "distance_km": 626,
+      "service_class": "conventional",
       "time": "20:59-次日07:36",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 143,
@@ -2052,9 +2052,9 @@
       "destination": "满归",
       "train": "4184",
       "distance_km": 506,
+      "service_class": "conventional",
       "time": "08:15-20:28",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 144,
@@ -2063,9 +2063,9 @@
       "destination": "哈尔滨东",
       "train": "K7040",
       "distance_km": 1129,
+      "service_class": "conventional",
       "time": "13:55-次日06:28",
-      "note": "",
-      "service_class": "conventional"
+      "note": ""
     },
     {
       "seq": 145,
@@ -2074,9 +2074,9 @@
       "destination": "北京朝阳",
       "train": "G102",
       "distance_km": 1158,
+      "service_class": "highspeed",
       "time": "08:34-13:10",
-      "note": "",
-      "service_class": "highspeed"
+      "note": ""
     },
     {
       "seq": 146,
@@ -2085,9 +2085,9 @@
       "destination": "菏泽",
       "train": "K105",
       "distance_km": 542,
+      "service_class": "conventional",
       "time": "23:31-次日05:55",
       "note": "",
-      "service_class": "conventional",
       "control_points": [
         "衡水"
       ]
@@ -2099,9 +2099,9 @@
       "destination": "合肥西",
       "train": "G3935",
       "distance_km": 483,
+      "service_class": "highspeed",
       "time": "11:17-13:46",
       "note": "",
-      "service_class": "highspeed",
       "control_points": [
         "曹县西",
         "商丘",
@@ -2115,9 +2115,9 @@
       "destination": "北京丰台",
       "train": "K1036",
       "distance_km": 1069,
+      "service_class": "conventional",
       "time": "20:45-次日11:12",
       "note": "",
-      "service_class": "conventional",
       "control_points": [
         "蚌埠",
         "宿州",

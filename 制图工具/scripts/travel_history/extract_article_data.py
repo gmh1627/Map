@@ -6,6 +6,7 @@ import argparse
 import json
 import re
 from pathlib import Path
+from parse_source import parse_rail_records as parse_article_rail_records
 
 
 DEFAULT_ARTICLE = Path(r"F:\Desktop\Blog\source\_posts\行旅杂记.md")
@@ -89,35 +90,11 @@ def track_preference(train: str, origin: str, destination: str) -> str:
 
 
 def parse_rail_records(text: str) -> list[dict]:
-    start = text.index("{% hideToggle 展开铁路记录表 %}")
-    end = text.index("{% endhideToggle %}", start)
-    records = []
-    current_time = ""
-    for line in text[start:end].splitlines():
-        if not line.startswith("|") or line.startswith("|:") or "|时间|" in line:
-            continue
-        cells = [cell.strip() for cell in line.strip()[1:-1].split("|")]
-        if len(cells) != 5:
-            continue
-        time, origin, destination, train, distance = cells
-        if time:
-            current_time = time
-        if not origin or not destination or not train:
-            continue
-        distance_km = int(distance.strip())
-        records.append(
-            {
-                "seq": len(records) + 1,
-                "time": current_time,
-                "origin": origin,
-                "destination": destination,
-                "train": train.strip(),
-                "distance_km": distance_km,
-                "service_class": service_class(train, origin, destination),
-                "track_preference": track_preference(train, origin, destination),
-            }
-        )
-    return records
+    return [{
+        **record,
+        "service_class": service_class(record["train"], record["origin"], record["destination"]),
+        "track_preference": track_preference(record["train"], record["origin"], record["destination"]),
+    } for record in parse_article_rail_records(text.splitlines())]
 
 
 def main() -> int:

@@ -10,7 +10,7 @@ from collections import Counter
 from pathlib import Path
 
 
-DEFAULT_POST = Path(r"F:\Desktop\Blog\source\_posts\行旅杂记.md")
+DEFAULT_POST = Path(__file__).resolve().parents[4] / "source/_posts/行旅杂记.md"
 DEFAULT_OUTPUT = Path(__file__).with_name("parsed_source.json")
 DEFAULT_RAIL_RECORDS = Path(__file__).with_name("railway_records.csv")
 
@@ -131,9 +131,13 @@ def classify_service(train: str, origin: str, destination: str) -> str:
 
 
 def parse_rail_records(lines: list[str]) -> list[dict]:
-    header = next(
-        i for i, line in enumerate(lines) if line.strip() == "|时间|出发地|目的地|车次|里程（km）|"
-    )
+    start = next(i for i, line in enumerate(lines) if line.strip() == "{% hideToggle 展开铁路记录表 %}")
+    header = next(i for i in range(start + 1, len(lines)) if lines[i].strip().startswith("|"))
+    columns = split_markdown_row(lines[header])
+    date_column = "日期" if "日期" in columns else "时间"
+    required = {date_column, "出发地", "目的地", "车次", "里程（km）"}
+    if not required.issubset(columns):
+        raise ValueError(f"Missing railway columns: {required - set(columns)}")
     end = next(i for i in range(header + 1, len(lines)) if lines[i].strip() == "{% endhideToggle %}")
     records = []
     current_date = ""
@@ -141,9 +145,10 @@ def parse_rail_records(lines: list[str]) -> list[dict]:
         if not line.strip().startswith("|"):
             continue
         cells = split_markdown_row(line)
-        if len(cells) != 5:
+        if len(cells) != len(columns):
             raise ValueError(f"Unexpected railway row: {line}")
-        date, origin, destination, train, distance = cells
+        row = dict(zip(columns, cells))
+        date, origin, destination, train, distance = [row[key] for key in (date_column, "出发地", "目的地", "车次", "里程（km）")]
         current_date = date or current_date
         train = re.sub(r"\s+", "", train).upper()
         distance_value = int(re.sub(r"[^0-9]", "", distance))
@@ -155,6 +160,8 @@ def parse_rail_records(lines: list[str]) -> list[dict]:
                 "train": train,
                 "distance_km": distance_value,
                 "service_class": classify_service(train, origin, destination),
+                "time": row.get("时间", "") if date_column != "时间" else "",
+                "note": row.get("备注", ""),
             }
         controls = ROUTE_CONTROL_POINTS.get((origin, destination, train))
         if controls:
@@ -163,8 +170,10 @@ def parse_rail_records(lines: list[str]) -> list[dict]:
     return records
 
 
-def read_rail_records(path: Path = DEFAULT_RAIL_RECORDS) -> list[dict]:
+def read_rail_records(path: Path = DEFAULT_POST) -> list[dict]:
     """Read reviewed rows as complete records, keeping clocks with their trips."""
+    if path.suffix.lower() != ".csv":
+        return parse_rail_records(path.read_text(encoding="utf-8-sig").splitlines())
     with path.open(encoding="utf-8-sig", newline="") as source:
         rows = list(csv.DictReader(source, delimiter="|"))
     records = []
@@ -184,12 +193,17 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--post", type=Path, default=DEFAULT_POST)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--rail-records", type=Path, default=DEFAULT_RAIL_RECORDS)
+    parser.add_argument("--rail-records", type=Path)
     args = parser.parse_args()
 
     lines = args.post.read_text(encoding="utf-8").splitlines()
     places = parse_places(lines)
-    rail_records = read_rail_records(args.rail_records)
+    rail_source = args.rail_records or args.post
+    rail_records = read_rail_records(rail_source)
+    with DEFAULT_RAIL_RECORDS.open("w", encoding="utf-8", newline="") as cache:
+        writer = csv.DictWriter(cache, fieldnames=["seq", "date", "origin", "destination", "train", "distance_km", "time", "note"], delimiter="|", extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rail_records)
     city_count = sum(len(item["cities"]) for item in places)
     station_names = sorted(
         {record["origin"] for record in rail_records}
@@ -197,7 +211,7 @@ def main() -> int:
     )
     payload = {
         "source": str(args.post.resolve()),
-        "railway_source": str(args.rail_records.resolve()),
+        "railway_source": str(rail_source.resolve()),
         "province_count": len(places),
         "city_count": city_count,
         "places": places,
