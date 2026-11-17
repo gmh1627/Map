@@ -14,7 +14,7 @@ python -m http.server 4178 --bind 127.0.0.1 --directory web
 
 首屏使用 `data/startup.json.gz`：相同线路片段只保存一次，坐标以完整六位小数编码，浏览器还原后与原 GeoJSON 完全一致。导出脚本会自动重建压缩包、资源版本号和 HTML 统计。地图依赖位于 `vendor/leaflet`，首屏不再依赖外部 CDN。城市填色在放大后加载，其他到访城市在启用后加载，全国路网和全国车站分别按需加载。
 
-添加新铁路记录时，在 Blog 的 `source/_posts/行旅杂记.md` 铁路表末尾填写日期、出发地、目的地、车次、里程、时间和备注，然后运行 Blog 的 `npm run deploy:all`。该命令会先调用地图更新；也可单独运行 `npm run map:update` 验证地图。新增车站、路线或到访城市需要完整构建，并检查线路是否符合实际。
+添加新铁路记录时，在 Blog 的 `source/_posts/行旅杂记.md` 铁路表末尾填写日期、出发地、目的地、车次、里程、时间和备注，然后运行 Blog 的 `npm run deploy:all`。日常发布仅构建一次日历，保留两遍博客构建与发布，复制现有地图网页，不重新计算铁路线路或重画静态地图。需要更新地图时，再单独让大模型处理；完整地图构建可单独运行 `npm run map:update`，并检查线路是否符合实际。
 
 完整铁路行程以 Blog 的《行旅杂记》铁路表为唯一编辑来源，`parse_source.py` 自动导出 `parsed_source.json` 和 `railway_records.csv` 备份。`sync_rail_records.py` 只适用于已有记录的属性更正；新增记录或改变起终点时，需要使用完整构建。网页每次导出直接读取原表并核对起终点、车次、里程，`route_times.json` 仅作为生成结果，避免旧缓存覆盖时刻和备注。发布校验会逐条比对网页的日期、时刻、备注与原始记录。
 
