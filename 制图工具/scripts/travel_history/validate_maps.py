@@ -114,6 +114,23 @@ def main() -> int:
         expected_records = {
             int(record["seq"]): record for record in parsed["rail_records"]
         }
+        web_path = RAILWAY_ROOT / "web/data/visited_routes.geojson"
+        if not web_path.exists():
+            errors.append("Missing railway web records")
+        else:
+            features = json.loads(web_path.read_text(encoding="utf-8"))["features"]
+            web_records = {int(feature["properties"]["seq"]): feature["properties"] for feature in features}
+            if len(features) != len(expected_records) or web_records.keys() != expected_records.keys():
+                errors.append("Railway web record identities differ from the article")
+            for seq, record in expected_records.items():
+                expected = {
+                    **{field: record.get(field, "") for field in ("date", "origin", "destination", "train", "time", "note")},
+                    "table_km": record["distance_km"],
+                    "service": record["service_class"],
+                }
+                web_record = web_records.get(seq, {})
+                if any(web_record.get(field) != value for field, value in expected.items()):
+                    errors.append(f"Route {seq}: web date, timetable or notes differ from the article")
         route_layers = project.mapLayersByName("铁路行程轨迹")
         service_summary = {}
         if route_layers:

@@ -16,6 +16,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT = SCRIPT_DIR.parents[2]
 sys.path.insert(0, str(ROOT / "制图工具" / "scripts" / "travel_history"))
 from railway_stats import city_for_station, railway_statistics  # noqa: E402
+from parse_source import read_rail_records  # noqa: E402
 
 WEB = ROOT / "web"
 DATA = WEB / "data"
@@ -370,7 +371,15 @@ def export_routes(output: Path) -> int:
     city_layer = QgsVectorLayer(f"{NATIONAL.as_posix()}|layername=去过的城市", "visited cities", "ogr")
     station_points = {str(feature["name"]): feature.geometry().asPoint() for feature in station_layer.getFeatures()}
     city_features = list(city_layer.getFeatures())
-    route_times = json.loads(ROUTE_TIMES.read_text(encoding="utf-8-sig")) if ROUTE_TIMES.exists() else {}
+    # The article is authoritative on every export, including full rebuilds.
+    # route_times.json is an output cache, never an input timetable.
+    records = {str(record["seq"]): record for record in read_rail_records()}
+    if route_layer.featureCount() != len(records):
+        raise RuntimeError("Railway geometry count differs from the article; rebuild the routes")
+    route_times = {
+        seq: {field: record.get(field, "") for field in ("date", "time", "note", "origin", "destination", "train")}
+        for seq, record in records.items()
+    }
     result = []
     for feature in route_layer.getFeatures():
         # Route geometries are already cleaned and shared by build_routes.py.
@@ -380,12 +389,18 @@ def export_routes(output: Path) -> int:
         geometry = feature.geometry()
         origin = str(feature["origin"] or "")
         destination = str(feature["destination"] or "")
-        extra = route_times.get(str(feature["seq"]), {})
+        seq = str(feature["seq"])
+        if seq not in route_times:
+            raise RuntimeError(f"Route {seq}: record not found in the article")
+        extra = route_times[seq]
         for field in ("origin", "destination", "train"):
             if field in extra and extra[field] != str(feature[field]):
                 raise RuntimeError(f"Route {feature['seq']}: timetable does not match {field}")
+        if records[seq]["distance_km"] != feature["table_km"]:
+            raise RuntimeError(f"Route {seq}: mileage differs from the article; rebuild the routes")
         result.append({"type": "Feature", "properties": {"seq": feature["seq"], "date": extra.get("date", feature["date"]), "origin": origin, "destination": destination, "origin_city": city_for_station(origin, station_points, city_features), "destination_city": city_for_station(destination, station_points, city_features), "train": feature["train"], "service": feature["service"], "table_km": feature["table_km"], "time": extra.get("time", ""), "note": extra.get("note", "")}, "geometry": geometry_json(geometry)})
     output.write_text(json.dumps(feature_collection(result), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    ROUTE_TIMES.write_text(json.dumps(route_times, ensure_ascii=False, indent=2), encoding="utf-8")
     return len(result)
 
 

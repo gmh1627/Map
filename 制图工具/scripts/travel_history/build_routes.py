@@ -24,7 +24,6 @@ from scipy.spatial import cKDTree
 from qgis.PyQt.QtCore import QVariant
 from qgis.core import (
     QgsApplication,
-    QgsCoordinateReferenceSystem,
     QgsFeature,
     QgsFeatureRequest,
     QgsField,
@@ -48,7 +47,6 @@ OUTPUT_DIR = DEFAULT_OUTPUT_DIR
 OUTPUT_GPKG = OUTPUT_DIR / "铁路轨迹.gpkg"
 ROUTE_REPORT = OUTPUT_DIR / "线路构建报告.json"
 
-CRS = QgsCoordinateReferenceSystem("EPSG:4326")
 ROUND_DIGITS = 5
 NETWORK_MARGIN_DEGREES = 2.0
 CONNECTOR_RADIUS_DEGREES = 0.0008
@@ -431,6 +429,7 @@ def main() -> int:
     app = QgsApplication([], False)
     app.initQgis()
     try:
+        print("Reading railway geometry and building the routing graph...", flush=True)
         rail = QgsVectorLayer(
             f"{RAIL_GPKG.as_posix()}|layername=china_railwayosm__lines",
             "rail_network",
@@ -1018,7 +1017,14 @@ def main() -> int:
                 weight=f"{preferred}_cost",
             )
 
-        for record in payload["rail_records"]:
+        records = payload["rail_records"]
+        print(f"Routing {len(records)} railway records...", flush=True)
+        for record_index, record in enumerate(records, 1):
+            print(
+                f"  [{record_index}/{len(records)}] {record['train']} "
+                f"{record['origin']} -> {record['destination']}",
+                flush=True,
+            )
             service_class = record["service_class"]
             if service_class not in {"highspeed", "conventional"}:
                 raise RuntimeError(

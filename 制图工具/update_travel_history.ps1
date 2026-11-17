@@ -10,6 +10,7 @@ $scriptsRoot = Join-Path $PSScriptRoot 'scripts'
 $blogRoot = Split-Path -Parent $mapRoot
 $env:OPENBLAS_NUM_THREADS = '1'
 $env:PYTHONIOENCODING = 'utf-8'
+$env:PYTHONUNBUFFERED = '1'
 
 if (-not (Test-Path -LiteralPath $QgisPython)) {
     throw "QGIS Python not found: $QgisPython"
@@ -17,10 +18,12 @@ if (-not (Test-Path -LiteralPath $QgisPython)) {
 
 function Invoke-MapStep([string]$RelativeScript) {
     Write-Host "Running $RelativeScript"
+    $stepTimer = [System.Diagnostics.Stopwatch]::StartNew()
     & $QgisPython (Join-Path $scriptsRoot $RelativeScript)
     if ($LASTEXITCODE -ne 0) {
         throw "Map build failed: $RelativeScript"
     }
+    Write-Host ("Completed {0} ({1:N1}s)" -f $RelativeScript, $stepTimer.Elapsed.TotalSeconds)
 }
 
 Invoke-MapStep 'travel_history\parse_source.py'
