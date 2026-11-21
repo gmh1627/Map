@@ -1,7 +1,7 @@
 {
   "rail_segments": 401017,
   "rail_overview_segments": 30829,
-  "route_count": 148,
+  "route_count": 149,
   "station_count": 144,
   "network_station_count": 5518,
   "rail_city_count": 76,
@@ -13,16 +13,16 @@
   "route_simplify_degrees": 0.0,
   "administrative_simplify_degrees": 0.0,
   "summary": {
-    "route_count": 148,
-    "distance_km": 62666,
+    "route_count": 149,
+    "distance_km": 62713,
     "services": {
       "conventional": {
         "trips": 53,
         "table_km": 27514
       },
       "highspeed": {
-        "trips": 95,
-        "table_km": 35152
+        "trips": 96,
+        "table_km": 35199
       }
     },
     "station_count": 144,

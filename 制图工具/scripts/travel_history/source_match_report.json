@@ -515,6 +515,14 @@
       "adcode": "371700"
     },
     {
+      "source_name": "东营",
+      "full_name": "东营市",
+      "province": "山东省",
+      "source": "city",
+      "fid": 182,
+      "adcode": "370500"
+    },
+    {
       "source_name": "福州",
       "full_name": "福州市",
       "province": "福建省",

@@ -33,7 +33,7 @@ def main() -> int:
         invalid = [layer.name() for layer in project.mapLayers().values() if not layer.isValid()]
         if invalid:
             errors.append("Invalid layers: " + ", ".join(invalid))
-        expected = {"飞行航线": 16, "航向箭头": 16, "机场节点": 13}
+        expected = {"飞行航线": 17, "航向箭头": 17, "机场节点": 14}
         counts = {}
         for name, count in expected.items():
             matches = project.mapLayersByName(name)
@@ -76,6 +76,21 @@ def main() -> int:
             endpoint_gap = geometry.length() - geometry.lineLocatePoint(arrow_geometry)
             if not 0.12 <= endpoint_gap <= 0.16:
                 errors.append(f"Arrow {seq} has inconsistent destination gap: {endpoint_gap:.3f}")
+        dongying = route_by_seq.get(17)
+        if dongying is None:
+            errors.append("Missing KN5915 flight record")
+        else:
+            for field, expected_value in {
+                "date": "2026.11.21", "origin": "PKX", "destination": "DOY",
+                "flight": "KN5915", "distance_km": 469, "via": "",
+            }.items():
+                if dongying[field] != expected_value:
+                    errors.append(f"KN5915 {field}: expected {expected_value}, got {dongying[field]}")
+            for coordinate in ((116.413967, 39.501289), (118.789863, 37.501370)):
+                if dongying.geometry().distance(QgsGeometry.fromPointXY(QgsPointXY(*coordinate))) > 1e-7:
+                    errors.append("KN5915 does not end at the recorded airport")
+        if sum(int(feature["distance_km"]) for feature in route_by_seq.values()) != 22709:
+            errors.append("Flight mileage total is incorrect")
         layouts = project.layoutManager().printLayouts()
         maps = [item for item in layouts[0].items() if isinstance(item, QgsLayoutItemMap)] if len(layouts) == 1 else []
         if len(maps) != 2:
@@ -85,7 +100,7 @@ def main() -> int:
             errors.append(f"Expected one main map, got {len(main_maps)}")
         elif arrow_layer.id() not in {layer.id() for layer in main_maps[0].layers()}:
             errors.append("Arrow layer is missing from the main map")
-        subtitle = "16 次飞行｜累计 22,240 km｜抵达 12 座城市、13 座机场（含经停）"
+        subtitle = "17 次飞行｜累计 22,709 km｜抵达 13 座城市、14 座机场（含经停）"
         labels = [
             item.text()
             for item in layouts[0].items()
@@ -93,6 +108,8 @@ def main() -> int:
         ] if len(layouts) == 1 else []
         if subtitle not in labels:
             errors.append("Flight summary subtitle is outdated or missing")
+        if "数据截至 2026.11" not in labels:
+            errors.append("Flight data cutoff is outdated or missing")
         image = QImage(str(png))
         image_info = None
         if image.isNull():

@@ -2,7 +2,7 @@
   "source": "F:\\Desktop\\Blog\\source\\_posts\\行旅杂记.md",
   "railway_source": "F:\\Desktop\\Blog\\source\\_posts\\行旅杂记.md",
   "province_count": 23,
-  "city_count": 97,
+  "city_count": 98,
   "places": [
     {
       "category": "province",
@@ -149,7 +149,8 @@
       "cities": [
         "枣庄",
         "德州",
-        "菏泽"
+        "菏泽",
+        "东营"
       ]
     },
     {
@@ -263,11 +264,11 @@
       ]
     }
   ],
-  "rail_record_count": 148,
+  "rail_record_count": 149,
   "station_count": 144,
   "service_counts": {
     "conventional": 53,
-    "highspeed": 95
+    "highspeed": 96
   },
   "stations": [
     "上海",
@@ -2100,7 +2101,7 @@
       "train": "G3935",
       "distance_km": 483,
       "service_class": "highspeed",
-      "time": "11:17-13:46",
+      "time": "11:20-13:46",
       "note": "",
       "control_points": [
         "曹县西",
@@ -2127,6 +2128,17 @@
         "天津西",
         "广阳"
       ]
+    },
+    {
+      "seq": 149,
+      "date": "2026.11.21",
+      "origin": "北京西",
+      "destination": "大兴机场",
+      "train": "G8851",
+      "distance_km": 47,
+      "service_class": "highspeed",
+      "time": "7:31-8:00",
+      "note": ""
     }
   ]
 }

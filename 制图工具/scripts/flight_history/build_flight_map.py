@@ -84,6 +84,8 @@ AIRPORTS = {
     "JGN": ("嘉峪关酒泉", 98.339344, 39.859052),
     "DNH": ("敦煌莫高", 94.812827, 40.161953),
     "LHW": ("兰州中川", 103.620003, 36.515202),
+    # OurAirports ZSDY airport page, checked 2026-11-21.
+    "DOY": ("东营胜利", 118.789863, 37.501370),
 }
 
 
@@ -105,6 +107,7 @@ FLIGHTS = (
     ("2026.6", "LHW", "HFE", "MU9977", 1473, None),
     # 中国国航，空客321-252(NX)。
     ("2026.8", "PEK", "HFE", "CA1845", 959, None),
+    ("2026.11.21", "PKX", "DOY", "KN5915", 469, None),
 )
 
 
@@ -422,7 +425,9 @@ def build_layout(project: QgsProject, main_layers: list, inset_layers: list) -> 
     add_label(layout, "飞行航迹", 12, 3, 190, 16, 27, "#F2FAFC", "华文新魏")
     add_label(
         layout,
-        "16 次飞行｜累计 22,240 km｜抵达 12 座城市、13 座机场（含经停）",
+        f"{len(FLIGHTS)} 次飞行｜累计 {sum(flight[4] for flight in FLIGHTS):,} km｜抵达 "
+        f"{len({'北京' if code in {'PEK', 'PKX'} else code for code in AIRPORTS})} 座城市、"
+        f"{len(AIRPORTS)} 座机场（含经停）",
         13,
         20,
         390,
@@ -460,7 +465,8 @@ def build_layout(project: QgsProject, main_layers: list, inset_layers: list) -> 
     inset.setKeepLayerSet(True)
     add_label(layout, "南海诸岛", 376, 277, 38, 7, 5.2, "#4F8194", "思源黑体 CN", align=Qt.AlignRight)
 
-    add_label(layout, "数据截至 2026.08", 343, 297, 75, 9, 12.0, "#FFFFFF", "思源黑体 CN", bold=True)
+    year, month = max(tuple(map(int, flight[0].split('.')[:2])) for flight in FLIGHTS)
+    add_label(layout, f"数据截至 {year}.{month:02d}", 343, 297, 75, 9, 12.0, "#FFFFFF", "思源黑体 CN", bold=True)
     return layout
 
 
@@ -470,7 +476,7 @@ def main() -> int:
     for source in (PROVINCE_SOURCE,):
         if not source.exists():
             raise FileNotFoundError(source)
-    if sum(flight[4] for flight in FLIGHTS) != 22240:
+    if sum(flight[4] for flight in FLIGHTS) != 22709:
         raise RuntimeError("Flight mileage total no longer matches the article")
 
     app = QgsApplication([], False)
