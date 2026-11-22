@@ -27,14 +27,18 @@ class ArticleTimetableTests(unittest.TestCase):
 
     def test_current_article_has_complete_timetable_and_correct_direction(self):
         records = read_rail_records(DEFAULT_POST)
-        self.assertEqual(len(records), 149)
-        self.assertEqual(sum(r["distance_km"] for r in records), 62713)
+        self.assertEqual(len(records), 150)
+        self.assertEqual(sum(r["distance_km"] for r in records), 63248)
         self.assertEqual((records[10]["origin"], records[10]["destination"]), ("广州南", "湛江西"))
         self.assertEqual(records[104]["time"], "11:37-19:03")
         self.assertEqual(records[106]["date"], "2026.4.19")
         self.assertEqual(
             tuple(records[148][field] for field in ("date", "origin", "destination", "train", "distance_km", "time")),
             ("2026.11.21", "北京西", "大兴机场", "G8851", 47, "7:31-8:00"),
+        )
+        self.assertEqual(
+            tuple(records[149][field] for field in ("date", "origin", "destination", "train", "distance_km", "time", "note")),
+            ("2026.11.23", "东营", "北京丰台", "K1786", 535, "8:07-15:10", ""),
         )
 
 

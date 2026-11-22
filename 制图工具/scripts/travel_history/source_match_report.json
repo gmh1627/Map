@@ -1337,6 +1337,13 @@
       "tags": "\"name:en\"=>\"Longxi\",\"public_transport\"=>\"station\",\"railway\"=>\"station\"",
       "score": 6
     },
+    "东营": {
+      "fid": 31204,
+      "lon": 118.46631420000001,
+      "lat": 37.454591400000005,
+      "tags": "\"alt_name\"=>\"东营站;东营火车站;Dongying Railway Station\",\"internet_access\"=>\"no\",\"name:en\"=>\"Dongying\",\"name:zh\"=>\"东营\",\"public_transport\"=>\"station\",\"railway\"=>\"station\",\"railway:position:exact:张东\"=>\"88.337\",\"railway:ref\"=>\"18155\",\"train\"=>\"yes\"",
+      "score": 7
+    },
     "寿县": {
       "fid": 31258,
       "lon": 116.80055200000001,

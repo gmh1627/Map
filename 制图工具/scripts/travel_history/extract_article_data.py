@@ -12,8 +12,8 @@ from parse_source import parse_rail_records as parse_article_rail_records
 DEFAULT_ARTICLE = Path(r"F:\Desktop\Blog\source\_posts\行旅杂记.md")
 EXPECTED_PROVINCES = 23
 EXPECTED_CITIES = 98
-EXPECTED_RAIL_TRIPS = 149
-EXPECTED_RAIL_DISTANCE_KM = 62713
+EXPECTED_RAIL_TRIPS = 150
+EXPECTED_RAIL_DISTANCE_KM = 63248
 
 
 def parse_args() -> argparse.Namespace:
@@ -120,7 +120,7 @@ def main() -> int:
     actual = (province_count, city_count, len(records), distance_km)
     if actual != expected:
         raise RuntimeError(f"Article totals do not match: expected {expected}, got {actual}")
-    if class_counts != {"conventional": 53, "high_speed_emu": 96}:
+    if class_counts != {"conventional": 54, "high_speed_emu": 96}:
         raise RuntimeError(f"Rail class totals do not match article: {class_counts}")
 
     warnings = []

@@ -1,10 +1,10 @@
 {
   "rail_segments": 401017,
   "rail_overview_segments": 30829,
-  "route_count": 149,
-  "station_count": 144,
+  "route_count": 150,
+  "station_count": 145,
   "network_station_count": 5518,
-  "rail_city_count": 76,
+  "rail_city_count": 77,
   "province_boundaries": 35,
   "city_boundaries": 476,
   "source": "F:\\Desktop\\Blog\\Map\\制图工具\\数据源\\GeoPackage\\travel_map_home2_min_gan.gpkg",
@@ -13,20 +13,20 @@
   "route_simplify_degrees": 0.0,
   "administrative_simplify_degrees": 0.0,
   "summary": {
-    "route_count": 149,
-    "distance_km": 62713,
+    "route_count": 150,
+    "distance_km": 63248,
     "services": {
       "conventional": {
-        "trips": 53,
-        "table_km": 27514
+        "trips": 54,
+        "table_km": 28049
       },
       "highspeed": {
         "trips": 96,
         "table_km": 35199
       }
     },
-    "station_count": 144,
-    "city_count": 76,
+    "station_count": 145,
+    "city_count": 77,
     "latest_month": "2026.11"
   }
 }

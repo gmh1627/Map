@@ -17,7 +17,7 @@
   const cityPromises = {};
   let cityLabelKey = null;
   let stationKey = null;
-  const DATA_VERSION = "e5aa5b17e3b3";
+  const DATA_VERSION = "e6af09c3f7ea";
   const selectedYears = new Set();
   let selectedHub = "all";
   const stationCoordinates = new Map();
