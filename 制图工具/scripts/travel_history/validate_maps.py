@@ -58,7 +58,7 @@ EXPECTED_NEW_ROUTES = {
     147: ("G3935", "菏泽东", "合肥西", ["曹县西", "商丘", "阜阳西"]),
     148: ("K1036", "合肥", "北京丰台", ["蚌埠", "宿州", "徐州", "德州", "沧州", "天津西", "广阳"]),
     149: ("G8851", "北京西", "大兴机场", []),
-    150: ("K1786", "东营", "北京丰台", []),
+    150: ("K1786", "东营", "北京丰台", ["利津南", "阳信", "商河北", "德州", "沧州", "杨柳青", "天津西", "广阳"]),
 }
 EXPECTED_NETWORK_OVERRIDES = {95: ("highspeed", "conventional")}
 
@@ -259,6 +259,29 @@ def main() -> int:
                         errors.append(f"K1036 does not pass {name}")
                 if geometry.distance(QgsGeometry.fromPointXY(QgsPointXY(115.6850570, 37.7434930))) < 0.1:
                     errors.append("K1036 incorrectly detours via Hengshui")
+            k1786 = route_features.get(150)
+            if k1786 is None:
+                errors.append("Missing Dongying–Beijing Fengtai K1786 geometry")
+            else:
+                geometry = k1786.geometry()
+                # Locate each control on the line to verify both presence and order.
+                progress = []
+                for name, coordinate in (
+                    ("Lijin South", (118.1690204, 37.4064587)),
+                    ("Yangxin", (117.6125701, 37.5686529)),
+                    ("Shanghe North", (117.0933612, 37.4363824)),
+                    ("Dezhou", (116.2826708, 37.4486663)),
+                    ("Cangzhou", (116.8722034, 38.3090868)),
+                    ("Yangliuqing", (116.9960349, 39.1414621)),
+                    ("Tianjin West", (117.1571195, 39.157355)),
+                    ("Guangyang", (116.6998726, 39.5115603)),
+                ):
+                    point = QgsGeometry.fromPointXY(QgsPointXY(*coordinate))
+                    if geometry.distance(point) > 0.005:
+                        errors.append(f"K1786 does not pass {name}")
+                    progress.append(geometry.lineLocatePoint(point))
+                if any(position < 0 for position in progress) or progress != sorted(progress):
+                    errors.append("K1786 control stations are not in the recorded order")
         else:
             service_mismatches = []
 

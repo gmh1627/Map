@@ -2150,7 +2150,17 @@
       "distance_km": 535,
       "service_class": "conventional",
       "time": "8:07-15:10",
-      "note": ""
+      "note": "",
+      "control_points": [
+        "利津南",
+        "阳信",
+        "商河北",
+        "德州",
+        "沧州",
+        "杨柳青",
+        "天津西",
+        "广阳"
+      ]
     }
   ]
 }
