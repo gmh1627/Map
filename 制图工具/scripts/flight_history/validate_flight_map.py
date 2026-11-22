@@ -82,14 +82,14 @@ def main() -> int:
         else:
             for field, expected_value in {
                 "date": "2026.11.21", "origin": "PKX", "destination": "DOY",
-                "flight": "KN5915", "distance_km": 469, "via": "",
+                "flight": "KN5915", "distance_km": 460, "via": "",
             }.items():
                 if dongying[field] != expected_value:
                     errors.append(f"KN5915 {field}: expected {expected_value}, got {dongying[field]}")
             for coordinate in ((116.413967, 39.501289), (118.789863, 37.501370)):
                 if dongying.geometry().distance(QgsGeometry.fromPointXY(QgsPointXY(*coordinate))) > 1e-7:
                     errors.append("KN5915 does not end at the recorded airport")
-        if sum(int(feature["distance_km"]) for feature in route_by_seq.values()) != 22709:
+        if sum(int(feature["distance_km"]) for feature in route_by_seq.values()) != 22700:
             errors.append("Flight mileage total is incorrect")
         layouts = project.layoutManager().printLayouts()
         maps = [item for item in layouts[0].items() if isinstance(item, QgsLayoutItemMap)] if len(layouts) == 1 else []
@@ -100,7 +100,7 @@ def main() -> int:
             errors.append(f"Expected one main map, got {len(main_maps)}")
         elif arrow_layer.id() not in {layer.id() for layer in main_maps[0].layers()}:
             errors.append("Arrow layer is missing from the main map")
-        subtitle = "17 次飞行｜累计 22,709 km｜抵达 13 座城市、14 座机场（含经停）"
+        subtitle = "17 次飞行｜累计 22,700 km｜抵达 13 座城市、14 座机场（含经停）"
         labels = [
             item.text()
             for item in layouts[0].items()

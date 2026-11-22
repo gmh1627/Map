@@ -107,7 +107,7 @@ FLIGHTS = (
     ("2026.6", "LHW", "HFE", "MU9977", 1473, None),
     # 中国国航，空客321-252(NX)。
     ("2026.8", "PEK", "HFE", "CA1845", 959, None),
-    ("2026.11.21", "PKX", "DOY", "KN5915", 469, None),
+    ("2026.11.21", "PKX", "DOY", "KN5915", 460, None),
 )
 
 
@@ -476,7 +476,7 @@ def main() -> int:
     for source in (PROVINCE_SOURCE,):
         if not source.exists():
             raise FileNotFoundError(source)
-    if sum(flight[4] for flight in FLIGHTS) != 22709:
+    if sum(flight[4] for flight in FLIGHTS) != 22700:
         raise RuntimeError("Flight mileage total no longer matches the article")
 
     app = QgsApplication([], False)
